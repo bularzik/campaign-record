@@ -13,7 +13,8 @@
     "Create": "Create",
     "RecordsFolder": "Campaign Records",
     "Warning": {
-      "HiddenGMOnly": "Only a Gamemaster can hide or reveal records."
+      "HiddenGMOnly": "Only a Gamemaster can hide or reveal records.",
+      "CreateGroupFailed": "Failed to create the campaign group. See the console for details."
     },
     "Common": {
       "FIELDS": {

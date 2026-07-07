@@ -14,7 +14,12 @@ export function registerDirectoryUI() {
     btn.type = "button";
     btn.className = "campaign-record-create-group";
     btn.innerHTML = `<i class="fa-solid fa-book-atlas"></i> ${game.i18n.localize("CAMPAIGNRECORD.CreateGroup")}`;
-    btn.addEventListener("click", () => promptCreateGroup());
+    btn.addEventListener("click", () =>
+      promptCreateGroup().catch((error) => {
+        console.error("campaign-record | Failed to create group", error);
+        ui.notifications.error(game.i18n.localize("CAMPAIGNRECORD.Warning.CreateGroupFailed"));
+      })
+    );
     footer.append(btn);
   });
 }
