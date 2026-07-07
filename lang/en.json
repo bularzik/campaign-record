@@ -8,6 +8,10 @@
   },
   "CAMPAIGNRECORD": {
     "ModuleName": "Campaign Record",
+    "RecordsFolder": "Campaign Records",
+    "Warning": {
+      "HiddenGMOnly": "Only a Gamemaster can hide or reveal records."
+    },
     "Common": {
       "FIELDS": {
         "description": { "label": "Description" },

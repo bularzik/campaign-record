@@ -1,6 +1,13 @@
 import { registerDataModels } from "./data/registration.mjs";
+import { registerUpdateGuards } from "./hooks/guards.mjs";
+import { ensureRecordsFolder } from "./data/groups.mjs";
 
 Hooks.once("init", () => {
   console.log("campaign-record | Initializing Campaign Record");
   registerDataModels();
+  registerUpdateGuards();
+});
+
+Hooks.once("ready", () => {
+  if (game.user.isGM) ensureRecordsFolder();
 });
