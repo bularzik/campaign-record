@@ -12,6 +12,14 @@
     "GroupName": "Group Name",
     "Create": "Create",
     "RecordsFolder": "Campaign Records",
+    "Hidden": "Hidden",
+    "Visible": "Visible",
+    "DropActorHint": "Drop an Actor here to link it.",
+    "Sheets": {
+      "Npc": "Campaign Record NPC Sheet",
+      "Place": "Campaign Record Place Sheet",
+      "Quest": "Campaign Record Quest Sheet"
+    },
     "Warning": {
       "HiddenGMOnly": "Only a Gamemaster can hide or reveal records.",
       "CreateGroupFailed": "Failed to create the campaign group. See the console for details."

@@ -1,0 +1,17 @@
+<div class="form-fields-grid">
+  {{formGroup systemFields.role value=system.role localize=true}}
+  {{formGroup systemFields.location value=system.location localize=true}}
+  {{formGroup systemFields.race value=system.race localize=true}}
+  {{formGroup systemFields.gender value=system.gender localize=true}}
+  {{formGroup systemFields.profession value=system.profession localize=true}}
+  {{formGroup systemFields.voice value=system.voice localize=true}}
+  {{formGroup systemFields.faction value=system.faction localize=true}}
+  {{formGroup systemFields.status value=system.status localize=true}}
+</div>
+<div class="form-group campaign-record-drop">
+  <label>{{localize "CAMPAIGNRECORD.Npc.FIELDS.actor.label"}}</label>
+  {{#if enriched.actorLink}}{{{enriched.actorLink}}}{{else}}
+    <span class="hint">{{localize "CAMPAIGNRECORD.DropActorHint"}}</span>
+  {{/if}}
+</div>
+{{> campaign-record.common-edit}}

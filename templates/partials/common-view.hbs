@@ -1,0 +1,8 @@
+{{#if system.image}}<img class="record-image" src="{{system.image}}" alt="{{page.name}}">{{/if}}
+<section class="record-description">{{{enriched.description}}}</section>
+{{#if isGM}}{{#if enriched.gmNotes}}
+<section class="gm-only">
+  <h3>{{localize "CAMPAIGNRECORD.Common.FIELDS.gmNotes.label"}}</h3>
+  {{{enriched.gmNotes}}}
+</section>
+{{/if}}{{/if}}

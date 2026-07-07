@@ -1,0 +1,12 @@
+<dl class="record-facts">
+  {{#if system.role}}<dt>{{localize "CAMPAIGNRECORD.Npc.FIELDS.role.label"}}</dt><dd>{{system.role}}</dd>{{/if}}
+  {{#if system.location}}<dt>{{localize "CAMPAIGNRECORD.Npc.FIELDS.location.label"}}</dt><dd>{{system.location}}</dd>{{/if}}
+  {{#if system.race}}<dt>{{localize "CAMPAIGNRECORD.Npc.FIELDS.race.label"}}</dt><dd>{{system.race}}</dd>{{/if}}
+  {{#if system.gender}}<dt>{{localize "CAMPAIGNRECORD.Npc.FIELDS.gender.label"}}</dt><dd>{{system.gender}}</dd>{{/if}}
+  {{#if system.profession}}<dt>{{localize "CAMPAIGNRECORD.Npc.FIELDS.profession.label"}}</dt><dd>{{system.profession}}</dd>{{/if}}
+  {{#if system.voice}}<dt>{{localize "CAMPAIGNRECORD.Npc.FIELDS.voice.label"}}</dt><dd>{{system.voice}}</dd>{{/if}}
+  {{#if system.faction}}<dt>{{localize "CAMPAIGNRECORD.Npc.FIELDS.faction.label"}}</dt><dd>{{system.faction}}</dd>{{/if}}
+  <dt>{{localize "CAMPAIGNRECORD.Npc.FIELDS.status.label"}}</dt><dd>{{system.status}}</dd>
+  {{#if enriched.actorLink}}<dt>{{localize "CAMPAIGNRECORD.Npc.FIELDS.actor.label"}}</dt><dd>{{{enriched.actorLink}}}</dd>{{/if}}
+</dl>
+{{> campaign-record.common-view}}
