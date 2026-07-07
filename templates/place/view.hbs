@@ -1,0 +1,8 @@
+<dl class="record-facts">
+  <dt>{{localize "CAMPAIGNRECORD.Place.FIELDS.placeType.label"}}</dt><dd>{{system.placeType}}</dd>
+  {{#if system.location}}<dt>{{localize "CAMPAIGNRECORD.Place.FIELDS.location.label"}}</dt><dd>{{system.location}}</dd>{{/if}}
+  {{#if system.government}}<dt>{{localize "CAMPAIGNRECORD.Place.FIELDS.government.label"}}</dt><dd>{{system.government}}</dd>{{/if}}
+  {{#if system.size}}<dt>{{localize "CAMPAIGNRECORD.Place.FIELDS.size.label"}}</dt><dd>{{system.size}}</dd>{{/if}}
+  {{#if enriched.sceneLink}}<dt>{{localize "CAMPAIGNRECORD.Place.FIELDS.scene.label"}}</dt><dd>{{{enriched.sceneLink}}}</dd>{{/if}}
+</dl>
+{{> campaign-record.common-view}}

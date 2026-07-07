@@ -15,6 +15,7 @@
     "Hidden": "Hidden",
     "Visible": "Visible",
     "DropActorHint": "Drop an Actor here to link it.",
+    "DropSceneHint": "Drop a Scene here to link it.",
     "Sheets": {
       "Npc": "Campaign Record NPC Sheet",
       "Place": "Campaign Record Place Sheet",

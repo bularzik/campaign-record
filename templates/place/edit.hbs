@@ -1,0 +1,13 @@
+<div class="form-fields-grid">
+  {{formGroup systemFields.placeType value=system.placeType localize=true}}
+  {{formGroup systemFields.location value=system.location localize=true}}
+  {{formGroup systemFields.government value=system.government localize=true}}
+  {{formGroup systemFields.size value=system.size localize=true}}
+</div>
+<div class="form-group campaign-record-drop">
+  <label>{{localize "CAMPAIGNRECORD.Place.FIELDS.scene.label"}}</label>
+  {{#if enriched.sceneLink}}{{{enriched.sceneLink}}}{{else}}
+    <span class="hint">{{localize "CAMPAIGNRECORD.DropSceneHint"}}</span>
+  {{/if}}
+</div>
+{{> campaign-record.common-edit}}

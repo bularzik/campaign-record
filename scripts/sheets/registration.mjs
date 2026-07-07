@@ -1,5 +1,6 @@
 import { MODULE_ID, typeId } from "../constants.mjs";
 import { NpcSheet } from "./npc-sheet.mjs";
+import { PlaceSheet } from "./place-sheet.mjs";
 
 const { DocumentSheetConfig } = foundry.applications.apps;
 
@@ -8,6 +9,11 @@ export function registerSheets() {
     types: [typeId("npc")],
     makeDefault: true,
     label: "CAMPAIGNRECORD.Sheets.Npc"
+  });
+  DocumentSheetConfig.registerSheet(JournalEntryPage, MODULE_ID, PlaceSheet, {
+    types: [typeId("place")],
+    makeDefault: true,
+    label: "CAMPAIGNRECORD.Sheets.Place"
   });
 }
 
