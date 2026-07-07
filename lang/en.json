@@ -1,5 +1,56 @@
 {
+  "TYPES": {
+    "JournalEntryPage": {
+      "campaign-record.npc": "NPC",
+      "campaign-record.place": "Place",
+      "campaign-record.quest": "Quest"
+    }
+  },
   "CAMPAIGNRECORD": {
-    "ModuleName": "Campaign Record"
+    "ModuleName": "Campaign Record",
+    "Common": {
+      "FIELDS": {
+        "description": { "label": "Description" },
+        "gmNotes": { "label": "GM Notes" },
+        "image": { "label": "Image" },
+        "tags": { "label": "Tags" },
+        "hidden": { "label": "Hidden from players" },
+        "timepoints": { "label": "Timeline points" }
+      }
+    },
+    "Npc": {
+      "FIELDS": {
+        "role": { "label": "Role" },
+        "location": { "label": "Location" },
+        "race": { "label": "Race" },
+        "gender": { "label": "Gender" },
+        "profession": { "label": "Profession" },
+        "voice": { "label": "Voice" },
+        "faction": { "label": "Faction" },
+        "status": { "label": "Status" },
+        "actor": { "label": "Linked Actor" }
+      },
+      "Status": { "alive": "Alive", "dead": "Dead", "unknown": "Unknown" }
+    },
+    "Place": {
+      "FIELDS": {
+        "location": { "label": "Located In" },
+        "government": { "label": "Government" },
+        "size": { "label": "Size" },
+        "placeType": { "label": "Place Type" },
+        "scene": { "label": "Linked Scene" }
+      },
+      "Type": { "town": "Town", "region": "Region", "poi": "Point of Interest", "feature": "Geographical Feature" }
+    },
+    "Quest": {
+      "FIELDS": {
+        "source": { "label": "Source" },
+        "status": { "label": "Status" },
+        "objectives": { "label": "Objectives" },
+        "rewards": { "label": "Rewards" },
+        "parentQuest": { "label": "Parent Quest" }
+      },
+      "Status": { "available": "Available", "active": "Active", "completed": "Completed", "failed": "Failed", "abandoned": "Abandoned" }
+    }
   }
 }

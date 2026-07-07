@@ -8,6 +8,13 @@
   "esmodules": ["scripts/campaign-record.mjs"],
   "styles": ["styles/campaign-record.css"],
   "languages": [{ "lang": "en", "name": "English", "path": "lang/en.json" }],
+  "documentTypes": {
+    "JournalEntryPage": {
+      "npc": {},
+      "place": {},
+      "quest": {}
+    }
+  },
   "url": "",
   "manifest": "",
   "download": ""
