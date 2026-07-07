@@ -17,6 +17,6 @@ export async function promptCreateGroup() {
   });
   if (!name) return null;
   const group = await createGroup(name);
-  group.sheet.render(true);
+  group?.sheet.render(true);
   return group;
 }

@@ -8,8 +8,7 @@
     {{#each objectives}}
     <li data-objective-id="{{this.id}}" class="{{#if this.gmOnly}}gm-only{{/if}}">
       <input type="checkbox" data-action="toggleObjective" {{#if this.done}}checked{{/if}}>
-      <input type="text" name="system.objectives.{{@index}}.text" value="{{this.text}}"
-             {{#unless @root.isGM}}disabled{{/unless}}>
+      <input type="text" data-objective-text value="{{this.text}}">
       {{#if @root.isGM}}
       <button type="button" data-action="toggleObjectiveGmOnly"
               data-tooltip="CAMPAIGNRECORD.ObjectiveGmOnly">
@@ -26,6 +25,6 @@
 </fieldset>
 <div class="form-group stacked">
   <label>{{localize "CAMPAIGNRECORD.Quest.FIELDS.rewards.label"}}</label>
-  <prose-mirror name="system.rewards" toggled collaborate>{{{enriched.rewards}}}</prose-mirror>
+  <prose-mirror name="system.rewards" toggled collaborate document-uuid="{{page.uuid}}">{{{enriched.rewards}}}</prose-mirror>
 </div>
 {{> campaign-record.common-edit}}

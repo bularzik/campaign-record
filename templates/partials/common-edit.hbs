@@ -14,11 +14,11 @@
 {{/if}}
 <div class="form-group stacked">
   <label>{{localize "CAMPAIGNRECORD.Common.FIELDS.description.label"}}</label>
-  <prose-mirror name="system.description" toggled collaborate>{{{enriched.description}}}</prose-mirror>
+  <prose-mirror name="system.description" toggled collaborate document-uuid="{{page.uuid}}">{{{enriched.description}}}</prose-mirror>
 </div>
 {{#if isGM}}
 <div class="form-group stacked gm-only">
   <label>{{localize "CAMPAIGNRECORD.Common.FIELDS.gmNotes.label"}}</label>
-  <prose-mirror name="system.gmNotes" toggled collaborate>{{{enriched.gmNotes}}}</prose-mirror>
+  <prose-mirror name="system.gmNotes" toggled collaborate document-uuid="{{page.uuid}}">{{{enriched.gmNotes}}}</prose-mirror>
 </div>
 {{/if}}

@@ -39,6 +39,24 @@ export class QuestSheet extends BaseRecordSheet {
     await this.document.update({ "system.objectives": objectives });
   }
 
+  _onRender(context, options) {
+    super._onRender(context, options);
+    for (const input of this.element.querySelectorAll("input[data-objective-text]")) {
+      input.addEventListener("change", (event) => {
+        event.stopPropagation();
+        const id = event.currentTarget.closest("[data-objective-id]").dataset.objectiveId;
+        this.#updateObjectiveText(id, event.currentTarget.value);
+      });
+    }
+  }
+
+  async #updateObjectiveText(id, text) {
+    await this.#updateObjectives((objectives) => {
+      const o = objectives.find((x) => x.id === id);
+      if (o) o.text = text;
+    });
+  }
+
   static async #onAddObjective() {
     await this.#updateObjectives((objectives) =>
       objectives.push({ id: foundry.utils.randomID(), text: "", done: false, gmOnly: false })
