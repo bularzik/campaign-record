@@ -138,6 +138,12 @@ Cross-record references store Foundry UUIDs plus a fallback display name.
 - New groups get `default: OWNER` ownership — every player can create, edit, and
   delete records. GM can flip a group to read-only (default: OBSERVER) in group
   settings.
+- Hiding a record sets its page `ownership.default` to NONE; revealing writes
+  the group's current effective default explicitly (Foundry v13 rejects
+  re-writing the `-1` inherit marker through updates — verified empirically
+  on v13.351). Explicit per-user ownership overrides (including the
+  auto-assigned creator OWNER entry) are not swept and can leak hidden
+  records to those users; accepted limitation, on the manual checklist.
 - GM privacy: `hidden` records (filtered from all player-facing views, page
   sheets blocked) and GM-only fields (`gmNotes`, hidden objectives), stripped at
   render time.
@@ -180,7 +186,14 @@ Cross-record references store Foundry UUIDs plus a fallback display name.
    globals.
 2. **Integration (Quench):** in-world suite covering document CRUD, permission
    behavior, and hook wiring.
-3. **Manual multi-client checklist:** collaborative editing and presenter flows,
+3. **End-to-end (Playwright):** automated multi-client tests against a local
+   Foundry v13 server with a dedicated test world (`tests/e2e/`, see its
+   README for the environment contract). Real browser clients log in as GM
+   and players and exercise sheets, permissions, GM secrecy, and collaborative
+   editing. **Every phase extends this suite with specs for its features**
+   (added 2026-07-07; the Phase 1 suite is the template).
+4. **Manual multi-client checklist:** reduced to what automation can't cover —
+   pointer-driven drag-and-drop from the sidebar and subjective look/feel —
    run before each release.
 
 ## Non-Functional
@@ -200,15 +213,28 @@ Cross-record references store Foundry UUIDs plus a fallback display name.
 
 ## Build Phasing
 
-Each phase ships something usable:
+Each phase ships something usable, and each phase's plan must include
+Playwright e2e specs for its features (run against the local test world
+per `tests/e2e/README.md`) alongside its Vitest/Quench coverage:
 
 1. **Core** — module scaffold, group management, base data model, page type
    registration, NPC + Place + Quest + core-text records with sheets,
-   permissions model.
-2. **Hub** — index view, then search, then timeline.
+   permissions model. *(Shipped; e2e suite covers module load, group
+   creation/permissions, record sheets, quest objectives, collaboration,
+   and GM secrecy.)*
+2. **Hub** — index view, then search, then timeline. *E2E: index filtering
+   and type chips, live re-render on document updates, search hits across
+   record fields (GM-only fields excluded for players), timepoint
+   add/rename/reorder and record attachment from both GM and player clients.*
 3. **Remaining types** — PC, Item, Encounter, Shop, Loot, Checklist, Media
-   (sheet only).
+   (sheet only). *E2E: one render/persist/view spec per type following the
+   Phase 1 sheet-spec pattern; checklist item toggling from both clients;
+   shop inventory row add/edit/delete.*
 4. **Presenter + 5e layer** — slideshow sockets, dnd5e currency/item/actor
-   integration.
+   integration. *E2E: GM presents an image and a player context receives the
+   overlay; slideshow next/prev sync; player-side dismiss; hidden media
+   cannot be presented; 5e item drop populates price/rarity (world system is
+   dnd5e).*
 5. **Release polish** — migration runner, localization sweep, Quench suite
-   completion, Foundry package listing.
+   completion, Foundry package listing. *E2E: full-suite green gate plus a
+   migration spec (seed old-schema data, reload, assert migrated).*
