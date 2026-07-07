@@ -49,8 +49,11 @@ export async function createGroup(name) {
  * revealing restores inheritance from the group entry.
  */
 export async function setRecordHidden(page, hidden) {
+  // v13.351 rejects writing the inherit marker (-1) through updates (it only
+  // survives document construction), so revealing writes the group's current
+  // effective default explicitly instead of restoring inheritance.
   const ownershipDefault = hidden
     ? CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE
-    : CONST.DOCUMENT_META_OWNERSHIP_LEVELS.DEFAULT;
+    : page.parent.ownership.default;
   return page.update({ "system.hidden": hidden, "ownership.default": ownershipDefault });
 }
