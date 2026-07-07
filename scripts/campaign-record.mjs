@@ -1,3 +1,4 @@
+import "./testing/quench.mjs";
 import { registerDataModels } from "./data/registration.mjs";
 import { registerUpdateGuards } from "./hooks/guards.mjs";
 import { registerDirectoryUI } from "./hooks/directory.mjs";
