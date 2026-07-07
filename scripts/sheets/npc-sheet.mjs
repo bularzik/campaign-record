@@ -9,6 +9,7 @@ export class NpcSheet extends BaseRecordSheet {
   };
 
   static VIEW_PARTS = {
+    ...super.VIEW_PARTS,
     content: { template: "modules/campaign-record/templates/npc/view.hbs" }
   };
 
