@@ -1,0 +1,31 @@
+<div class="form-fields-grid">
+  {{formGroup systemFields.source value=system.source localize=true}}
+  {{formGroup systemFields.status value=system.status localize=true}}
+</div>
+<fieldset class="quest-objectives">
+  <legend>{{localize "CAMPAIGNRECORD.Quest.FIELDS.objectives.label"}}</legend>
+  <ol>
+    {{#each objectives}}
+    <li data-objective-id="{{this.id}}" class="{{#if this.gmOnly}}gm-only{{/if}}">
+      <input type="checkbox" data-action="toggleObjective" {{#if this.done}}checked{{/if}}>
+      <input type="text" name="system.objectives.{{@index}}.text" value="{{this.text}}"
+             {{#unless @root.isGM}}disabled{{/unless}}>
+      {{#if @root.isGM}}
+      <button type="button" data-action="toggleObjectiveGmOnly"
+              data-tooltip="CAMPAIGNRECORD.ObjectiveGmOnly">
+        <i class="fa-solid {{#if this.gmOnly}}fa-eye-slash{{else}}fa-eye{{/if}}"></i>
+      </button>
+      {{/if}}
+      <button type="button" data-action="deleteObjective"><i class="fa-solid fa-trash"></i></button>
+    </li>
+    {{/each}}
+  </ol>
+  <button type="button" data-action="addObjective">
+    <i class="fa-solid fa-plus"></i> {{localize "CAMPAIGNRECORD.AddObjective"}}
+  </button>
+</fieldset>
+<div class="form-group stacked">
+  <label>{{localize "CAMPAIGNRECORD.Quest.FIELDS.rewards.label"}}</label>
+  <prose-mirror name="system.rewards" toggled collaborate>{{{enriched.rewards}}}</prose-mirror>
+</div>
+{{> campaign-record.common-edit}}

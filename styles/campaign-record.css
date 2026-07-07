@@ -16,3 +16,14 @@
   border-left: 3px solid var(--color-level-warning, #ee9b3a);
   padding-left: 0.5rem;
 }
+
+.campaign-record .quest-objectives li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.campaign-record .quest-objectives .done {
+  text-decoration: line-through;
+  opacity: 0.7;
+}

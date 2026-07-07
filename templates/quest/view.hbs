@@ -1,0 +1,22 @@
+<dl class="record-facts">
+  {{#if system.source}}<dt>{{localize "CAMPAIGNRECORD.Quest.FIELDS.source.label"}}</dt><dd>{{system.source}}</dd>{{/if}}
+  <dt>{{localize "CAMPAIGNRECORD.Quest.FIELDS.status.label"}}</dt><dd>{{system.status}}</dd>
+</dl>
+<section class="quest-objectives">
+  <h3>{{localize "CAMPAIGNRECORD.Quest.FIELDS.objectives.label"}}</h3>
+  <ol>
+    {{#each objectives}}
+    <li data-objective-id="{{this.id}}" class="{{#if this.gmOnly}}gm-only{{/if}}">
+      <input type="checkbox" data-action="toggleObjective" {{#if this.done}}checked{{/if}}>
+      <span class="{{#if this.done}}done{{/if}}">{{this.text}}</span>
+    </li>
+    {{/each}}
+  </ol>
+</section>
+{{#if enriched.rewards}}
+<section class="quest-rewards">
+  <h3>{{localize "CAMPAIGNRECORD.Quest.FIELDS.rewards.label"}}</h3>
+  {{{enriched.rewards}}}
+</section>
+{{/if}}
+{{> campaign-record.common-view}}

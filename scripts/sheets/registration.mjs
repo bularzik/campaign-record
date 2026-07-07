@@ -1,6 +1,7 @@
 import { MODULE_ID, typeId } from "../constants.mjs";
 import { NpcSheet } from "./npc-sheet.mjs";
 import { PlaceSheet } from "./place-sheet.mjs";
+import { QuestSheet } from "./quest-sheet.mjs";
 
 const { DocumentSheetConfig } = foundry.applications.apps;
 
@@ -14,6 +15,11 @@ export function registerSheets() {
     types: [typeId("place")],
     makeDefault: true,
     label: "CAMPAIGNRECORD.Sheets.Place"
+  });
+  DocumentSheetConfig.registerSheet(JournalEntryPage, MODULE_ID, QuestSheet, {
+    types: [typeId("quest")],
+    makeDefault: true,
+    label: "CAMPAIGNRECORD.Sheets.Quest"
   });
 }
 

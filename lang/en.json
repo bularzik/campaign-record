@@ -8,6 +8,8 @@
   },
   "CAMPAIGNRECORD": {
     "ModuleName": "Campaign Record",
+    "AddObjective": "Add Objective",
+    "ObjectiveGmOnly": "Toggle GM-only",
     "CreateGroup": "Create Campaign Group",
     "GroupName": "Group Name",
     "Create": "Create",
