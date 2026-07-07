@@ -1,0 +1,18 @@
+/* Campaign Record */
+.campaign-record .form-fields-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.25rem 1rem;
+}
+
+.campaign-record .campaign-record-drop {
+  border: 1px dashed var(--color-border-light-primary, #7a7971);
+  border-radius: 4px;
+  padding: 0.5rem;
+  text-align: center;
+}
+
+.campaign-record .gm-only {
+  border-left: 3px solid var(--color-level-warning, #ee9b3a);
+  padding-left: 0.5rem;
+}
