@@ -8,6 +8,9 @@
   },
   "CAMPAIGNRECORD": {
     "ModuleName": "Campaign Record",
+    "CreateGroup": "Create Campaign Group",
+    "GroupName": "Group Name",
+    "Create": "Create",
     "RecordsFolder": "Campaign Records",
     "Warning": {
       "HiddenGMOnly": "Only a Gamemaster can hide or reveal records."
