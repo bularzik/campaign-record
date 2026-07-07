@@ -20,15 +20,20 @@ export function createIndex() {
   return { tokens: new Map(), records: new Map() };
 }
 
+const GM_PREFIX = "gm:";
+
 export function indexRecord(index, record) {
   removeRecord(index, record.uuid);
+  const gmFields = record.gmFields ?? {};
   const fields = {
     name: record.name,
     tags: (record.tags ?? []).join(" "),
-    ...(record.fields ?? {}),
-    ...(record.gmFields ?? {})
+    ...(record.fields ?? {})
   };
-  const gmOnly = new Set(Object.keys(record.gmFields ?? {}));
+  for (const [field, raw] of Object.entries(gmFields)) {
+    fields[`${GM_PREFIX}${field}`] = raw;
+  }
+  const gmOnly = new Set(Object.keys(gmFields).map((field) => `${GM_PREFIX}${field}`));
   const texts = {};
   for (const [field, raw] of Object.entries(fields)) {
     const text = stripHtml(raw).replace(/\s+/g, " ").trim();
@@ -59,8 +64,19 @@ function snippetFor(text, terms, radius = 40) {
   const lower = text.toLowerCase();
   let pos = -1;
   for (const t of terms) {
-    pos = lower.indexOf(t);
-    if (pos >= 0) break;
+    const escaped = t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const boundaryRe = new RegExp(`(?:^|[^\\p{L}\\p{N}])(${escaped})`, "iu");
+    const match = boundaryRe.exec(text);
+    if (match) {
+      pos = match.index + match[0].length - match[1].length;
+      break;
+    }
+  }
+  if (pos < 0) {
+    for (const t of terms) {
+      pos = lower.indexOf(t);
+      if (pos >= 0) break;
+    }
   }
   if (pos < 0) return text.slice(0, radius * 2);
   const start = Math.max(0, pos - radius);
@@ -99,7 +115,10 @@ export function search(index, query, { gm = false } = {}) {
     if (!fields.length) continue;
     results.push({
       uuid, name: rec.name, type: rec.type,
-      matches: fields.map((f) => ({ field: f, snippet: snippetFor(rec.texts[f], terms) }))
+      matches: fields.map((f) => ({
+        field: f.startsWith(GM_PREFIX) ? f.slice(GM_PREFIX.length) : f,
+        snippet: snippetFor(rec.texts[f], terms)
+      }))
     });
   }
   return results.sort((a, b) => a.name.localeCompare(b.name));

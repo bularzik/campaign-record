@@ -72,4 +72,36 @@ describe("search", () => {
     expect(search(index, "", { gm: true })).toEqual([]);
     expect(search(index, "a", { gm: true })).toEqual([]);
   });
+
+  it("snippet centers on the token-boundary match, not an embedded substring", () => {
+    // "cast" appears as a non-token-boundary substring inside "outcast" near the start,
+    // and as a real token-boundary match at the start of "castle" much later. The text
+    // is long enough (>80 chars) that the snippet window can't just cover the whole
+    // string, so a wrong match position produces a genuinely different (wrong) snippet.
+    indexRecord(index, {
+      uuid: "u3", name: "Watchtower", type: "campaign-record.place", tags: [],
+      fields: {
+        description:
+          "An outcast wandered through the dark forest for many long years before " +
+          "finally arriving near the old castle gates at last."
+      },
+      gmFields: {}
+    });
+    const [hit] = search(index, "cast", { gm: false }).filter((h) => h.uuid === "u3");
+    const snippet = hit.matches.find((m) => m.field === "description").snippet;
+    expect(snippet).toMatch(/castle/i);
+    // the snippet is centered on "castle" near the end, not the "outcast" false hit near the start
+    expect(snippet.startsWith("An outcast")).toBe(false);
+  });
+
+  it("a gm field never shadows a same-named public field", () => {
+    indexRecord(index, {
+      uuid: "u4", name: "Twin", type: "campaign-record.npc", tags: [],
+      fields: { notes: "public sunflower" }, gmFields: { notes: "secret moonpetal" }
+    });
+    expect(search(index, "sunflower", { gm: false })).toHaveLength(1);
+    expect(search(index, "moonpetal", { gm: false })).toHaveLength(0);
+    expect(search(index, "moonpetal", { gm: true })).toHaveLength(1);
+    expect(search(index, "sunflower", { gm: true })).toHaveLength(1);
+  });
 });
