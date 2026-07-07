@@ -1,3 +1,4 @@
+<section class="campaign-record-content record-edit">
 <div class="form-fields-grid">
   {{formGroup systemFields.source value=system.source localize=true}}
   {{formGroup systemFields.status value=system.status localize=true}}
@@ -28,3 +29,4 @@
   <prose-mirror name="system.rewards" toggled collaborate document-uuid="{{page.uuid}}">{{{enriched.rewards}}}</prose-mirror>
 </div>
 {{> campaign-record.common-edit}}
+</section>
