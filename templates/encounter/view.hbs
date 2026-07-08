@@ -1,0 +1,19 @@
+<section class="campaign-record-content record-view">
+<dl class="record-facts">
+  {{#if system.location}}<dt>{{localize "CAMPAIGNRECORD.Encounter.FIELDS.location.label"}}</dt><dd>{{system.location}}</dd>{{/if}}
+  {{#if system.difficulty}}<dt>{{localize "CAMPAIGNRECORD.Encounter.FIELDS.difficulty.label"}}</dt><dd>{{system.difficulty}}</dd>{{/if}}
+  {{#if system.outcome}}<dt>{{localize "CAMPAIGNRECORD.Encounter.FIELDS.outcome.label"}}</dt><dd>{{system.outcome}}</dd>{{/if}}
+  {{#if enriched.sceneLink}}<dt>{{localize "CAMPAIGNRECORD.Encounter.FIELDS.scene.label"}}</dt><dd>{{{enriched.sceneLink}}}</dd>{{/if}}
+</dl>
+{{#if system.combatants.length}}
+<section class="encounter-combatants">
+  <h3>{{localize "CAMPAIGNRECORD.Encounter.FIELDS.combatants.label"}}</h3>
+  <ul>
+    {{#each system.combatants}}
+    <li>{{this.count}} × {{this.name}}</li>
+    {{/each}}
+  </ul>
+</section>
+{{/if}}
+{{> campaign-record.common-view}}
+</section>

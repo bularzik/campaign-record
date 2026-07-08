@@ -28,6 +28,8 @@ export function recordSubtitle(page) {
       return [s.playerName, s.classLevel].filter(Boolean).join(" — ");
     case `${TYPE_PREFIX}item`:
       return [s.itemType, s.rarity].filter(Boolean).join(" — ");
+    case `${TYPE_PREFIX}encounter`:
+      return [s.difficulty, s.location].filter(Boolean).join(" — ");
     default:
       return "";
   }
