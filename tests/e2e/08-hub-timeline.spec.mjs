@@ -95,4 +95,106 @@ test.describe("hub timeline", () => {
     await expect(gmPage.locator("#campaign-hub .record-chip", { hasText: "E2E Timeline NPC" }))
       .toHaveCount(0, { timeout: 10_000 });
   });
+
+  test("drop handlers: record attach, cross-group guards, malformed payload no-op", async () => {
+    await openTimeline(gmPage);
+    const dropSelector = `#campaign-hub .timeline-group[data-group-id="${ids.groupId}"] [data-drop-timepoint]`;
+
+    const dispatchDrop = (selector, payload) =>
+      gmPage.evaluate(
+        ({ selector, payload }) => {
+          const dt = new DataTransfer();
+          dt.setData("text/plain", typeof payload === "string" ? payload : JSON.stringify(payload));
+          const el = document.querySelector(selector);
+          if (!el) throw new Error(`drop target not found: ${selector}`);
+          el.dispatchEvent(new DragEvent("drop", { dataTransfer: dt, bubbles: true, cancelable: true }));
+        },
+        { selector, payload }
+      );
+
+    const isAttached = (groupId, pageId, timepointId) =>
+      gmPage.evaluate(
+        ({ groupId, pageId, timepointId }) => {
+          const page = game.journal.get(groupId).pages.get(pageId);
+          return !!page.system?.timepoints?.has?.(timepointId);
+        },
+        { groupId, pageId, timepointId }
+      );
+
+    const timepointOrder = (groupId) =>
+      gmPage.evaluate(async (groupId) => {
+        const { getTimepoints } = await import("/modules/campaign-record/scripts/data/timepoints.mjs");
+        return getTimepoints(game.journal.get(groupId)).map((t) => t.id);
+      }, groupId);
+
+    const timepointId = await gmPage.evaluate(
+      (selector) => document.querySelector(selector).dataset.timepointId,
+      dropSelector
+    );
+
+    // 1. Same-group record attach via drop.
+    await dispatchDrop(dropSelector, { kind: "campaign-record.record", uuid: ids.pageUuid });
+    await expect.poll(() => isAttached(ids.groupId, ids.pageId, timepointId), { timeout: 10_000 })
+      .toBe(true);
+
+    await gmPage.evaluate(
+      async ({ groupId, pageId, timepointId }) => {
+        const { detachRecord } = await import("/modules/campaign-record/scripts/data/timepoints.mjs");
+        const group = game.journal.get(groupId);
+        await detachRecord(group.pages.get(pageId), timepointId);
+      },
+      { groupId: ids.groupId, pageId: ids.pageId, timepointId }
+    );
+    await expect.poll(() => isAttached(ids.groupId, ids.pageId, timepointId)).toBe(false);
+
+    // 2. Cross-group record drop warns and does not attach.
+    const otherIds = await createGroupWithPage(
+      gmPage, "E2E Timeline Other", "E2E Timeline Other NPC", "campaign-record.npc"
+    );
+    const warnCount = await gmPage.evaluate(
+      ({ selector, payload }) =>
+        new Promise((resolve) => {
+          const original = ui.notifications.warn;
+          let count = 0;
+          ui.notifications.warn = (...args) => {
+            count++;
+            return original.apply(ui.notifications, args);
+          };
+          const dt = new DataTransfer();
+          dt.setData("text/plain", JSON.stringify(payload));
+          const el = document.querySelector(selector);
+          el.dispatchEvent(new DragEvent("drop", { dataTransfer: dt, bubbles: true, cancelable: true }));
+          setTimeout(() => {
+            ui.notifications.warn = original;
+            resolve(count);
+          }, 300);
+        }),
+      { selector: dropSelector, payload: { kind: "campaign-record.record", uuid: otherIds.pageUuid } }
+    );
+    expect(warnCount).toBeGreaterThan(0);
+
+    const otherAttachedAnywhere = await gmPage.evaluate(
+      ({ groupId, pageId }) => {
+        const page = game.journal.get(groupId).pages.get(pageId);
+        return !!page.system?.timepoints?.size;
+      },
+      { groupId: otherIds.groupId, pageId: otherIds.pageId }
+    );
+    expect(otherAttachedAnywhere).toBe(false);
+
+    // 3. Cross-group timepoint reorder is a no-op (guarded by data.groupId mismatch).
+    const orderBefore = await timepointOrder(ids.groupId);
+    await dispatchDrop(dropSelector, {
+      kind: "campaign-record.timepoint", id: timepointId, groupId: "not-the-real-group"
+    });
+    await gmPage.waitForTimeout(300);
+    expect(await timepointOrder(ids.groupId)).toEqual(orderBefore);
+
+    await deleteGroupsByPrefix(gmPage, "E2E Timeline Other");
+
+    // 4. Malformed payload is a no-op (JSON.parse throws, caught and swallowed).
+    await expect(dispatchDrop(dropSelector, "not json")).resolves.toBeUndefined();
+    await expect.poll(() => isAttached(ids.groupId, ids.pageId, timepointId)).toBe(false);
+    expect(await timepointOrder(ids.groupId)).toEqual(orderBefore);
+  });
 });
