@@ -76,7 +76,9 @@
     },
     "Warning": {
       "HiddenGMOnly": "Only a Gamemaster can hide or reveal records.",
-      "CreateGroupFailed": "Failed to create the campaign group. See the console for details."
+      "CreateGroupFailed": "Failed to create the campaign group. See the console for details.",
+      "SchemaNewer": "Campaign Record: this world's data (schema {stored}) was written by a newer module version than the one installed (schema {current}). Records are read-only until you update the module.",
+      "ReadOnly": "Campaign Record is read-only: the world's data schema is newer than the installed module."
     },
     "Common": {
       "FIELDS": {

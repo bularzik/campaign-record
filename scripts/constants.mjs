@@ -20,3 +20,7 @@ export const RECORD_TYPES = [
   "loot",
   "media"
 ];
+
+/** Structural schema version of world data written by this module. */
+export const SCHEMA_VERSION = 1;
+export const SCHEMA_SETTING = "schemaVersion";

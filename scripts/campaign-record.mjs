@@ -6,10 +6,12 @@ import { registerHubUI, registerHubKeybinding } from "./hooks/hub-ui.mjs";
 import { ensureRecordsFolder } from "./data/groups.mjs";
 import { registerSheets, registerPartials } from "./sheets/registration.mjs";
 import { registerPresenterSocket, requestPresentationSync } from "./presenter/socket.mjs";
+import { registerSchemaSetting, runMigrations } from "./data/migration-runner.mjs";
 
 Hooks.once("init", () => {
   console.log("campaign-record | Initializing Campaign Record");
   registerDataModels();
+  registerSchemaSetting();
   registerSheets();
   registerPartials();
   registerUpdateGuards();
@@ -18,7 +20,8 @@ Hooks.once("init", () => {
   registerHubKeybinding();
 });
 
-Hooks.once("ready", () => {
+Hooks.once("ready", async () => {
+  await runMigrations();
   registerPresenterSocket();
   // a reloading/late-joining client re-acquires any presentation in progress
   requestPresentationSync();
