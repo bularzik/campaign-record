@@ -4,9 +4,11 @@ A Foundry VTT (v13+) module for collaborative campaign journaling. Every player
 at the table can create and edit campaign records — NPCs, places, quests, and
 more — organized into shared campaign groups.
 
-**Status:** Phase 1 (core) — groups, NPC/Place/Quest record types, collaborative
-sheets, and GM-only content. Index, timeline, search, and further record types
-are planned; see `docs/superpowers/specs/2026-07-07-campaign-record-design.md`.
+**Status:** Phase 2 (Campaign Hub) — groups, NPC/Place/Quest record types,
+collaborative sheets, GM-only content, and the Campaign Hub: a filterable
+record index, cross-document search, and a free-form timeline. Further record
+types, the media presenter, and deeper dnd5e integration are planned; see
+`docs/superpowers/specs/2026-07-07-campaign-record-design.md`.
 
 ## Installation (development)
 
@@ -22,6 +24,10 @@ are planned; see `docs/superpowers/specs/2026-07-07-campaign-record-design.md`.
   Foundry's standard page types.
 - Everyone owns group content by default — all players can add and edit records.
 - GMs can hide records from players (eye toggle) and keep GM Notes on any record.
+- Open the **Campaign Hub** from the Journal sidebar button (or Ctrl+Shift+H):
+  browse and filter all records in the Index, search everything in Search,
+  and organize events on the Timeline — drag records from the Index onto a
+  timepoint to attach them.
 
 ## Development
 

@@ -26,6 +26,13 @@ walk only the manual section below with two browsers.
 - [x] GM hides a record: the player loses access; the client guard blocks a
       player setting hidden via the API; revealing restores access
       *(04-collaboration)*
+- [x] Hub opens from the sidebar for GM and players; tabs switch *(05-hub)*
+- [x] Index lists records, filters by type chip, live-updates, and hides
+      hidden records from players *(06-hub-index)*
+- [x] Search matches structured fields with prefixes and snippets; GM-only
+      content is searchable only by GMs *(07-hub-search)*
+- [x] Timepoints: GM and player add/rename via dialog, reorder persists,
+      record chips attach/detach across clients *(08-hub-timeline)*
 
 ## Manual (before each release)
 
@@ -40,3 +47,8 @@ walk only the manual section below with two browsers.
       this is a known gap in ownership-default-based hiding — file an issue.
       (Note: page creators receive explicit OWNER automatically, so records a
       player created fall under this case for that player.)
+- [ ] Quench "Campaign Record: Hub" batch passes.
+- [ ] Drag a record row from the Hub index onto a timeline timepoint — the
+      chip appears (pointer-driven drag is not automated).
+- [ ] Drag a timepoint onto another timepoint to reorder it.
+- [ ] The scene-controls journal group shows an "Open Campaign Hub" tool.
