@@ -203,7 +203,11 @@ test.describe("media sheet presenting", () => {
     const sheet = gmPage.locator(".campaign-record.record-sheet").last();
     await sheet.locator('[data-action="showImage"]').first().click();
     await expect.poll(() =>
-      gmPage.evaluate(() => document.querySelectorAll(".notification.warning").length)
+      gmPage.evaluate(() =>
+        [...document.querySelectorAll(".notification.warning")].filter((n) =>
+          n.textContent.includes("Hidden media")
+        ).length
+      )
     ).toBeGreaterThan(0);
     await settle(playerPage);
     await expect(playerOverlay()).toHaveCount(0);

@@ -88,5 +88,21 @@ test.describe("dnd5e integration (world-b is dnd5e)", () => {
     await info.waitFor({ timeout: 15_000 });
     await expect(info).toContainText("E2E 5e Guard");
     await expect(info).toContainText("HP");
+
+    // same summary path on the PC sheet
+    await page.evaluate(
+      async ({ groupId, actorUuid }) => {
+        const g = game.journal.get(groupId);
+        const [p] = await g.createEmbeddedDocuments("JournalEntryPage", [
+          { name: "E2E 5e PC", type: "campaign-record.pc" }
+        ]);
+        await p.sheet.render(true);
+        await p.sheet._onDropDocument({ type: "Actor", uuid: actorUuid });
+      },
+      { groupId: ids.groupId, actorUuid }
+    );
+    const pcInfo = page.locator(".campaign-record.record-sheet .actor-info").last();
+    await pcInfo.waitFor({ timeout: 15_000 });
+    await expect(pcInfo).toContainText("E2E 5e Guard");
   });
 });

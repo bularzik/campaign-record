@@ -59,16 +59,18 @@ export class MediaSheet extends BaseRecordSheet {
     });
   }
 
-  /** Build a show payload from document state, or null (guards + warnings). */
-  #presentPayload(index, interval) {
+  /** Gallery rows that can actually present (blank-src rows would invalidate the payload). */
+  #presentableImages() {
+    return this.document.system.toObject().images.filter((i) => i.src);
+  }
+
+  /** Build a show payload from the given rows, or null (guards + warnings). */
+  #presentPayload(images, index, interval) {
     if (!game.user.isGM) return null;
     if (this.document.system.hidden) {
       ui.notifications.warn(game.i18n.localize("CAMPAIGNRECORD.Media.CannotPresentHidden"));
       return null;
     }
-    const images = this.document.system
-      .toObject()
-      .images.filter((i) => i.src); // blank-src rows (API-created) would invalidate the whole payload
     if (!images.length) {
       ui.notifications.warn(game.i18n.localize("CAMPAIGNRECORD.Presenter.NoImages"));
       return null;
@@ -83,17 +85,15 @@ export class MediaSheet extends BaseRecordSheet {
   }
 
   static #onShowImage(event, target) {
-    const images = this.document.system
-      .toObject()
-      .images.filter((i) => i.src); // keep index aligned with #presentPayload's filtered list
+    const images = this.#presentableImages();
     const rowId = target.closest("[data-row-id]")?.dataset.rowId;
     const index = Math.max(0, images.findIndex((r) => r.id === rowId));
-    const payload = this.#presentPayload(index, 0);
+    const payload = this.#presentPayload(images, index, 0);
     if (payload) broadcastPresenterMessage(payload);
   }
 
   static #onStartSlideshow() {
-    const payload = this.#presentPayload(0, this.document.system.slideshowInterval);
+    const payload = this.#presentPayload(this.#presentableImages(), 0, this.document.system.slideshowInterval);
     if (payload) broadcastPresenterMessage(payload);
   }
 
