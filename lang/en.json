@@ -198,6 +198,7 @@
         "slideshowInterval": { "label": "Auto-advance (seconds, 0 = manual)" }
       }
     },
+    "ActorInfo": { "AC": "AC", "HP": "HP" },
     "Presenter": {
       "ShowToPlayers": "Show to players",
       "StartSlideshow": "Start Slideshow",

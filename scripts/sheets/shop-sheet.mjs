@@ -1,4 +1,5 @@
 import { BaseRecordSheet } from "./base-record-sheet.mjs";
+import { itemDropDetails } from "../integrations/dnd5e.mjs";
 
 export class ShopSheet extends BaseRecordSheet {
   static DEFAULT_OPTIONS = {
@@ -40,8 +41,15 @@ export class ShopSheet extends BaseRecordSheet {
   async _onDropDocument(data) {
     if (data.type !== "Item") return;
     const item = await fromUuid(data.uuid);
+    const details = itemDropDetails(item);
     await this.updateRows("inventory", (rows) =>
-      rows.push({ id: foundry.utils.randomID(), name: item?.name ?? "", price: "", quantity: 1, item: data.uuid })
+      rows.push({
+        id: foundry.utils.randomID(),
+        name: item?.name ?? "",
+        price: details?.priceText ?? "",
+        quantity: 1,
+        item: data.uuid
+      })
     );
   }
 }

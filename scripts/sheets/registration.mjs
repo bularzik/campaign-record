@@ -54,6 +54,7 @@ export function registerSheets() {
 export function registerPartials() {
   return foundry.applications.handlebars.loadTemplates({
     "campaign-record.common-edit": "modules/campaign-record/templates/partials/common-edit.hbs",
-    "campaign-record.common-view": "modules/campaign-record/templates/partials/common-view.hbs"
+    "campaign-record.common-view": "modules/campaign-record/templates/partials/common-view.hbs",
+    "campaign-record.actor-info": "modules/campaign-record/templates/partials/actor-info.hbs"
   });
 }

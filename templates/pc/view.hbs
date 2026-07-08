@@ -5,5 +5,6 @@
   {{#if system.faction}}<dt>{{localize "CAMPAIGNRECORD.Pc.FIELDS.faction.label"}}</dt><dd>{{system.faction}}</dd>{{/if}}
   {{#if enriched.actorLink}}<dt>{{localize "CAMPAIGNRECORD.Pc.FIELDS.actor.label"}}</dt><dd>{{{enriched.actorLink}}}</dd>{{/if}}
 </dl>
+{{> campaign-record.actor-info}}
 {{> campaign-record.common-view}}
 </section>

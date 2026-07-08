@@ -1,4 +1,5 @@
 import { BaseRecordSheet } from "./base-record-sheet.mjs";
+import { actorSummary } from "../integrations/dnd5e.mjs";
 
 const TextEditorImpl = foundry.applications.ux.TextEditor.implementation;
 
@@ -18,6 +19,9 @@ export class PcSheet extends BaseRecordSheet {
     context.enriched.actorLink = this.document.system.actor
       ? await TextEditorImpl.enrichHTML(`@UUID[${this.document.system.actor}]`)
       : "";
+    context.actorInfo = this.document.system.actor
+      ? actorSummary(await fromUuid(this.document.system.actor))
+      : null;
     return context;
   }
 

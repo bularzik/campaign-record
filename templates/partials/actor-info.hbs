@@ -1,0 +1,10 @@
+{{#if actorInfo}}
+<figure class="actor-info">
+  <img src="{{actorInfo.img}}" alt="{{actorInfo.name}}">
+  <figcaption>
+    <span class="actor-name">{{actorInfo.name}}</span>
+    {{#if actorInfo.ac}}<span>{{localize "CAMPAIGNRECORD.ActorInfo.AC"}} {{actorInfo.ac}}</span>{{/if}}
+    {{#if actorInfo.hp}}<span>{{localize "CAMPAIGNRECORD.ActorInfo.HP"}} {{actorInfo.hp}}</span>{{/if}}
+  </figcaption>
+</figure>
+{{/if}}

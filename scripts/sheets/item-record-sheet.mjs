@@ -1,4 +1,5 @@
 import { BaseRecordSheet } from "./base-record-sheet.mjs";
+import { itemDropDetails } from "../integrations/dnd5e.mjs";
 
 const TextEditorImpl = foundry.applications.ux.TextEditor.implementation;
 
@@ -23,6 +24,12 @@ export class ItemRecordSheet extends BaseRecordSheet {
 
   async _onDropDocument(data) {
     if (data.type !== "Item") return;
-    await this.document.update({ "system.item": data.uuid });
+    const update = { "system.item": data.uuid };
+    const details = itemDropDetails(await fromUuid(data.uuid));
+    if (details?.rarity && !this.document.system.rarity) update["system.rarity"] = details.rarity;
+    if (details?.itemTypeLabel && !this.document.system.itemType) {
+      update["system.itemType"] = details.itemTypeLabel;
+    }
+    await this.document.update(update);
   }
 }
