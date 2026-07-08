@@ -1,0 +1,15 @@
+<div class="hub-header">
+  <select name="group-select" aria-label="{{localize "CAMPAIGNRECORD.Hub.GroupPicker"}}">
+    <option value="all" {{#if allSelected}}selected{{/if}}>{{localize "CAMPAIGNRECORD.Hub.AllGroups"}}</option>
+    {{#each groups}}
+    <option value="{{this.id}}" {{#if this.selected}}selected{{/if}}>{{this.name}}</option>
+    {{/each}}
+  </select>
+  <nav class="tabs" data-group="primary">
+    {{#each tabs}}
+    <a class="{{this.cssClass}}" data-action="tab" data-group="primary" data-tab="{{this.id}}">
+      <i class="{{this.icon}}"></i> {{localize this.label}}
+    </a>
+    {{/each}}
+  </nav>
+</div>

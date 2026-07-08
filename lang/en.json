@@ -18,6 +18,18 @@
     "Visible": "Visible",
     "DropActorHint": "Drop an Actor here to link it.",
     "DropSceneHint": "Drop a Scene here to link it.",
+    "Hub": {
+      "Title": "Campaign Hub",
+      "Open": "Open Campaign Hub",
+      "GroupPicker": "Campaign group",
+      "AllGroups": "All groups",
+      "Empty": "Nothing here yet.",
+      "Tabs": {
+        "index": "Index",
+        "timeline": "Timeline",
+        "search": "Search"
+      }
+    },
     "Sheets": {
       "Npc": "Campaign Record NPC Sheet",
       "Place": "Campaign Record Place Sheet",

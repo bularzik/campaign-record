@@ -27,3 +27,26 @@
   text-decoration: line-through;
   opacity: 0.7;
 }
+
+.campaign-hub .hub-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--color-border-light-primary, #7a7971);
+}
+
+.campaign-hub .hub-header select[name="group-select"] {
+  max-width: 14rem;
+}
+
+.campaign-hub .tab {
+  display: none;
+  flex: 1;
+  overflow-y: auto;
+  padding-top: 0.5rem;
+}
+
+.campaign-hub .tab.active {
+  display: block;
+}
