@@ -1,6 +1,7 @@
 import { getGroups } from "../../data/groups.mjs";
 import { RECORD_TYPES, typeId } from "../../constants.mjs";
-import { collectRecords, isIndexablePage } from "./hub-data.mjs";
+import { collectRecords, isIndexablePage, getScopedGroups, toSearchRecord } from "./hub-data.mjs";
+import { createIndex, indexRecord, removeRecord, search } from "../../logic/search-index.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -75,8 +76,43 @@ export class CampaignHub extends HandlebarsApplicationMixin(ApplicationV2) {
     if (this.rendered) this.render();
   }, 100);
 
-  /** Task 7 extends this to patch the search index. */
+  #searchIndex = null;
+
+  #ensureSearchIndex() {
+    if (this.#searchIndex) return this.#searchIndex;
+    this.#searchIndex = createIndex();
+    for (const group of getScopedGroups("all")) {
+      for (const page of group.pages) {
+        if (isIndexablePage(page)) indexRecord(this.#searchIndex, toSearchRecord(page));
+      }
+    }
+    return this.#searchIndex;
+  }
+
+  #searchResults() {
+    if (!this.state.query || this.state.query.length < 2) return [];
+    const index = this.#ensureSearchIndex();
+    const visible = new Map(
+      collectRecords({ groupId: this.state.groupId, user: game.user }).map((r) => [r.uuid, r])
+    );
+    const hits = search(index, this.state.query, { gm: game.user.isGM })
+      .filter((h) => visible.has(h.uuid))
+      .map((h) => ({ ...h, entry: visible.get(h.uuid) }));
+    const byType = new Map();
+    for (const hit of hits) {
+      const key = hit.entry.shortType;
+      if (!byType.has(key)) byType.set(key, { type: key, hits: [] });
+      byType.get(key).hits.push(hit);
+    }
+    return [...byType.values()];
+  }
+
   _onDocumentChanged(hook, doc) {
+    if (this.#searchIndex && doc.documentName === "JournalEntryPage" && isIndexablePage(doc)) {
+      if (hook === "deleteJournalEntryPage") removeRecord(this.#searchIndex, doc.uuid);
+      else indexRecord(this.#searchIndex, toSearchRecord(doc));
+    }
+    if (hook === "deleteJournalEntry") this.#searchIndex = null; // groups carry many pages; rebuild lazily
     this.#debouncedRender();
   }
 
@@ -184,6 +220,7 @@ export class CampaignHub extends HandlebarsApplicationMixin(ApplicationV2) {
       label: game.i18n.localize(`CAMPAIGNRECORD.Hub.Sort.${s}`),
       selected: this.state.sort === s
     }));
+    context.searchGroups = this.#searchResults();
     return context;
   }
 
@@ -204,5 +241,13 @@ export class CampaignHub extends HandlebarsApplicationMixin(ApplicationV2) {
         this.state.sort = event.target.value;
         this.render();
       });
+    const searchInput = this.element.querySelector('input[name="search-query"]');
+    searchInput?.addEventListener("input", foundry.utils.debounce(async (event) => {
+      this.state.query = event.target.value;
+      await this.render({ parts: ["search"] });
+      const restored = this.element.querySelector('input[name="search-query"]');
+      restored?.focus();
+      restored?.setSelectionRange(restored.value.length, restored.value.length);
+    }, 250));
   }
 }

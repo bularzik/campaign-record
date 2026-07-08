@@ -1,3 +1,23 @@
 <section class="tab hub-search{{#if tabs.search.active}} active{{/if}}" data-group="primary" data-tab="search">
-  <p class="hint">{{localize "CAMPAIGNRECORD.Hub.Empty"}}</p>
+  <input type="search" name="search-query" value="{{state.query}}"
+         placeholder="{{localize "CAMPAIGNRECORD.Hub.SearchPlaceholder"}}" autocomplete="off">
+  <div class="search-results">
+    {{#each searchGroups}}
+    <section class="result-type">
+      <h3>{{this.type}}</h3>
+      <ol>
+        {{#each this.hits}}
+        <li class="search-hit" data-uuid="{{this.uuid}}" data-action="openRecord">
+          <span class="hit-name">{{this.name}}</span>
+          {{#each this.matches}}
+          <span class="hit-snippet"><strong>{{this.field}}:</strong> {{this.snippet}}</span>
+          {{/each}}
+        </li>
+        {{/each}}
+      </ol>
+    </section>
+    {{else}}
+    <p class="hint">{{#if state.query}}{{localize "CAMPAIGNRECORD.Hub.NoResults"}}{{else}}{{localize "CAMPAIGNRECORD.Hub.SearchHint"}}{{/if}}</p>
+    {{/each}}
+  </div>
 </section>

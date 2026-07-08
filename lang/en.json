@@ -37,7 +37,10 @@
       "NoRecords": "No records match the current filters.",
       "FilterTag": "Filter by tag…",
       "HiddenOnly": "Show hidden records only",
-      "Sort": { "name": "Name", "type": "Type", "updated": "Recently updated" }
+      "Sort": { "name": "Name", "type": "Type", "updated": "Recently updated" },
+      "SearchPlaceholder": "Search all records…",
+      "SearchHint": "Type at least two characters to search.",
+      "NoResults": "No records match."
     },
     "Sheets": {
       "Npc": "Campaign Record NPC Sheet",
