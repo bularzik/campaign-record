@@ -5,7 +5,7 @@ import { registerDirectoryUI } from "./hooks/directory.mjs";
 import { registerHubUI, registerHubKeybinding } from "./hooks/hub-ui.mjs";
 import { ensureRecordsFolder } from "./data/groups.mjs";
 import { registerSheets, registerPartials } from "./sheets/registration.mjs";
-import { registerPresenterSocket } from "./presenter/socket.mjs";
+import { registerPresenterSocket, requestPresentationSync } from "./presenter/socket.mjs";
 
 Hooks.once("init", () => {
   console.log("campaign-record | Initializing Campaign Record");
@@ -20,5 +20,7 @@ Hooks.once("init", () => {
 
 Hooks.once("ready", () => {
   registerPresenterSocket();
+  // a reloading/late-joining client re-acquires any presentation in progress
+  requestPresentationSync();
   if (game.user.isGM) ensureRecordsFolder();
 });

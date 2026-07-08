@@ -30,10 +30,15 @@ describe("validatePresenterPayload", () => {
     expect(validatePresenterPayload({ ...show, interval: 7 }).interval).toBe(7);
   });
 
-  it("validates goto and end; unknown actions and junk are null", () => {
-    expect(validatePresenterPayload({ action: "goto", index: 3 })).toEqual({ action: "goto", index: 3 });
-    expect(validatePresenterPayload({ action: "goto", index: -1 })).toBeNull();
-    expect(validatePresenterPayload({ action: "end" })).toEqual({ action: "end" });
+  it("goto and end require a presenterId; sync-request has no payload", () => {
+    expect(validatePresenterPayload({ action: "goto", index: 3, presenterId: "u1" }))
+      .toEqual({ action: "goto", index: 3, presenterId: "u1" });
+    expect(validatePresenterPayload({ action: "goto", index: 3 })).toBeNull();
+    expect(validatePresenterPayload({ action: "goto", index: -1, presenterId: "u1" })).toBeNull();
+    expect(validatePresenterPayload({ action: "end", presenterId: "u1" }))
+      .toEqual({ action: "end", presenterId: "u1" });
+    expect(validatePresenterPayload({ action: "end" })).toBeNull();
+    expect(validatePresenterPayload({ action: "sync-request" })).toEqual({ action: "sync-request" });
     expect(validatePresenterPayload({ action: "self-destruct" })).toBeNull();
     expect(validatePresenterPayload(null)).toBeNull();
     expect(validatePresenterPayload("show")).toBeNull();

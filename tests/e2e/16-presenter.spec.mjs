@@ -42,7 +42,7 @@ test.describe("presenter socket relay", () => {
     // player is not the presenter: no step controls
     await expect(playerPage.locator('#campaign-record-overlay [data-action="stepImage"]')).toHaveCount(0);
 
-    await broadcast({ action: "goto", index: 1 });
+    await broadcast({ action: "goto", index: 1, presenterId: gmId });
     await expect.poll(() => playerImg.getAttribute("src")).toContain("chest.svg");
 
     // malformed payloads are ignored
@@ -50,7 +50,7 @@ test.describe("presenter socket relay", () => {
     await broadcast({ action: "self-destruct" });
     await expect.poll(() => playerImg.getAttribute("src")).toContain("chest.svg");
 
-    await broadcast({ action: "end" });
+    await broadcast({ action: "end", presenterId: gmId });
     await expect(playerPage.locator("#campaign-record-overlay")).toHaveCount(0, { timeout: 15_000 });
     await expect(gmPage.locator("#campaign-record-overlay")).toHaveCount(0, { timeout: 15_000 });
   });
@@ -109,7 +109,7 @@ test.describe("media sheet presenting", () => {
 
   const playerOverlay = () => playerPage.locator("#campaign-record-overlay");
 
-  test("present, sync, local dismiss, re-present, end for all", async () => {
+  test("present, sync, prev wrap, local viewer dismiss, presenter dismiss ends for all", async () => {
     await gmPage.evaluate(
       ({ groupId, pageId }) => game.journal.get(groupId).pages.get(pageId).sheet.render(true),
       { groupId: ids.groupId, pageId: ids.pageId }
@@ -129,20 +129,66 @@ test.describe("media sheet presenting", () => {
     await gmPage.locator('#campaign-record-overlay [data-action="stepImage"][data-dir="-1"]').click();
     await expect.poll(() => playerOverlay().locator("img").getAttribute("src")).toContain("book.svg");
 
+    // prev at index 0 wraps to the last image
+    await gmPage.locator('#campaign-record-overlay [data-action="stepImage"][data-dir="-1"]').click();
+    await expect.poll(() => playerOverlay().locator("img").getAttribute("src")).toContain("chest.svg");
+
+    // presenter dismiss ends the presentation for everyone
+    await gmPage.locator('#campaign-record-overlay [data-action="dismissOverlay"]').click();
+    await expect(playerOverlay()).toHaveCount(0, { timeout: 15_000 });
+    await expect(gmPage.locator("#campaign-record-overlay")).toHaveCount(0, { timeout: 15_000 });
+
+    // re-present: player gets the overlay again
+    await sheet.locator('[data-action="showImage"]').first().click();
+    await playerOverlay().locator("img").waitFor({ timeout: 15_000 });
+
     // player dismiss is local: GM keeps presenting
     await playerOverlay().locator('[data-action="dismissOverlay"]').click();
     await expect(playerOverlay()).toHaveCount(0);
     await expect(gmPage.locator("#campaign-record-overlay img")).toBeVisible();
 
-    // GM ends for all, then re-presents: player gets the overlay again
-    await gmPage.locator('#campaign-record-overlay [data-action="endPresentation"]').click();
+    // sheet-level End works directly. The GM's fullscreen overlay covers the
+    // sheet, so a real pointer click cannot reach the button; dispatch a
+    // bubbling click, which ApplicationV2's delegated action listener handles.
+    await sheet.locator('[data-action="endPresentation"]').dispatchEvent("click");
     await expect(gmPage.locator("#campaign-record-overlay")).toHaveCount(0, { timeout: 15_000 });
+  });
+
+  test("goto with a mismatched presenterId is ignored", async () => {
+    await gmPage.evaluate(
+      ({ groupId, pageId }) => game.journal.get(groupId).pages.get(pageId).sheet.render(true),
+      { groupId: ids.groupId, pageId: ids.pageId }
+    );
+    const sheet = gmPage.locator(".campaign-record.record-sheet").last();
+    await sheet.locator('[data-action="showImage"]').first().click();
+    await playerOverlay().locator("img").waitFor({ timeout: 15_000 });
+    const srcBefore = await playerOverlay().locator("img").getAttribute("src");
+    await playerPage.evaluate(async () => {
+      const { SOCKET_NAME } = await import("/modules/campaign-record/scripts/presenter/socket.mjs");
+      game.socket.emit(SOCKET_NAME, { action: "goto", index: 1, presenterId: game.user.id });
+    });
+    await settle(playerPage);
+    expect(await playerOverlay().locator("img").getAttribute("src")).toBe(srcBefore);
+    // GM overlay covers the sheet: dispatch a bubbling click (see flow test)
+    await sheet.locator('[data-action="endPresentation"]').dispatchEvent("click");
+    await expect(playerOverlay()).toHaveCount(0, { timeout: 15_000 });
+  });
+
+  test("a reloading player re-acquires the running presentation", async () => {
+    await gmPage.evaluate(
+      ({ groupId, pageId }) => game.journal.get(groupId).pages.get(pageId).sheet.render(true),
+      { groupId: ids.groupId, pageId: ids.pageId }
+    );
+    const sheet = gmPage.locator(".campaign-record.record-sheet").last();
     await sheet.locator('[data-action="showImage"]').first().click();
     await playerOverlay().locator("img").waitFor({ timeout: 15_000 });
 
-    // sheet-level End works when the GM overlay was dismissed locally
-    await gmPage.locator('#campaign-record-overlay [data-action="dismissOverlay"]').click();
-    await sheet.locator('[data-action="endPresentation"]').click();
+    await playerPage.reload();
+    await playerPage.waitForFunction(() => globalThis.game?.ready === true, null, { timeout: 60_000 });
+    await playerOverlay().locator("img").waitFor({ timeout: 15_000 });
+
+    // GM overlay covers the sheet: dispatch a bubbling click (see flow test)
+    await sheet.locator('[data-action="endPresentation"]').dispatchEvent("click");
     await expect(playerOverlay()).toHaveCount(0, { timeout: 15_000 });
   });
 

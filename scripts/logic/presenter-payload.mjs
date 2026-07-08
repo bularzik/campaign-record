@@ -23,11 +23,16 @@ export function validatePresenterPayload(raw) {
       };
     }
     case "goto":
-      return Number.isInteger(raw.index) && raw.index >= 0
-        ? { action: "goto", index: raw.index }
+      return Number.isInteger(raw.index) && raw.index >= 0 &&
+        typeof raw.presenterId === "string" && raw.presenterId
+        ? { action: "goto", index: raw.index, presenterId: raw.presenterId }
         : null;
     case "end":
-      return { action: "end" };
+      return typeof raw.presenterId === "string" && raw.presenterId
+        ? { action: "end", presenterId: raw.presenterId }
+        : null;
+    case "sync-request":
+      return { action: "sync-request" };
     default:
       return null;
   }

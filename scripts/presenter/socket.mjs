@@ -16,7 +16,9 @@ export function registerPresenterSocket() {
  * carry no authenticated sender id, so a hostile logged-in user could still
  * spoof a GM's presenterId in a hand-crafted emit — client-side guards
  * cannot fully close that. This matches the trust model of Foundry module
- * sockets generally.
+ * sockets generally. goto/end additionally must match the active
+ * presentation's presenterId — this narrows, but cannot eliminate, the
+ * spoofing window.
  */
 export function applyPresenterMessage(raw) {
   const p = validatePresenterPayload(raw);
@@ -24,8 +26,14 @@ export function applyPresenterMessage(raw) {
   if (p.action === "show") {
     if (!game.users.get(p.presenterId)?.isGM) return;
     MediaOverlay.show(p);
-  } else if (p.action === "goto") MediaOverlay.goTo(p.index);
-  else MediaOverlay.endForAll();
+  } else if (p.action === "sync-request") {
+    MediaOverlay.answerSyncRequest();
+  } else {
+    // goto/end only steer the presentation they belong to
+    if (p.presenterId !== MediaOverlay.activePresenterId()) return;
+    if (p.action === "goto") MediaOverlay.goTo(p.index);
+    else MediaOverlay.endForAll();
+  }
 }
 
 /** Sockets never echo back to the sender: emit to others AND apply locally. */
@@ -33,4 +41,9 @@ export function broadcastPresenterMessage(payload) {
   if (!game.user.isGM) return; // presenting is GM-only; viewers dismiss locally
   game.socket.emit(SOCKET_NAME, payload);
   applyPresenterMessage(payload);
+}
+
+/** Ask an active presenter, if any, to re-broadcast the current show. */
+export function requestPresentationSync() {
+  game.socket.emit(SOCKET_NAME, { action: "sync-request" });
 }

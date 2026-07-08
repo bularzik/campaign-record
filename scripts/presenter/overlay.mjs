@@ -40,6 +40,8 @@ export class MediaOverlay extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!app?.#state || index >= app.#state.images.length) return;
     app.#state.index = index;
     if (app.rendered) app.render();
+    // manual steps and resyncs restart the auto-advance countdown
+    if (app.isPresenter && app.#state.interval) app.#restartTimer();
   }
 
   static endForAll() {
@@ -48,6 +50,17 @@ export class MediaOverlay extends HandlebarsApplicationMixin(ApplicationV2) {
     app.#stopTimer();
     app.#state = null;
     if (app.rendered) app.close();
+  }
+
+  static activePresenterId() {
+    return this.#instance?.#state?.presenterId ?? null;
+  }
+
+  /** A late joiner asked for state: the active presenter re-broadcasts it. */
+  static answerSyncRequest() {
+    const app = this.#instance;
+    if (!app?.#state || !app.isPresenter) return;
+    broadcastPresenterMessage({ ...app.#state, action: "show" });
   }
 
   get isPresenter() {
@@ -59,7 +72,7 @@ export class MediaOverlay extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!this.#state?.interval || !this.isPresenter) return;
     this.#timer = setInterval(() => {
       const next = (this.#state.index + 1) % this.#state.images.length;
-      broadcastPresenterMessage({ action: "goto", index: next });
+      broadcastPresenterMessage({ action: "goto", index: next, presenterId: this.#state.presenterId });
     }, this.#state.interval * 1000);
   }
 
@@ -77,8 +90,12 @@ export class MediaOverlay extends HandlebarsApplicationMixin(ApplicationV2) {
     return context;
   }
 
-  /** Viewers close their own overlay; the presentation keeps running elsewhere. */
+  /** The presenter dismissing their own overlay ends for everyone (they are
+   *  the driver); a viewer's dismiss closes only their own overlay. */
   static async #onDismiss() {
+    if (this.isPresenter && this.#state) {
+      return void broadcastPresenterMessage({ action: "end", presenterId: this.#state.presenterId });
+    }
     this.#stopTimer();
     await this.close();
   }
@@ -87,12 +104,12 @@ export class MediaOverlay extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!this.isPresenter || !this.#state) return;
     const count = this.#state.images.length;
     const next = (this.#state.index + Number(target.dataset.dir) + count) % count;
-    broadcastPresenterMessage({ action: "goto", index: next });
+    broadcastPresenterMessage({ action: "goto", index: next, presenterId: this.#state.presenterId });
   }
 
   static #onEndPresentation() {
     if (!this.isPresenter) return;
-    broadcastPresenterMessage({ action: "end" });
+    broadcastPresenterMessage({ action: "end", presenterId: this.#state.presenterId });
   }
 
   _onClose(options) {

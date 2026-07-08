@@ -99,6 +99,6 @@ export class MediaSheet extends BaseRecordSheet {
 
   static #onEndPresentation() {
     if (!game.user.isGM) return;
-    broadcastPresenterMessage({ action: "end" });
+    broadcastPresenterMessage({ action: "end", presenterId: game.user.id });
   }
 }
