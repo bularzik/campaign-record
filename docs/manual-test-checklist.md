@@ -33,6 +33,21 @@ walk only the manual section below with two browsers.
       content is searchable only by GMs *(07-hub-search)*
 - [x] Timepoints: GM and player add/rename via dialog, reorder persists,
       record chips attach/detach across clients *(08-hub-timeline)*
+- [x] PC sheet renders/persists player facts; Item sheet persists rarity;
+      view modes show the fields *(09-pc-item)*
+- [x] Encounter combatant rows add/edit/delete and persist; view mode lists
+      combatants with counts *(10-encounter)*
+- [x] Checklist: GM adds/edits/assigns/toggles items; player toggles an item
+      from view mode and the GM sees the change *(11-checklist)*
+- [x] Shop inventory rows add/edit/delete (name, price, quantity); view mode
+      renders the inventory table *(12-shop)*
+- [x] Loot currency persists; item rows add and edit; view mode renders
+      *(13-loot)*
+- [x] Media captions edit, reorder via up/down buttons, and delete, all
+      persisting in order; view mode renders the gallery *(14-media)*
+- [x] Hub shows one type chip per record type plus journal (11 total);
+      phase-3 subtitles (shop, pc, checklist) render; search hits shop
+      inventory item names and checklist item text *(15-hub-types)*
 
 ## Manual (before each release)
 
@@ -52,3 +67,10 @@ walk only the manual section below with two browsers.
       chip appears (pointer-driven drag is not automated).
 - [ ] Drag a timepoint onto another timepoint to reorder it.
 - [ ] The scene-controls journal group shows an "Open Campaign Hub" tool.
+- [ ] Add an image to a Media record through the real FilePicker dialog
+      (dialog flow not automated).
+- [ ] Drop an Actor from the sidebar onto an Encounter sheet and an Item onto
+      a Shop sheet (real pointer drag; only synthetic drops are automated).
+- [ ] Subjective pass over the seven new sheets' (pc, item, encounter,
+      checklist, shop, loot, media) layout/styling in both edit and view
+      modes.
