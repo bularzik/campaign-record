@@ -45,8 +45,8 @@ walk only the manual section below with two browsers.
       dropped Encounter sets source (junk drops are silently ignored)
       *(13-loot)*
 - [x] Media captions edit, reorder via up/down buttons, and delete, all
-      persisting in order; view mode renders the gallery; reorder boundary
-      (at max index) is guarded *(14-media)*
+      persisting in order; view mode renders the gallery; moving the first
+      image up is a no-op (start-of-list boundary guard) *(14-media)*
 - [x] Hub shows one type chip per record type plus journal (11 total);
       phase-3 subtitles (shop, pc, checklist) render; search hits shop
       inventory item names and checklist item text *(15-hub-types)*
@@ -54,8 +54,9 @@ walk only the manual section below with two browsers.
       displays it; player sees dismiss button; hidden images do not display
       *(16-presenter)*
 - [x] On a dnd5e world, dropping a weapon onto a Shop autofills price;
-      dropping onto an Item record autofills rarity; dropped linked actors
-      show name/portrait and AC/HP in NPC summaries *(17-dnd5e)*
+      dropping onto an Item record autofills rarity; a dropped linked actor's
+      summary on the NPC sheet shows its name and HP (portrait/AC display is
+      not asserted by the automated test) *(17-dnd5e)*
 
 ## Manual (before each release)
 
