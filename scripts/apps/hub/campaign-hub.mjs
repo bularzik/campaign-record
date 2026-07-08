@@ -106,7 +106,12 @@ export class CampaignHub extends HandlebarsApplicationMixin(ApplicationV2) {
     const byType = new Map();
     for (const hit of hits) {
       const key = hit.entry.shortType;
-      if (!byType.has(key)) byType.set(key, { type: key, hits: [] });
+      if (!byType.has(key)) {
+        const label = key === "journal"
+          ? game.i18n.localize("CAMPAIGNRECORD.Hub.JournalPage")
+          : game.i18n.localize(`TYPES.JournalEntryPage.${typeId(key)}`);
+        byType.set(key, { type: key, label, hits: [] });
+      }
       byType.get(key).hits.push(hit);
     }
     return [...byType.values()];
@@ -117,7 +122,8 @@ export class CampaignHub extends HandlebarsApplicationMixin(ApplicationV2) {
       if (hook === "deleteJournalEntryPage") removeRecord(this.#searchIndex, doc.uuid);
       else indexRecord(this.#searchIndex, toSearchRecord(doc));
     }
-    if (hook === "deleteJournalEntry") this.#searchIndex = null; // groups carry many pages; rebuild lazily
+    // groups carry many pages; rebuild lazily rather than patching membership incrementally
+    if (hook === "deleteJournalEntry" || hook === "createJournalEntry") this.#searchIndex = null;
     this.#debouncedRender();
   }
 
@@ -187,6 +193,7 @@ export class CampaignHub extends HandlebarsApplicationMixin(ApplicationV2) {
     });
     if (!result?.name) return;
     const group = game.journal.get(result.groupId);
+    if (!group) return;
     const [page] = await group.createEmbeddedDocuments("JournalEntryPage", [
       { name: result.name, type: result.type }
     ]);
@@ -241,6 +248,7 @@ export class CampaignHub extends HandlebarsApplicationMixin(ApplicationV2) {
 
   static async #onAddTimepoint(event, target) {
     const group = game.journal.get(target.closest("[data-group-id]").dataset.groupId);
+    if (!group) return;
     const position = target.dataset.position ? Number(target.dataset.position) : null;
     const label = await CampaignHub.#promptLabel("CAMPAIGNRECORD.Hub.AddTimepoint");
     if (!label) return;
@@ -249,6 +257,7 @@ export class CampaignHub extends HandlebarsApplicationMixin(ApplicationV2) {
 
   static async #onRenameTimepoint(event, target) {
     const group = game.journal.get(target.closest("[data-group-id]").dataset.groupId);
+    if (!group) return;
     const id = target.closest("[data-timepoint-id]").dataset.timepointId;
     const current = Timepoints.getTimepoints(group).find((t) => t.id === id)?.label ?? "";
     const label = await CampaignHub.#promptLabel("CAMPAIGNRECORD.Hub.RenameTimepoint", current);
@@ -258,10 +267,14 @@ export class CampaignHub extends HandlebarsApplicationMixin(ApplicationV2) {
 
   static async #onDeleteTimepoint(event, target) {
     const group = game.journal.get(target.closest("[data-group-id]").dataset.groupId);
+    if (!group) return;
     const id = target.closest("[data-timepoint-id]").dataset.timepointId;
+    const label = Timepoints.getTimepoints(group).find((t) => t.id === id)?.label ?? "";
     const confirmed = await foundry.applications.api.DialogV2.confirm({
       window: { title: "CAMPAIGNRECORD.Hub.DeleteTimepoint" },
-      content: `<p>${game.i18n.localize("CAMPAIGNRECORD.Hub.DeleteTimepointConfirm")}</p>`
+      content: `<p>${game.i18n.format("CAMPAIGNRECORD.Hub.DeleteTimepointConfirmNamed", {
+        label: foundry.utils.escapeHTML(label)
+      })}</p>`
     });
     if (confirmed) await Timepoints.deleteTimepoint(group, id);
   }
@@ -308,6 +321,9 @@ export class CampaignHub extends HandlebarsApplicationMixin(ApplicationV2) {
       const page = await fromUuid(data.uuid);
       if (!page || page.parent.id !== groupId) {
         return ui.notifications.warn(game.i18n.localize("CAMPAIGNRECORD.Hub.WrongGroup"));
+      }
+      if (!page.system?.schema?.fields?.timepoints) {
+        return ui.notifications.warn(game.i18n.localize("CAMPAIGNRECORD.Hub.CannotAttach"));
       }
       await Timepoints.attachRecord(page, target.dataset.timepointId);
     }
@@ -373,6 +389,19 @@ export class CampaignHub extends HandlebarsApplicationMixin(ApplicationV2) {
       restored?.focus();
       restored?.setSelectionRange(restored.value.length, restored.value.length);
     }, 250));
+
+    // Dragging a record from the Index tab needs a way to reach a Timeline
+    // drop target while the tabs are mutually exclusive: hovering a tab's
+    // nav link mid-drag switches to it.
+    const tabNav = this.element.querySelector(".hub-header nav.tabs");
+    if (tabNav && !tabNav.dataset.crBound) {
+      tabNav.dataset.crBound = "1";
+      for (const link of tabNav.querySelectorAll('a[data-action="tab"]')) {
+        link.addEventListener("dragenter", () => {
+          if (link.dataset.tab !== this.tabGroups.primary) this.changeTab(link.dataset.tab, "primary");
+        });
+      }
+    }
 
     new foundry.applications.ux.DragDrop.implementation({
       dragSelector: "[data-drag-record], [data-drag-timepoint]",

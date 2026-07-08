@@ -4,7 +4,7 @@
   <div class="search-results">
     {{#each searchGroups}}
     <section class="result-type">
-      <h3>{{this.type}}</h3>
+      <h3>{{this.label}}</h3>
       <ol>
         {{#each this.hits}}
         <li class="search-hit" data-uuid="{{this.uuid}}" data-action="openRecord">

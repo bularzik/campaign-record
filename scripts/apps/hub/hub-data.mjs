@@ -30,6 +30,7 @@ export function recordSubtitle(page) {
 }
 
 function toIndexEntry(group, page) {
+  const shortType = page.type.startsWith(TYPE_PREFIX) ? page.type.slice(TYPE_PREFIX.length) : "journal";
   return {
     uuid: page.uuid,
     id: page.id,
@@ -37,7 +38,9 @@ function toIndexEntry(group, page) {
     groupName: group.name,
     name: page.name,
     type: page.type,
-    shortType: page.type.startsWith(TYPE_PREFIX) ? page.type.slice(TYPE_PREFIX.length) : "journal",
+    shortType,
+    // Core text pages have no timepoints SetField, so they can't be dragged onto the timeline.
+    canAttach: shortType !== "journal",
     image: page.system?.image || null,
     tags: [...(page.system?.tags ?? [])],
     subtitle: recordSubtitle(page),

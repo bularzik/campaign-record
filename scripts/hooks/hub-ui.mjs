@@ -22,6 +22,7 @@ export function registerHubUI() {
       title: "CAMPAIGNRECORD.Hub.Open",
       icon: "fa-solid fa-book-atlas",
       button: true,
+      order: 99,
       onChange: () => CampaignHub.open()
     };
   });

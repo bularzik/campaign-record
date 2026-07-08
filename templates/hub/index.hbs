@@ -25,7 +25,8 @@
   </div>
   <ol class="record-list">
     {{#each records}}
-    <li class="record-row" data-uuid="{{this.uuid}}" data-drag-record draggable="true"
+    <li class="record-row" data-uuid="{{this.uuid}}"
+        {{#if this.canAttach}}data-drag-record draggable="true"{{/if}}
         data-action="openRecord">
       {{#if this.image}}<img src="{{this.image}}" alt="">{{else}}<i class="fa-solid fa-file-lines"></i>{{/if}}
       <span class="record-name">{{this.name}}

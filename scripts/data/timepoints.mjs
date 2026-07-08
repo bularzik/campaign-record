@@ -44,8 +44,13 @@ export async function deleteTimepoint(group, id) {
   for (const page of group.pages) {
     const tps = page.system?.timepoints;
     if (!tps?.has?.(id)) continue;
+    if (!page.canUserModify(game.user, "update")) continue;
     const next = [...tps].filter((t) => t !== id);
-    await page.update({ "system.timepoints": next });
+    try {
+      await page.update({ "system.timepoints": next });
+    } catch (error) {
+      console.warn("campaign-record | failed to detach deleted timepoint from page", page.uuid, error);
+    }
   }
 }
 
