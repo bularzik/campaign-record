@@ -7,6 +7,7 @@ import { ItemRecordSheet } from "./item-record-sheet.mjs";
 import { EncounterSheet } from "./encounter-sheet.mjs";
 import { ChecklistSheet } from "./checklist-sheet.mjs";
 import { ShopSheet } from "./shop-sheet.mjs";
+import { LootSheet } from "./loot-sheet.mjs";
 
 const { DocumentSheetConfig } = foundry.applications.apps;
 
@@ -40,6 +41,9 @@ export function registerSheets() {
   });
   DocumentSheetConfig.registerSheet(JournalEntryPage, MODULE_ID, ShopSheet, {
     types: [typeId("shop")], makeDefault: true, label: "CAMPAIGNRECORD.Sheets.Shop"
+  });
+  DocumentSheetConfig.registerSheet(JournalEntryPage, MODULE_ID, LootSheet, {
+    types: [typeId("loot")], makeDefault: true, label: "CAMPAIGNRECORD.Sheets.Loot"
   });
 }
 

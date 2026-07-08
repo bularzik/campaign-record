@@ -1,0 +1,27 @@
+<section class="campaign-record-content record-view">
+<dl class="record-facts loot-currency">
+  {{#if system.currency.pp}}<dt>{{localize "CAMPAIGNRECORD.Loot.FIELDS.currency.pp.label"}}</dt><dd>{{system.currency.pp}}</dd>{{/if}}
+  {{#if system.currency.gp}}<dt>{{localize "CAMPAIGNRECORD.Loot.FIELDS.currency.gp.label"}}</dt><dd>{{system.currency.gp}}</dd>{{/if}}
+  {{#if system.currency.ep}}<dt>{{localize "CAMPAIGNRECORD.Loot.FIELDS.currency.ep.label"}}</dt><dd>{{system.currency.ep}}</dd>{{/if}}
+  {{#if system.currency.sp}}<dt>{{localize "CAMPAIGNRECORD.Loot.FIELDS.currency.sp.label"}}</dt><dd>{{system.currency.sp}}</dd>{{/if}}
+  {{#if system.currency.cp}}<dt>{{localize "CAMPAIGNRECORD.Loot.FIELDS.currency.cp.label"}}</dt><dd>{{system.currency.cp}}</dd>{{/if}}
+  {{#if enriched.sourceLink}}<dt>{{localize "CAMPAIGNRECORD.Loot.FIELDS.source.label"}}</dt><dd>{{{enriched.sourceLink}}}</dd>{{/if}}
+</dl>
+{{#if system.items.length}}
+<section class="loot-items">
+  <h3>{{localize "CAMPAIGNRECORD.Loot.FIELDS.items.label"}}</h3>
+  <ul>
+    {{#each system.items}}
+    <li>{{this.quantity}} × {{this.name}}</li>
+    {{/each}}
+  </ul>
+</section>
+{{/if}}
+{{#if enriched.distribution}}
+<section class="loot-distribution">
+  <h3>{{localize "CAMPAIGNRECORD.Loot.FIELDS.distribution.label"}}</h3>
+  {{{enriched.distribution}}}
+</section>
+{{/if}}
+{{> campaign-record.common-view}}
+</section>

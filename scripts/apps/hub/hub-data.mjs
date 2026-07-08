@@ -39,6 +39,8 @@ export function recordSubtitle(page) {
     }
     case `${TYPE_PREFIX}shop`:
       return [s.shopType, s.location].filter(Boolean).join(" — ");
+    case `${TYPE_PREFIX}loot`:
+      return game.i18n.format("CAMPAIGNRECORD.Loot.ItemCount", { count: (s.items ?? []).length });
     default:
       return "";
   }

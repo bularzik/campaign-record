@@ -1,0 +1,61 @@
+import { test, expect } from "@playwright/test";
+import { login, deleteGroupsByPrefix, createGroupWithPage } from "./helpers/foundry.mjs";
+
+test.describe("loot sheet", () => {
+  let page, ids;
+
+  test.beforeAll(async ({ browser }) => {
+    page = await browser.newPage();
+    await login(page, "Gamemaster");
+    ids = await createGroupWithPage(page, "E2E Loot Group", "E2E Loot", "campaign-record.loot");
+  });
+
+  test.afterAll(async () => {
+    await deleteGroupsByPrefix(page, "E2E Loot");
+    await page.close();
+  });
+
+  const system = () =>
+    page.evaluate(
+      ({ groupId, pageId }) => game.journal.get(groupId).pages.get(pageId).system.toObject(),
+      { groupId: ids.groupId, pageId: ids.pageId }
+    );
+
+  test("currency persists; item rows add and edit; view renders", async () => {
+    await page.evaluate(
+      ({ groupId, pageId }) => game.journal.get(groupId).pages.get(pageId).sheet.render(true),
+      { groupId: ids.groupId, pageId: ids.pageId }
+    );
+    const sheet = page.locator(".campaign-record.record-sheet").last();
+    const gp = sheet.locator('[name="system.currency.gp"]');
+    await gp.waitFor({ timeout: 15_000 });
+    await gp.fill("250");
+    await gp.dispatchEvent("change");
+    await expect.poll(async () => (await system()).currency.gp).toBe(250);
+
+    await sheet.locator('[data-action="addLootItem"]').click();
+    await expect.poll(async () => (await system()).items.length).toBe(1);
+    const name = sheet.locator('[data-rows="items"] [data-row-field="name"]').first();
+    await name.fill("Ruby");
+    await name.dispatchEvent("change");
+    const qty = sheet.locator('[data-rows="items"] [data-row-field="quantity"]').first();
+    await qty.fill("2");
+    await qty.dispatchEvent("change");
+    await expect.poll(async () => (await system()).items[0]).toMatchObject({ name: "Ruby", quantity: 2 });
+
+    await page.evaluate(
+      async ({ groupId, pageId }) => {
+        const g = game.journal.get(groupId);
+        await g.pages.get(pageId).sheet.close();
+        await g.sheet.render(true);
+        await g.sheet.goToPage(pageId);
+      },
+      { groupId: ids.groupId, pageId: ids.pageId }
+    );
+    const view = page.locator(".journal-entry-page .campaign-record-content");
+    await view.waitFor({ timeout: 15_000 });
+    await expect(view).toContainText("250");
+    await expect(view).toContainText("2 × Ruby");
+    await page.evaluate(({ groupId }) => game.journal.get(groupId).sheet.close(), ids);
+  });
+});

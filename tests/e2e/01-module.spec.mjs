@@ -17,6 +17,7 @@ test.describe("module load and group creation", () => {
       "campaign-record.checklist",
       "campaign-record.encounter",
       "campaign-record.item",
+      "campaign-record.loot",
       "campaign-record.npc",
       "campaign-record.pc",
       "campaign-record.place",

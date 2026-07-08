@@ -8,7 +8,8 @@
       "campaign-record.item": "Item",
       "campaign-record.encounter": "Encounter",
       "campaign-record.checklist": "Checklist",
-      "campaign-record.shop": "Shop"
+      "campaign-record.shop": "Shop",
+      "campaign-record.loot": "Loot"
     }
   },
   "CAMPAIGNRECORD": {
@@ -68,7 +69,8 @@
       "Item": "Campaign Record Item Sheet",
       "Encounter": "Campaign Record Encounter Sheet",
       "Checklist": "Campaign Record Checklist Sheet",
-      "Shop": "Campaign Record Shop Sheet"
+      "Shop": "Campaign Record Shop Sheet",
+      "Loot": "Campaign Record Loot Sheet"
     },
     "Warning": {
       "HiddenGMOnly": "Only a Gamemaster can hide or reveal records.",
@@ -162,6 +164,24 @@
         "location": { "label": "Location" },
         "owner": { "label": "Owner" },
         "inventory": { "label": "Inventory" }
+      }
+    },
+    "Loot": {
+      "AddItem": "Add Item",
+      "ItemCount": "{count} items",
+      "DropEncounterHint": "Drop an Encounter record here to link it.",
+      "FIELDS": {
+        "currency": {
+          "label": "Currency",
+          "cp": { "label": "CP" },
+          "sp": { "label": "SP" },
+          "ep": { "label": "EP" },
+          "gp": { "label": "GP" },
+          "pp": { "label": "PP" }
+        },
+        "items": { "label": "Items" },
+        "source": { "label": "Source Encounter" },
+        "distribution": { "label": "Distribution Notes" }
       }
     }
   }
