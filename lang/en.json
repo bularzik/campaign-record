@@ -6,7 +6,8 @@
       "campaign-record.quest": "Quest",
       "campaign-record.pc": "Player Character",
       "campaign-record.item": "Item",
-      "campaign-record.encounter": "Encounter"
+      "campaign-record.encounter": "Encounter",
+      "campaign-record.checklist": "Checklist"
     }
   },
   "CAMPAIGNRECORD": {
@@ -64,7 +65,8 @@
       "Quest": "Campaign Record Quest Sheet",
       "Pc": "Campaign Record PC Sheet",
       "Item": "Campaign Record Item Sheet",
-      "Encounter": "Campaign Record Encounter Sheet"
+      "Encounter": "Campaign Record Encounter Sheet",
+      "Checklist": "Campaign Record Checklist Sheet"
     },
     "Warning": {
       "HiddenGMOnly": "Only a Gamemaster can hide or reveal records.",
@@ -138,6 +140,13 @@
         "outcome": { "label": "Outcome" },
         "combatants": { "label": "Combatants" },
         "scene": { "label": "Linked Scene" }
+      }
+    },
+    "Checklist": {
+      "AddItem": "Add Item",
+      "Progress": "{done}/{total} done",
+      "FIELDS": {
+        "items": { "label": "Items" }
       }
     }
   }

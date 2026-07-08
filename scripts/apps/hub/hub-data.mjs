@@ -30,6 +30,13 @@ export function recordSubtitle(page) {
       return [s.itemType, s.rarity].filter(Boolean).join(" — ");
     case `${TYPE_PREFIX}encounter`:
       return [s.difficulty, s.location].filter(Boolean).join(" — ");
+    case `${TYPE_PREFIX}checklist`: {
+      const items = s.items ?? [];
+      return game.i18n.format("CAMPAIGNRECORD.Checklist.Progress", {
+        done: items.filter((i) => i.done).length,
+        total: items.length
+      });
+    }
     default:
       return "";
   }

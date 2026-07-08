@@ -5,6 +5,7 @@ import { QuestSheet } from "./quest-sheet.mjs";
 import { PcSheet } from "./pc-sheet.mjs";
 import { ItemRecordSheet } from "./item-record-sheet.mjs";
 import { EncounterSheet } from "./encounter-sheet.mjs";
+import { ChecklistSheet } from "./checklist-sheet.mjs";
 
 const { DocumentSheetConfig } = foundry.applications.apps;
 
@@ -32,6 +33,9 @@ export function registerSheets() {
   });
   DocumentSheetConfig.registerSheet(JournalEntryPage, MODULE_ID, EncounterSheet, {
     types: [typeId("encounter")], makeDefault: true, label: "CAMPAIGNRECORD.Sheets.Encounter"
+  });
+  DocumentSheetConfig.registerSheet(JournalEntryPage, MODULE_ID, ChecklistSheet, {
+    types: [typeId("checklist")], makeDefault: true, label: "CAMPAIGNRECORD.Sheets.Checklist"
   });
 }
 
