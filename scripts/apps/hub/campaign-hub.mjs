@@ -2,6 +2,7 @@ import { getGroups } from "../../data/groups.mjs";
 import { RECORD_TYPES, typeId } from "../../constants.mjs";
 import { collectRecords, isIndexablePage, getScopedGroups, toSearchRecord } from "./hub-data.mjs";
 import { createIndex, indexRecord, removeRecord, search } from "../../logic/search-index.mjs";
+import * as Timepoints from "../../data/timepoints.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -28,7 +29,11 @@ export class CampaignHub extends HandlebarsApplicationMixin(ApplicationV2) {
       openRecord: CampaignHub.#onOpenRecord,
       newRecord: CampaignHub.#onNewRecord,
       filterType: CampaignHub.#onFilterType,
-      toggleHiddenOnly: CampaignHub.#onToggleHiddenOnly
+      toggleHiddenOnly: CampaignHub.#onToggleHiddenOnly,
+      addTimepoint: CampaignHub.#onAddTimepoint,
+      renameTimepoint: CampaignHub.#onRenameTimepoint,
+      deleteTimepoint: CampaignHub.#onDeleteTimepoint,
+      detachRecord: CampaignHub.#onDetachRecord
     }
   };
 
@@ -200,6 +205,114 @@ export class CampaignHub extends HandlebarsApplicationMixin(ApplicationV2) {
     this.render();
   }
 
+  #timelineGroups() {
+    return getScopedGroups(this.state.groupId).map((group) => {
+      const canEdit = group.canUserModify(game.user, "update");
+      return {
+        id: group.id,
+        name: group.name,
+        canEdit,
+        timepoints: Timepoints.getTimepoints(group).map((tp, i) => ({
+          ...tp,
+          position: i,
+          canEdit,
+          records: Timepoints.recordsAtTimepoint(group, tp.id, game.user).map((p) => ({
+            uuid: p.uuid, name: p.name
+          }))
+        }))
+      };
+    });
+  }
+
+  static async #promptLabel(titleKey, initial = "") {
+    return foundry.applications.api.DialogV2.prompt({
+      window: { title: titleKey },
+      content: `<div class="form-group">
+        <label>${game.i18n.localize("CAMPAIGNRECORD.Hub.TimepointLabel")}</label>
+        <input type="text" name="label" value="${foundry.utils.escapeHTML(initial)}" required autofocus>
+      </div>`,
+      ok: {
+        label: "CAMPAIGNRECORD.Create",
+        callback: (event, button) => button.form.elements.label.value.trim()
+      },
+      rejectClose: false
+    });
+  }
+
+  static async #onAddTimepoint(event, target) {
+    const group = game.journal.get(target.closest("[data-group-id]").dataset.groupId);
+    const position = target.dataset.position ? Number(target.dataset.position) : null;
+    const label = await CampaignHub.#promptLabel("CAMPAIGNRECORD.Hub.AddTimepoint");
+    if (!label) return;
+    await Timepoints.addTimepoint(group, label, position);
+  }
+
+  static async #onRenameTimepoint(event, target) {
+    const group = game.journal.get(target.closest("[data-group-id]").dataset.groupId);
+    const id = target.closest("[data-timepoint-id]").dataset.timepointId;
+    const current = Timepoints.getTimepoints(group).find((t) => t.id === id)?.label ?? "";
+    const label = await CampaignHub.#promptLabel("CAMPAIGNRECORD.Hub.RenameTimepoint", current);
+    if (!label) return;
+    await Timepoints.renameTimepoint(group, id, label);
+  }
+
+  static async #onDeleteTimepoint(event, target) {
+    const group = game.journal.get(target.closest("[data-group-id]").dataset.groupId);
+    const id = target.closest("[data-timepoint-id]").dataset.timepointId;
+    const confirmed = await foundry.applications.api.DialogV2.confirm({
+      window: { title: "CAMPAIGNRECORD.Hub.DeleteTimepoint" },
+      content: `<p>${game.i18n.localize("CAMPAIGNRECORD.Hub.DeleteTimepointConfirm")}</p>`
+    });
+    if (confirmed) await Timepoints.deleteTimepoint(group, id);
+  }
+
+  static async #onDetachRecord(event, target) {
+    event.stopPropagation();
+    const id = target.closest("[data-timepoint-id]").dataset.timepointId;
+    const page = await fromUuid(target.closest("[data-record-uuid]").dataset.recordUuid);
+    if (page) await Timepoints.detachRecord(page, id);
+  }
+
+  #onTimelineDragStart(event) {
+    const tpRow = event.target.closest("[data-drag-timepoint]");
+    const recordRow = event.target.closest("[data-drag-record]");
+    if (tpRow) {
+      event.dataTransfer.setData("text/plain", JSON.stringify({
+        kind: "campaign-record.timepoint",
+        id: tpRow.dataset.timepointId,
+        groupId: tpRow.closest("[data-group-id]").dataset.groupId
+      }));
+    } else if (recordRow) {
+      event.dataTransfer.setData("text/plain", JSON.stringify({
+        kind: "campaign-record.record",
+        uuid: recordRow.dataset.uuid
+      }));
+    }
+  }
+
+  async #onTimelineDrop(event) {
+    const target = event.target.closest("[data-drop-timepoint]");
+    if (!target) return;
+    let data;
+    try {
+      data = JSON.parse(event.dataTransfer.getData("text/plain"));
+    } catch {
+      return;
+    }
+    const groupId = target.closest("[data-group-id]").dataset.groupId;
+    const group = game.journal.get(groupId);
+    if (data.kind === "campaign-record.timepoint") {
+      if (data.groupId !== groupId) return; // no cross-group reordering
+      await Timepoints.moveTimepoint(group, data.id, Number(target.dataset.position));
+    } else if (data.kind === "campaign-record.record") {
+      const page = await fromUuid(data.uuid);
+      if (!page || page.parent.id !== groupId) {
+        return ui.notifications.warn(game.i18n.localize("CAMPAIGNRECORD.Hub.WrongGroup"));
+      }
+      await Timepoints.attachRecord(page, target.dataset.timepointId);
+    }
+  }
+
   async _prepareContext(options) {
     const context = await super._prepareContext(options);
     context.state = this.state;
@@ -222,6 +335,7 @@ export class CampaignHub extends HandlebarsApplicationMixin(ApplicationV2) {
       selected: this.state.sort === s
     }));
     context.searchGroups = this.#searchResults();
+    context.timelineGroups = this.#timelineGroups();
     return context;
   }
 
@@ -259,5 +373,14 @@ export class CampaignHub extends HandlebarsApplicationMixin(ApplicationV2) {
       restored?.focus();
       restored?.setSelectionRange(restored.value.length, restored.value.length);
     }, 250));
+
+    new foundry.applications.ux.DragDrop.implementation({
+      dragSelector: "[data-drag-record], [data-drag-timepoint]",
+      dropSelector: "[data-drop-timepoint]",
+      callbacks: {
+        dragstart: this.#onTimelineDragStart.bind(this),
+        drop: this.#onTimelineDrop.bind(this)
+      }
+    }).bind(this.element);
   }
 }

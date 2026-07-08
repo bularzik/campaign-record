@@ -1,3 +1,42 @@
 <section class="tab hub-timeline{{#if tabs.timeline.active}} active{{/if}}" data-group="primary" data-tab="timeline">
-  <p class="hint">{{localize "CAMPAIGNRECORD.Hub.Empty"}}</p>
+  {{#each timelineGroups}}
+  <section class="timeline-group" data-group-id="{{this.id}}">
+    {{#if @root.allSelected}}<h3>{{this.name}}</h3>{{/if}}
+    <ol class="timepoints">
+      {{#each this.timepoints}}
+      <li class="timepoint" data-timepoint-id="{{this.id}}" data-position="{{this.position}}"
+          data-drag-timepoint data-drop-timepoint draggable="true">
+        <div class="timepoint-head">
+          <span class="timepoint-label">{{this.label}}</span>
+          {{#if this.canEdit}}
+          <button type="button" data-action="addTimepoint" data-position="{{this.position}}"
+                  data-tooltip="CAMPAIGNRECORD.Hub.InsertBefore"><i class="fa-solid fa-arrow-up"></i></button>
+          <button type="button" data-action="renameTimepoint"
+                  data-tooltip="CAMPAIGNRECORD.Hub.RenameTimepoint"><i class="fa-solid fa-pen"></i></button>
+          <button type="button" data-action="deleteTimepoint"
+                  data-tooltip="CAMPAIGNRECORD.Hub.DeleteTimepoint"><i class="fa-solid fa-trash"></i></button>
+          {{/if}}
+        </div>
+        <div class="timepoint-records">
+          {{#each this.records}}
+          <span class="record-chip" data-record-uuid="{{this.uuid}}" data-uuid="{{this.uuid}}"
+                data-action="openRecord">{{this.name}}
+            {{#if ../canEdit}}
+            <a data-action="detachRecord" data-tooltip="CAMPAIGNRECORD.Hub.Detach"><i class="fa-solid fa-xmark"></i></a>
+            {{/if}}
+          </span>
+          {{/each}}
+        </div>
+      </li>
+      {{else}}
+      <li class="hint">{{localize "CAMPAIGNRECORD.Hub.NoTimepoints"}}</li>
+      {{/each}}
+    </ol>
+    {{#if this.canEdit}}
+    <button type="button" data-action="addTimepoint">
+      <i class="fa-solid fa-plus"></i> {{localize "CAMPAIGNRECORD.Hub.AddTimepoint"}}
+    </button>
+    {{/if}}
+  </section>
+  {{/each}}
 </section>

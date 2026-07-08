@@ -40,7 +40,16 @@
       "Sort": { "name": "Name", "type": "Type", "updated": "Recently updated" },
       "SearchPlaceholder": "Search all records…",
       "SearchHint": "Type at least two characters to search.",
-      "NoResults": "No records match."
+      "NoResults": "No records match.",
+      "AddTimepoint": "Add Timepoint",
+      "InsertBefore": "Insert a timepoint before this one",
+      "RenameTimepoint": "Rename Timepoint",
+      "DeleteTimepoint": "Delete Timepoint",
+      "DeleteTimepointConfirm": "Delete this timepoint? Attached records stay; only the timepoint is removed.",
+      "TimepointLabel": "Label",
+      "NoTimepoints": "No timepoints yet.",
+      "Detach": "Detach from this timepoint",
+      "WrongGroup": "Records can only attach to timepoints in their own group."
     },
     "Sheets": {
       "Npc": "Campaign Record NPC Sheet",
