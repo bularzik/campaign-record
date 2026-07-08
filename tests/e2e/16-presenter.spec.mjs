@@ -125,6 +125,10 @@ test.describe("media sheet presenting", () => {
     await gmPage.locator('#campaign-record-overlay [data-action="stepImage"][data-dir="1"]').click();
     await expect.poll(() => playerOverlay().locator("img").getAttribute("src")).toContain("chest.svg");
 
+    // presenter steps back; negative wrap keeps the index in range
+    await gmPage.locator('#campaign-record-overlay [data-action="stepImage"][data-dir="-1"]').click();
+    await expect.poll(() => playerOverlay().locator("img").getAttribute("src")).toContain("book.svg");
+
     // player dismiss is local: GM keeps presenting
     await playerOverlay().locator('[data-action="dismissOverlay"]').click();
     await expect(playerOverlay()).toHaveCount(0);

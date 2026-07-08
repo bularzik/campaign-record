@@ -66,7 +66,9 @@ export class MediaSheet extends BaseRecordSheet {
       ui.notifications.warn(game.i18n.localize("CAMPAIGNRECORD.Media.CannotPresentHidden"));
       return null;
     }
-    const images = this.document.system.toObject().images;
+    const images = this.document.system
+      .toObject()
+      .images.filter((i) => i.src); // blank-src rows (API-created) would invalidate the whole payload
     if (!images.length) {
       ui.notifications.warn(game.i18n.localize("CAMPAIGNRECORD.Presenter.NoImages"));
       return null;
@@ -81,7 +83,9 @@ export class MediaSheet extends BaseRecordSheet {
   }
 
   static #onShowImage(event, target) {
-    const images = this.document.system.toObject().images;
+    const images = this.document.system
+      .toObject()
+      .images.filter((i) => i.src); // keep index aligned with #presentPayload's filtered list
     const rowId = target.closest("[data-row-id]")?.dataset.rowId;
     const index = Math.max(0, images.findIndex((r) => r.id === rowId));
     const payload = this.#presentPayload(index, 0);
