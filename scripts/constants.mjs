@@ -6,3 +6,6 @@ export const FOLDER_FLAG = "recordsFolder";
 export function typeId(type) {
   return `${MODULE_ID}.${type}`;
 }
+
+/** Record kinds shipped so far; Phase 3 extends this list. */
+export const RECORD_TYPES = ["npc", "place", "quest"];

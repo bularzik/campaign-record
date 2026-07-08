@@ -1,5 +1,9 @@
 import { createGroup, isGroup, setRecordHidden } from "../data/groups.mjs";
 import { typeId } from "../constants.mjs";
+import {
+  getTimepoints, addTimepoint, renameTimepoint, moveTimepoint, deleteTimepoint,
+  attachRecord, recordsAtTimepoint
+} from "../data/timepoints.mjs";
 
 Hooks.on("quenchReady", (quench) => {
   quench.registerBatch(
@@ -59,5 +63,47 @@ Hooks.on("quenchReady", (quench) => {
       });
     },
     { displayName: "Campaign Record: Core" }
+  );
+
+  quench.registerBatch(
+    "campaign-record.hub",
+    (context) => {
+      const { describe, it, assert, before, after } = context;
+      let group, page;
+
+      describe("Timepoints", () => {
+        before(async () => {
+          group = await createGroup("Quench Hub Group");
+          [page] = await group.createEmbeddedDocuments("JournalEntryPage", [
+            { name: "Quench Hub NPC", type: typeId("npc") }
+          ]);
+        });
+        after(async () => {
+          await group.delete();
+        });
+
+        it("adds, renames, and orders timepoints", async () => {
+          const a = await addTimepoint(group, "Session 1");
+          const b = await addTimepoint(group, "Session 2");
+          const mid = await addTimepoint(group, "Interlude", 1);
+          assert.deepEqual(getTimepoints(group).map((t) => t.label),
+            ["Session 1", "Interlude", "Session 2"]);
+          await renameTimepoint(group, mid.id, "Flashback");
+          assert.equal(getTimepoints(group)[1].label, "Flashback");
+          await moveTimepoint(group, b.id, 0);
+          assert.deepEqual(getTimepoints(group).map((t) => t.label),
+            ["Session 2", "Session 1", "Flashback"]);
+        });
+
+        it("attaches records and cleans references on delete", async () => {
+          const tp = await addTimepoint(group, "The Heist");
+          await attachRecord(page, tp.id);
+          assert.equal(recordsAtTimepoint(group, tp.id, game.user).length, 1);
+          await deleteTimepoint(group, tp.id);
+          assert.equal(page.system.timepoints.has(tp.id), false);
+        });
+      });
+    },
+    { displayName: "Campaign Record: Hub" }
   );
 });
