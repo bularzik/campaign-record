@@ -7,6 +7,8 @@ export function isDnd5e() {
 export function itemDropDetails(item) {
   if (!isDnd5e() || !item?.system) return null;
   const price = item.system.price;
+  // dnd5e stores price.value 0 on unpriced items (features, homebrew), so a
+  // falsy value deliberately yields a blank price for the GM to fill in.
   const priceText = price?.value ? `${price.value} ${price.denomination ?? "gp"}` : "";
   const rarityKey = item.system.rarity ?? "";
   const rarity = rarityKey ? (CONFIG.DND5E?.itemRarity?.[rarityKey] ?? rarityKey) : "";
