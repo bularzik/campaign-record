@@ -9,7 +9,8 @@
       "campaign-record.encounter": "Encounter",
       "campaign-record.checklist": "Checklist",
       "campaign-record.shop": "Shop",
-      "campaign-record.loot": "Loot"
+      "campaign-record.loot": "Loot",
+      "campaign-record.media": "Media"
     }
   },
   "CAMPAIGNRECORD": {
@@ -70,7 +71,8 @@
       "Encounter": "Campaign Record Encounter Sheet",
       "Checklist": "Campaign Record Checklist Sheet",
       "Shop": "Campaign Record Shop Sheet",
-      "Loot": "Campaign Record Loot Sheet"
+      "Loot": "Campaign Record Loot Sheet",
+      "Media": "Campaign Record Media Sheet"
     },
     "Warning": {
       "HiddenGMOnly": "Only a Gamemaster can hide or reveal records.",
@@ -182,6 +184,17 @@
         "items": { "label": "Items" },
         "source": { "label": "Source Encounter" },
         "distribution": { "label": "Distribution Notes" }
+      }
+    },
+    "Media": {
+      "AddImage": "Add Image",
+      "CaptionPlaceholder": "Caption…",
+      "MoveUp": "Move up",
+      "MoveDown": "Move down",
+      "ImageCount": "{count} images",
+      "FIELDS": {
+        "images": { "label": "Images" },
+        "slideshowInterval": { "label": "Auto-advance (seconds, 0 = manual)" }
       }
     }
   }

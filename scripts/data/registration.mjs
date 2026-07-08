@@ -8,6 +8,7 @@ import { EncounterModel } from "./encounter.mjs";
 import { ChecklistModel } from "./checklist.mjs";
 import { ShopModel } from "./shop.mjs";
 import { LootModel } from "./loot.mjs";
+import { MediaModel } from "./media.mjs";
 
 export function registerDataModels() {
   Object.assign(CONFIG.JournalEntryPage.dataModels, {
@@ -19,6 +20,7 @@ export function registerDataModels() {
     [typeId("encounter")]: EncounterModel,
     [typeId("checklist")]: ChecklistModel,
     [typeId("shop")]: ShopModel,
-    [typeId("loot")]: LootModel
+    [typeId("loot")]: LootModel,
+    [typeId("media")]: MediaModel
   });
 }

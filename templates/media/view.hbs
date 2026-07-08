@@ -1,0 +1,11 @@
+<section class="campaign-record-content record-view">
+<div class="media-gallery">
+  {{#each system.images}}
+  <figure>
+    <img src="{{this.src}}" alt="{{this.caption}}">
+    {{#if this.caption}}<figcaption>{{this.caption}}</figcaption>{{/if}}
+  </figure>
+  {{/each}}
+</div>
+{{> campaign-record.common-view}}
+</section>

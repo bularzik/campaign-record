@@ -1,0 +1,25 @@
+<section class="campaign-record-content record-edit">
+<fieldset class="media-images">
+  <legend>{{localize "CAMPAIGNRECORD.Media.FIELDS.images.label"}}</legend>
+  <ol data-rows="images">
+    {{#each system.images}}
+    <li data-row-id="{{this.id}}" class="media-image-row">
+      <img src="{{this.src}}" alt="{{this.caption}}">
+      <input type="text" data-row-field="caption" value="{{this.caption}}"
+             placeholder="{{localize "CAMPAIGNRECORD.Media.CaptionPlaceholder"}}">
+      <button type="button" data-action="moveImage" data-dir="-1"
+              aria-label="{{localize "CAMPAIGNRECORD.Media.MoveUp"}}"><i class="fa-solid fa-arrow-up"></i></button>
+      <button type="button" data-action="moveImage" data-dir="1"
+              aria-label="{{localize "CAMPAIGNRECORD.Media.MoveDown"}}"><i class="fa-solid fa-arrow-down"></i></button>
+      <button type="button" data-action="deleteImage"
+              aria-label="{{localize "CAMPAIGNRECORD.DeleteRow"}}"><i class="fa-solid fa-trash"></i></button>
+    </li>
+    {{/each}}
+  </ol>
+  <button type="button" data-action="addImage">
+    <i class="fa-solid fa-plus"></i> {{localize "CAMPAIGNRECORD.Media.AddImage"}}
+  </button>
+</fieldset>
+{{formGroup systemFields.slideshowInterval value=system.slideshowInterval localize=true}}
+{{> campaign-record.common-edit}}
+</section>

@@ -18,6 +18,7 @@ test.describe("module load and group creation", () => {
       "campaign-record.encounter",
       "campaign-record.item",
       "campaign-record.loot",
+      "campaign-record.media",
       "campaign-record.npc",
       "campaign-record.pc",
       "campaign-record.place",

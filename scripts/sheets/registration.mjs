@@ -8,6 +8,7 @@ import { EncounterSheet } from "./encounter-sheet.mjs";
 import { ChecklistSheet } from "./checklist-sheet.mjs";
 import { ShopSheet } from "./shop-sheet.mjs";
 import { LootSheet } from "./loot-sheet.mjs";
+import { MediaSheet } from "./media-sheet.mjs";
 
 const { DocumentSheetConfig } = foundry.applications.apps;
 
@@ -44,6 +45,9 @@ export function registerSheets() {
   });
   DocumentSheetConfig.registerSheet(JournalEntryPage, MODULE_ID, LootSheet, {
     types: [typeId("loot")], makeDefault: true, label: "CAMPAIGNRECORD.Sheets.Loot"
+  });
+  DocumentSheetConfig.registerSheet(JournalEntryPage, MODULE_ID, MediaSheet, {
+    types: [typeId("media")], makeDefault: true, label: "CAMPAIGNRECORD.Sheets.Media"
   });
 }
 

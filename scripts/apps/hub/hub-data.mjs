@@ -41,6 +41,8 @@ export function recordSubtitle(page) {
       return [s.shopType, s.location].filter(Boolean).join(" — ");
     case `${TYPE_PREFIX}loot`:
       return game.i18n.format("CAMPAIGNRECORD.Loot.ItemCount", { count: (s.items ?? []).length });
+    case `${TYPE_PREFIX}media`:
+      return game.i18n.format("CAMPAIGNRECORD.Media.ImageCount", { count: (s.images ?? []).length });
     default:
       return "";
   }
