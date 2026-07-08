@@ -122,6 +122,7 @@ export class CampaignHub extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   _onClose(options) {
+    this.#searchIndex = null;
     this.#teardownHooks();
     super._onClose(options);
   }
@@ -226,21 +227,30 @@ export class CampaignHub extends HandlebarsApplicationMixin(ApplicationV2) {
 
   _onRender(context, options) {
     super._onRender(context, options);
-    this.element.querySelector('select[name="group-select"]')
-      ?.addEventListener("change", (event) => {
+    const groupSelect = this.element.querySelector('select[name="group-select"]');
+    if (groupSelect && !groupSelect.dataset.crBound) {
+      groupSelect.dataset.crBound = "1";
+      groupSelect.addEventListener("change", (event) => {
         this.state.groupId = event.target.value;
         this.render();
       });
-    this.element.querySelector('input[name="tag-filter"]')
-      ?.addEventListener("change", (event) => {
+    }
+    const tagFilter = this.element.querySelector('input[name="tag-filter"]');
+    if (tagFilter && !tagFilter.dataset.crBound) {
+      tagFilter.dataset.crBound = "1";
+      tagFilter.addEventListener("change", (event) => {
         this.state.tag = event.target.value.trim();
         this.render();
       });
-    this.element.querySelector('select[name="sort-select"]')
-      ?.addEventListener("change", (event) => {
+    }
+    const sortSelect = this.element.querySelector('select[name="sort-select"]');
+    if (sortSelect && !sortSelect.dataset.crBound) {
+      sortSelect.dataset.crBound = "1";
+      sortSelect.addEventListener("change", (event) => {
         this.state.sort = event.target.value;
         this.render();
       });
+    }
     const searchInput = this.element.querySelector('input[name="search-query"]');
     searchInput?.addEventListener("input", foundry.utils.debounce(async (event) => {
       this.state.query = event.target.value;
