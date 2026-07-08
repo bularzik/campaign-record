@@ -6,6 +6,7 @@ import { PcModel } from "./pc.mjs";
 import { ItemRecordModel } from "./item.mjs";
 import { EncounterModel } from "./encounter.mjs";
 import { ChecklistModel } from "./checklist.mjs";
+import { ShopModel } from "./shop.mjs";
 
 export function registerDataModels() {
   Object.assign(CONFIG.JournalEntryPage.dataModels, {
@@ -15,6 +16,7 @@ export function registerDataModels() {
     [typeId("pc")]: PcModel,
     [typeId("item")]: ItemRecordModel,
     [typeId("encounter")]: EncounterModel,
-    [typeId("checklist")]: ChecklistModel
+    [typeId("checklist")]: ChecklistModel,
+    [typeId("shop")]: ShopModel
   });
 }

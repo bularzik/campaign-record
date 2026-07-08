@@ -6,6 +6,7 @@ import { PcSheet } from "./pc-sheet.mjs";
 import { ItemRecordSheet } from "./item-record-sheet.mjs";
 import { EncounterSheet } from "./encounter-sheet.mjs";
 import { ChecklistSheet } from "./checklist-sheet.mjs";
+import { ShopSheet } from "./shop-sheet.mjs";
 
 const { DocumentSheetConfig } = foundry.applications.apps;
 
@@ -36,6 +37,9 @@ export function registerSheets() {
   });
   DocumentSheetConfig.registerSheet(JournalEntryPage, MODULE_ID, ChecklistSheet, {
     types: [typeId("checklist")], makeDefault: true, label: "CAMPAIGNRECORD.Sheets.Checklist"
+  });
+  DocumentSheetConfig.registerSheet(JournalEntryPage, MODULE_ID, ShopSheet, {
+    types: [typeId("shop")], makeDefault: true, label: "CAMPAIGNRECORD.Sheets.Shop"
   });
 }
 

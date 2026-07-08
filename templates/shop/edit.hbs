@@ -1,0 +1,27 @@
+<section class="campaign-record-content record-edit">
+<div class="form-fields-grid">
+  {{formGroup systemFields.shopType value=system.shopType localize=true}}
+  {{formGroup systemFields.location value=system.location localize=true}}
+  {{formGroup systemFields.owner value=system.owner localize=true}}
+</div>
+<fieldset class="shop-inventory campaign-record-drop">
+  <legend>{{localize "CAMPAIGNRECORD.Shop.FIELDS.inventory.label"}}</legend>
+  <ol data-rows="inventory">
+    {{#each system.inventory}}
+    <li data-row-id="{{this.id}}">
+      <input type="text" data-row-field="name" value="{{this.name}}">
+      <input type="text" data-row-field="price" value="{{this.price}}"
+             placeholder="{{localize "CAMPAIGNRECORD.Shop.PricePlaceholder"}}">
+      <input type="number" data-row-field="quantity" value="{{this.quantity}}" min="0" step="1">
+      <button type="button" data-action="deleteInventoryRow"
+              aria-label="{{localize "CAMPAIGNRECORD.DeleteRow"}}"><i class="fa-solid fa-trash"></i></button>
+    </li>
+    {{/each}}
+  </ol>
+  <button type="button" data-action="addInventoryRow">
+    <i class="fa-solid fa-plus"></i> {{localize "CAMPAIGNRECORD.Shop.AddInventoryRow"}}
+  </button>
+  <p class="hint">{{localize "CAMPAIGNRECORD.DropItemHint"}}</p>
+</fieldset>
+{{> campaign-record.common-edit}}
+</section>

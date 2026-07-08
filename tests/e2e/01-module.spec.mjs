@@ -20,7 +20,8 @@ test.describe("module load and group creation", () => {
       "campaign-record.npc",
       "campaign-record.pc",
       "campaign-record.place",
-      "campaign-record.quest"
+      "campaign-record.quest",
+      "campaign-record.shop"
     ]);
   });
 

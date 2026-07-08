@@ -37,6 +37,8 @@ export function recordSubtitle(page) {
         total: items.length
       });
     }
+    case `${TYPE_PREFIX}shop`:
+      return [s.shopType, s.location].filter(Boolean).join(" — ");
     default:
       return "";
   }

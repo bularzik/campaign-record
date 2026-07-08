@@ -1,0 +1,22 @@
+<section class="campaign-record-content record-view">
+<dl class="record-facts">
+  {{#if system.shopType}}<dt>{{localize "CAMPAIGNRECORD.Shop.FIELDS.shopType.label"}}</dt><dd>{{system.shopType}}</dd>{{/if}}
+  {{#if system.location}}<dt>{{localize "CAMPAIGNRECORD.Shop.FIELDS.location.label"}}</dt><dd>{{system.location}}</dd>{{/if}}
+  {{#if system.owner}}<dt>{{localize "CAMPAIGNRECORD.Shop.FIELDS.owner.label"}}</dt><dd>{{system.owner}}</dd>{{/if}}
+</dl>
+{{#if system.inventory.length}}
+<table class="shop-inventory">
+  <thead><tr>
+    <th>{{localize "CAMPAIGNRECORD.Shop.ColName"}}</th>
+    <th>{{localize "CAMPAIGNRECORD.Shop.ColPrice"}}</th>
+    <th>{{localize "CAMPAIGNRECORD.Shop.ColQuantity"}}</th>
+  </tr></thead>
+  <tbody>
+    {{#each system.inventory}}
+    <tr><td>{{this.name}}</td><td>{{this.price}}</td><td>{{this.quantity}}</td></tr>
+    {{/each}}
+  </tbody>
+</table>
+{{/if}}
+{{> campaign-record.common-view}}
+</section>

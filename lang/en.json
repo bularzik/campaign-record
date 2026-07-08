@@ -7,7 +7,8 @@
       "campaign-record.pc": "Player Character",
       "campaign-record.item": "Item",
       "campaign-record.encounter": "Encounter",
-      "campaign-record.checklist": "Checklist"
+      "campaign-record.checklist": "Checklist",
+      "campaign-record.shop": "Shop"
     }
   },
   "CAMPAIGNRECORD": {
@@ -66,7 +67,8 @@
       "Pc": "Campaign Record PC Sheet",
       "Item": "Campaign Record Item Sheet",
       "Encounter": "Campaign Record Encounter Sheet",
-      "Checklist": "Campaign Record Checklist Sheet"
+      "Checklist": "Campaign Record Checklist Sheet",
+      "Shop": "Campaign Record Shop Sheet"
     },
     "Warning": {
       "HiddenGMOnly": "Only a Gamemaster can hide or reveal records.",
@@ -147,6 +149,19 @@
       "Progress": "{done}/{total} done",
       "FIELDS": {
         "items": { "label": "Items" }
+      }
+    },
+    "Shop": {
+      "AddInventoryRow": "Add Item",
+      "PricePlaceholder": "e.g. 15 gp",
+      "ColName": "Item",
+      "ColPrice": "Price",
+      "ColQuantity": "Qty",
+      "FIELDS": {
+        "shopType": { "label": "Shop Type" },
+        "location": { "label": "Location" },
+        "owner": { "label": "Owner" },
+        "inventory": { "label": "Inventory" }
       }
     }
   }
