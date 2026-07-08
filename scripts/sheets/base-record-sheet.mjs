@@ -51,4 +51,32 @@ export class BaseRecordSheet extends JournalEntryPageHandlebarsSheet {
     if (!game.user.isGM) return;
     await setRecordHidden(this.document, !this.document.system.hidden);
   }
+
+  /** Read, mutate, and write an array field as one targeted update. */
+  async updateRows(field, mutate) {
+    const rows = this.document.system.toObject()[field];
+    mutate(rows);
+    await this.document.update({ [`system.${field}`]: rows });
+  }
+
+  /**
+   * Persist edits from inputs marked data-row-field inside [data-row-id] rows.
+   * Inputs carry no name= — form serialization would corrupt the ArrayField.
+   */
+  bindRowInputs(field) {
+    for (const input of this.element.querySelectorAll(`[data-rows="${field}"] [data-row-field]`)) {
+      input.addEventListener("change", (event) => {
+        event.stopPropagation();
+        const id = event.currentTarget.closest("[data-row-id]").dataset.rowId;
+        const key = event.currentTarget.dataset.rowField;
+        const value = event.currentTarget.type === "number"
+          ? Number(event.currentTarget.value)
+          : event.currentTarget.value;
+        this.updateRows(field, (rows) => {
+          const row = rows.find((r) => r.id === id);
+          if (row) row[key] = value;
+        });
+      });
+    }
+  }
 }

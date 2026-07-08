@@ -32,58 +32,38 @@ export class QuestSheet extends BaseRecordSheet {
     return context;
   }
 
-  /** Read, mutate, and write the objectives array as one targeted update. */
-  async #updateObjectives(mutate) {
-    const objectives = this.document.system.toObject().objectives;
-    mutate(objectives);
-    await this.document.update({ "system.objectives": objectives });
-  }
-
   _onRender(context, options) {
     super._onRender(context, options);
-    for (const input of this.element.querySelectorAll("input[data-objective-text]")) {
-      input.addEventListener("change", (event) => {
-        event.stopPropagation();
-        const id = event.currentTarget.closest("[data-objective-id]").dataset.objectiveId;
-        this.#updateObjectiveText(id, event.currentTarget.value);
-      });
-    }
-  }
-
-  async #updateObjectiveText(id, text) {
-    await this.#updateObjectives((objectives) => {
-      const o = objectives.find((x) => x.id === id);
-      if (o) o.text = text;
-    });
+    this.bindRowInputs("objectives");
   }
 
   static async #onAddObjective() {
-    await this.#updateObjectives((objectives) =>
-      objectives.push({ id: foundry.utils.randomID(), text: "", done: false, gmOnly: false })
+    await this.updateRows("objectives", (rows) =>
+      rows.push({ id: foundry.utils.randomID(), text: "", done: false, gmOnly: false })
     );
   }
 
   static async #onDeleteObjective(event, target) {
-    const id = target.closest("[data-objective-id]").dataset.objectiveId;
-    await this.#updateObjectives((objectives) => {
-      const i = objectives.findIndex((o) => o.id === id);
-      if (i >= 0) objectives.splice(i, 1);
+    const id = target.closest("[data-row-id]").dataset.rowId;
+    await this.updateRows("objectives", (rows) => {
+      const i = rows.findIndex((o) => o.id === id);
+      if (i >= 0) rows.splice(i, 1);
     });
   }
 
   static async #onToggleObjective(event, target) {
-    const id = target.closest("[data-objective-id]").dataset.objectiveId;
-    await this.#updateObjectives((objectives) => {
-      const o = objectives.find((x) => x.id === id);
+    const id = target.closest("[data-row-id]").dataset.rowId;
+    await this.updateRows("objectives", (rows) => {
+      const o = rows.find((x) => x.id === id);
       if (o) o.done = !o.done;
     });
   }
 
   static async #onToggleObjectiveGmOnly(event, target) {
     if (!game.user.isGM) return;
-    const id = target.closest("[data-objective-id]").dataset.objectiveId;
-    await this.#updateObjectives((objectives) => {
-      const o = objectives.find((x) => x.id === id);
+    const id = target.closest("[data-row-id]").dataset.rowId;
+    await this.updateRows("objectives", (rows) => {
+      const o = rows.find((x) => x.id === id);
       if (o) o.gmOnly = !o.gmOnly;
     });
   }

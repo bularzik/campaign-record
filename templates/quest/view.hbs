@@ -7,7 +7,7 @@
   <h3>{{localize "CAMPAIGNRECORD.Quest.FIELDS.objectives.label"}}</h3>
   <ol>
     {{#each objectives}}
-    <li data-objective-id="{{this.id}}" class="{{#if this.gmOnly}}gm-only{{/if}}">
+    <li data-row-id="{{this.id}}" class="{{#if this.gmOnly}}gm-only{{/if}}">
       <input type="checkbox" data-action="toggleObjective" {{#if this.done}}checked{{/if}}>
       <span class="{{#if this.done}}done{{/if}}">{{this.text}}</span>
     </li>

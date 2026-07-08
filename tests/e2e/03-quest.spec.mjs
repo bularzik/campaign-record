@@ -34,7 +34,7 @@ test.describe("quest objectives", () => {
     await expect.poll(async () => (await questSystem(gmPage)).objectives.length).toBe(1);
 
     // edit text (id-based listener, not form serialization)
-    const textInput = sheet.locator("input[data-objective-text]").first();
+    const textInput = sheet.locator('input[data-row-field="text"]').first();
     await textInput.fill("Find the macguffin");
     await textInput.dispatchEvent("change");
     await expect

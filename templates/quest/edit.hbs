@@ -5,11 +5,11 @@
 </div>
 <fieldset class="quest-objectives">
   <legend>{{localize "CAMPAIGNRECORD.Quest.FIELDS.objectives.label"}}</legend>
-  <ol>
+  <ol data-rows="objectives">
     {{#each objectives}}
-    <li data-objective-id="{{this.id}}" class="{{#if this.gmOnly}}gm-only{{/if}}">
+    <li data-row-id="{{this.id}}" class="{{#if this.gmOnly}}gm-only{{/if}}">
       <input type="checkbox" data-action="toggleObjective" {{#if this.done}}checked{{/if}}>
-      <input type="text" data-objective-text value="{{this.text}}">
+      <input type="text" data-row-field="text" value="{{this.text}}">
       {{#if @root.isGM}}
       <button type="button" data-action="toggleObjectiveGmOnly"
               data-tooltip="CAMPAIGNRECORD.ObjectiveGmOnly">
