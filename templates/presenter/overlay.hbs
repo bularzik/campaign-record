@@ -1,0 +1,22 @@
+<div class="overlay-backdrop">
+  {{#if image}}
+  <figure>
+    <img src="{{image.src}}" alt="{{image.caption}}">
+    {{#if image.caption}}<figcaption>{{image.caption}}</figcaption>{{/if}}
+  </figure>
+  {{/if}}
+  <div class="overlay-controls">
+    {{#if isPresenter}}
+    <button type="button" data-action="stepImage" data-dir="-1"
+            aria-label="{{localize "CAMPAIGNRECORD.Presenter.Prev"}}"><i class="fa-solid fa-chevron-left"></i></button>
+    <span class="overlay-count">{{position}}</span>
+    <button type="button" data-action="stepImage" data-dir="1"
+            aria-label="{{localize "CAMPAIGNRECORD.Presenter.Next"}}"><i class="fa-solid fa-chevron-right"></i></button>
+    <button type="button" data-action="endPresentation">
+      <i class="fa-solid fa-stop"></i> {{localize "CAMPAIGNRECORD.Presenter.End"}}
+    </button>
+    {{/if}}
+    <button type="button" data-action="dismissOverlay"
+            aria-label="{{localize "CAMPAIGNRECORD.Presenter.Dismiss"}}"><i class="fa-solid fa-xmark"></i></button>
+  </div>
+</div>

@@ -279,3 +279,54 @@
   opacity: 0.8;
   text-align: center;
 }
+
+/* --- media presenter overlay --- */
+#campaign-record-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+}
+
+#campaign-record-overlay .overlay-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.92);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#campaign-record-overlay figure {
+  margin: 0;
+  max-width: 96vw;
+  max-height: 92vh;
+  text-align: center;
+}
+
+#campaign-record-overlay img {
+  max-width: 96vw;
+  max-height: 86vh;
+  object-fit: contain;
+  border: none;
+}
+
+#campaign-record-overlay figcaption {
+  color: #eee;
+  margin-top: 0.5rem;
+}
+
+#campaign-record-overlay .overlay-controls {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #eee;
+}
+
+#campaign-record-overlay .overlay-controls button {
+  width: auto;
+  line-height: 1.4;
+  padding: 0.25rem 0.6rem;
+}

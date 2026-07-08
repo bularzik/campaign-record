@@ -192,10 +192,20 @@
       "MoveUp": "Move up",
       "MoveDown": "Move down",
       "ImageCount": "{count} images",
+      "CannotPresentHidden": "Hidden media cannot be presented to players.",
       "FIELDS": {
         "images": { "label": "Images" },
         "slideshowInterval": { "label": "Auto-advance (seconds, 0 = manual)" }
       }
+    },
+    "Presenter": {
+      "ShowToPlayers": "Show to players",
+      "StartSlideshow": "Start Slideshow",
+      "End": "End Presentation",
+      "Prev": "Previous image",
+      "Next": "Next image",
+      "Dismiss": "Dismiss",
+      "NoImages": "This media record has no images to present."
     }
   }
 }
