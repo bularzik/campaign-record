@@ -14,7 +14,9 @@ test.describe("module load and group creation", () => {
     expect(state.active).toBe(true);
     expect(state.folder).toBe("Campaign Records");
     expect(state.models.sort()).toEqual([
+      "campaign-record.item",
       "campaign-record.npc",
+      "campaign-record.pc",
       "campaign-record.place",
       "campaign-record.quest"
     ]);

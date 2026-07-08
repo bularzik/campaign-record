@@ -1,0 +1,9 @@
+<section class="campaign-record-content record-view">
+<dl class="record-facts">
+  {{#if system.playerName}}<dt>{{localize "CAMPAIGNRECORD.Pc.FIELDS.playerName.label"}}</dt><dd>{{system.playerName}}</dd>{{/if}}
+  {{#if system.classLevel}}<dt>{{localize "CAMPAIGNRECORD.Pc.FIELDS.classLevel.label"}}</dt><dd>{{system.classLevel}}</dd>{{/if}}
+  {{#if system.faction}}<dt>{{localize "CAMPAIGNRECORD.Pc.FIELDS.faction.label"}}</dt><dd>{{system.faction}}</dd>{{/if}}
+  {{#if enriched.actorLink}}<dt>{{localize "CAMPAIGNRECORD.Pc.FIELDS.actor.label"}}</dt><dd>{{{enriched.actorLink}}}</dd>{{/if}}
+</dl>
+{{> campaign-record.common-view}}
+</section>

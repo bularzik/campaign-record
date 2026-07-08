@@ -8,4 +8,4 @@ export function typeId(type) {
 }
 
 /** Record kinds shipped so far; Phase 3 extends this list. */
-export const RECORD_TYPES = ["npc", "place", "quest"];
+export const RECORD_TYPES = ["npc", "place", "quest", "pc", "item"];

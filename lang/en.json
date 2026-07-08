@@ -3,7 +3,9 @@
     "JournalEntryPage": {
       "campaign-record.npc": "NPC",
       "campaign-record.place": "Place",
-      "campaign-record.quest": "Quest"
+      "campaign-record.quest": "Quest",
+      "campaign-record.pc": "Player Character",
+      "campaign-record.item": "Item"
     }
   },
   "CAMPAIGNRECORD": {
@@ -18,6 +20,7 @@
     "Visible": "Visible",
     "DropActorHint": "Drop an Actor here to link it.",
     "DropSceneHint": "Drop a Scene here to link it.",
+    "DropItemHint": "Drop an Item here to link it.",
     "Hub": {
       "Title": "Campaign Hub",
       "Open": "Open Campaign Hub",
@@ -56,7 +59,9 @@
     "Sheets": {
       "Npc": "Campaign Record NPC Sheet",
       "Place": "Campaign Record Place Sheet",
-      "Quest": "Campaign Record Quest Sheet"
+      "Quest": "Campaign Record Quest Sheet",
+      "Pc": "Campaign Record PC Sheet",
+      "Item": "Campaign Record Item Sheet"
     },
     "Warning": {
       "HiddenGMOnly": "Only a Gamemaster can hide or reveal records.",
@@ -105,6 +110,22 @@
         "parentQuest": { "label": "Parent Quest" }
       },
       "Status": { "available": "Available", "active": "Active", "completed": "Completed", "failed": "Failed", "abandoned": "Abandoned" }
+    },
+    "Pc": {
+      "FIELDS": {
+        "playerName": { "label": "Player" },
+        "classLevel": { "label": "Class & Level" },
+        "faction": { "label": "Faction" },
+        "actor": { "label": "Linked Actor" }
+      }
+    },
+    "Item": {
+      "FIELDS": {
+        "itemType": { "label": "Item Type" },
+        "rarity": { "label": "Rarity" },
+        "attunement": { "label": "Attunement" },
+        "item": { "label": "Linked Item" }
+      }
     }
   }
 }

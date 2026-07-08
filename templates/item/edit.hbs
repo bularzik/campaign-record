@@ -1,0 +1,14 @@
+<section class="campaign-record-content record-edit">
+<div class="form-fields-grid">
+  {{formGroup systemFields.itemType value=system.itemType localize=true}}
+  {{formGroup systemFields.rarity value=system.rarity localize=true}}
+  {{formGroup systemFields.attunement value=system.attunement localize=true}}
+</div>
+<div class="form-group campaign-record-drop">
+  <label>{{localize "CAMPAIGNRECORD.Item.FIELDS.item.label"}}</label>
+  {{#if enriched.itemLink}}{{{enriched.itemLink}}}{{else}}
+    <span class="hint">{{localize "CAMPAIGNRECORD.DropItemHint"}}</span>
+  {{/if}}
+</div>
+{{> campaign-record.common-edit}}
+</section>

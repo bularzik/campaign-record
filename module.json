@@ -12,7 +12,9 @@
     "JournalEntryPage": {
       "npc": {},
       "place": {},
-      "quest": {}
+      "quest": {},
+      "pc": {},
+      "item": {}
     }
   },
   "url": "",

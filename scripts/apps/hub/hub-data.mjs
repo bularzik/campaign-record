@@ -24,6 +24,10 @@ export function recordSubtitle(page) {
       return s.placeType ? game.i18n.localize(`CAMPAIGNRECORD.Place.Type.${s.placeType}`) : "";
     case `${TYPE_PREFIX}quest`:
       return s.status ? game.i18n.localize(`CAMPAIGNRECORD.Quest.Status.${s.status}`) : "";
+    case `${TYPE_PREFIX}pc`:
+      return [s.playerName, s.classLevel].filter(Boolean).join(" — ");
+    case `${TYPE_PREFIX}item`:
+      return [s.itemType, s.rarity].filter(Boolean).join(" — ");
     default:
       return "";
   }

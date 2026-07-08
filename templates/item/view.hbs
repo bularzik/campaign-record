@@ -1,0 +1,9 @@
+<section class="campaign-record-content record-view">
+<dl class="record-facts">
+  {{#if system.itemType}}<dt>{{localize "CAMPAIGNRECORD.Item.FIELDS.itemType.label"}}</dt><dd>{{system.itemType}}</dd>{{/if}}
+  {{#if system.rarity}}<dt>{{localize "CAMPAIGNRECORD.Item.FIELDS.rarity.label"}}</dt><dd>{{system.rarity}}</dd>{{/if}}
+  {{#if system.attunement}}<dt>{{localize "CAMPAIGNRECORD.Item.FIELDS.attunement.label"}}</dt><dd>{{system.attunement}}</dd>{{/if}}
+  {{#if enriched.itemLink}}<dt>{{localize "CAMPAIGNRECORD.Item.FIELDS.item.label"}}</dt><dd>{{{enriched.itemLink}}}</dd>{{/if}}
+</dl>
+{{> campaign-record.common-view}}
+</section>
