@@ -71,11 +71,29 @@ export function toSearchRecord(page) {
     fields.text = page.text?.content ?? "";
   } else {
     const s = page.system.toObject();
+    const schemaFields = page.system.schema.fields;
     tags = s.tags ?? [];
     for (const [key, value] of Object.entries(s)) {
+      // UUID links are noise tokens, not content.
+      if (schemaFields[key] instanceof foundry.data.fields.DocumentUUIDField) continue;
       if (typeof value !== "string" || !value || key === "image") continue;
       if (key === "gmNotes") gmFields[key] = value;
       else fields[key] = value;
+    }
+    // Rows of list fields (combatants, inventory, checklist items, loot items,
+    // media captions) contribute their text-ish props under the field's key.
+    for (const [key, value] of Object.entries(s)) {
+      if (key === "tags" || key === "timepoints" || key === "objectives") continue;
+      if (!Array.isArray(value)) continue;
+      const text = value
+        .map((row) =>
+          [row?.name, row?.text, row?.caption, row?.price]
+            .filter((v) => typeof v === "string" && v)
+            .join(" ")
+        )
+        .filter(Boolean)
+        .join(" ");
+      if (text) fields[key] = text;
     }
     if (Array.isArray(s.objectives)) {
       const open = s.objectives.filter((o) => !o.gmOnly).map((o) => o.text).join(" ");

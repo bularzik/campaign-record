@@ -76,4 +76,33 @@ test.describe("hub search", () => {
     await expect(hub.locator(".search-hit", { hasText: "E2E Search NPC" }))
       .toBeVisible({ timeout: 10_000 });
   });
+
+  test("UUID link values are not searchable; non-group pages stay out of the index", async () => {
+    // Link an actor-shaped UUID onto the NPC, then search for its id fragment.
+    await gmPage.evaluate(async ({ groupId, pageId }) => {
+      const page = game.journal.get(groupId).pages.get(pageId);
+      await page.update({ "system.actor": "Actor.abcdef0123456789" });
+    }, ids);
+    // A text page in a NON-group journal must never appear in results.
+    await gmPage.evaluate(async () => {
+      const entry = await JournalEntry.create({ name: "E2E Search Plain Journal" });
+      await entry.createEmbeddedDocuments("JournalEntryPage", [
+        { name: "Plain Page", type: "text", text: { content: "zanzibar contraband" } }
+      ]);
+    });
+    // Drive state.query and render synchronously in-page: the debounced input
+    // handler races with the app's own doc-changed re-renders (triggered by the
+    // updates above), so filling the visible input and polling the DOM is flaky.
+    const search = async (q) =>
+      gmPage.evaluate(async (q) => {
+        const { CampaignHub } = await import("/modules/campaign-record/scripts/apps/hub/campaign-hub.mjs");
+        const hub = CampaignHub.open();
+        hub.state.query = q;
+        await hub.render(true);
+        return hub.element.querySelectorAll(".search-hit").length;
+      }, q);
+    expect(await search("abcdef0123456789")).toBe(0);
+    expect(await search("zanzibar")).toBe(0);
+    await gmPage.evaluate(() => game.journal.getName("E2E Search Plain Journal")?.delete());
+  });
 });

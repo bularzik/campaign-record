@@ -2,6 +2,7 @@ import { getGroups } from "../../data/groups.mjs";
 import { RECORD_TYPES, typeId } from "../../constants.mjs";
 import { collectRecords, isIndexablePage, getScopedGroups, toSearchRecord } from "./hub-data.mjs";
 import { createIndex, indexRecord, removeRecord, search } from "../../logic/search-index.mjs";
+import { hasGroupFlag } from "../../logic/visibility.mjs";
 import * as Timepoints from "../../data/timepoints.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
@@ -118,7 +119,12 @@ export class CampaignHub extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   _onDocumentChanged(hook, doc) {
-    if (this.#searchIndex && doc.documentName === "JournalEntryPage" && isIndexablePage(doc)) {
+    if (
+      this.#searchIndex &&
+      doc.documentName === "JournalEntryPage" &&
+      isIndexablePage(doc) &&
+      hasGroupFlag(doc.parent?.flags)
+    ) {
       if (hook === "deleteJournalEntryPage") removeRecord(this.#searchIndex, doc.uuid);
       else indexRecord(this.#searchIndex, toSearchRecord(doc));
     }

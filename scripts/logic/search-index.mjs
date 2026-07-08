@@ -14,7 +14,7 @@ export function tokenize(text) {
 /**
  * Inverted index:
  * - tokens: Map<token, Map<uuid, Set<field>>>
- * - records: Map<uuid, { uuid, name, type, texts: {field: plainText}, gmOnly: Set<field> }>
+ * - records: Map<uuid, { uuid, name, type, texts: {field: plainText}, gmOnly: Set<field>, tokens: Set<token> }>
  */
 export function createIndex() {
   return { tokens: new Map(), records: new Map() };
@@ -35,11 +35,13 @@ export function indexRecord(index, record) {
   }
   const gmOnly = new Set(Object.keys(gmFields).map((field) => `${GM_PREFIX}${field}`));
   const texts = {};
+  const tokens = new Set();
   for (const [field, raw] of Object.entries(fields)) {
     const text = stripHtml(raw).replace(/\s+/g, " ").trim();
     if (!text) continue;
     texts[field] = text;
     for (const token of tokenize(text)) {
+      tokens.add(token);
       let byUuid = index.tokens.get(token);
       if (!byUuid) index.tokens.set(token, (byUuid = new Map()));
       let fieldSet = byUuid.get(record.uuid);
@@ -48,13 +50,17 @@ export function indexRecord(index, record) {
     }
   }
   index.records.set(record.uuid, {
-    uuid: record.uuid, name: record.name, type: record.type, texts, gmOnly
+    uuid: record.uuid, name: record.name, type: record.type, texts, gmOnly, tokens
   });
 }
 
 export function removeRecord(index, uuid) {
-  if (!index.records.delete(uuid)) return;
-  for (const [token, byUuid] of index.tokens) {
+  const rec = index.records.get(uuid);
+  if (!rec) return;
+  index.records.delete(uuid);
+  for (const token of rec.tokens ?? []) {
+    const byUuid = index.tokens.get(token);
+    if (!byUuid) continue;
     byUuid.delete(uuid);
     if (!byUuid.size) index.tokens.delete(token);
   }
@@ -113,13 +119,15 @@ export function search(index, query, { gm = false } = {}) {
     const rec = index.records.get(uuid);
     const fields = [...(fieldHits.get(uuid) ?? [])].filter((f) => gm || !rec.gmOnly.has(f));
     if (!fields.length) continue;
-    results.push({
-      uuid, name: rec.name, type: rec.type,
-      matches: fields.map((f) => ({
-        field: f.startsWith(GM_PREFIX) ? f.slice(GM_PREFIX.length) : f,
-        snippet: snippetFor(rec.texts[f], terms)
-      }))
-    });
+    const seenLabels = new Set();
+    const matches = [];
+    for (const f of fields) {
+      const label = f.startsWith(GM_PREFIX) ? f.slice(GM_PREFIX.length) : f;
+      if (seenLabels.has(label)) continue;
+      seenLabels.add(label);
+      matches.push({ field: label, snippet: snippetFor(rec.texts[f], terms) });
+    }
+    results.push({ uuid, name: rec.name, type: rec.type, matches });
   }
   return results.sort((a, b) => a.name.localeCompare(b.name));
 }

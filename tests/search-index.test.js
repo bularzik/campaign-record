@@ -105,3 +105,27 @@ describe("search", () => {
     expect(search(index, "sunflower", { gm: true })).toHaveLength(1);
   });
 });
+
+describe("phase 3 polish", () => {
+  it("removeRecord only touches the record's own tokens (per-record token set)", () => {
+    const index = createIndex();
+    indexRecord(index, { uuid: "u1", name: "Alpha", type: "t", fields: { role: "wizard" } });
+    indexRecord(index, { uuid: "u2", name: "Beta", type: "t", fields: { role: "warrior" } });
+    removeRecord(index, "u1");
+    expect(index.records.has("u1")).toBe(false);
+    expect(index.records.get("u2").tokens).toBeInstanceOf(Set);
+    expect(search(index, "warrior")).toHaveLength(1);
+    expect(search(index, "wizard")).toHaveLength(0);
+  });
+
+  it("dedupes matches that collapse to the same display field name", () => {
+    const index = createIndex();
+    indexRecord(index, {
+      uuid: "u1", name: "Gamma", type: "t",
+      fields: { notes: "secret plan" }, gmFields: { notes: "secret gm plan" }
+    });
+    const [hit] = search(index, "secret", { gm: true });
+    const labels = hit.matches.map((m) => m.field);
+    expect(new Set(labels).size).toBe(labels.length);
+  });
+});
