@@ -2,7 +2,7 @@ import { createGroup, isGroup, setRecordHidden } from "../data/groups.mjs";
 import { typeId } from "../constants.mjs";
 import {
   getTimepoints, addTimepoint, renameTimepoint, moveTimepoint, deleteTimepoint,
-  attachRecord, recordsAtTimepoint
+  attachRecord, detachRecord, recordsAtTimepoint
 } from "../data/timepoints.mjs";
 
 Hooks.on("quenchReady", (quench) => {
@@ -99,6 +99,9 @@ Hooks.on("quenchReady", (quench) => {
           const tp = await addTimepoint(group, "The Heist");
           await attachRecord(page, tp.id);
           assert.equal(recordsAtTimepoint(group, tp.id, game.user).length, 1);
+          await detachRecord(page, tp.id);
+          assert.equal(recordsAtTimepoint(group, tp.id, game.user).length, 0);
+          await attachRecord(page, tp.id);
           await deleteTimepoint(group, tp.id);
           assert.equal(page.system.timepoints.has(tp.id), false);
         });
