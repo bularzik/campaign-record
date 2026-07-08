@@ -28,7 +28,16 @@
         "index": "Index",
         "timeline": "Timeline",
         "search": "Search"
-      }
+      },
+      "NewRecord": "New Record",
+      "RecordName": "Name",
+      "RecordType": "Type",
+      "JournalPage": "Journal",
+      "NoGroups": "Create a campaign group first.",
+      "NoRecords": "No records match the current filters.",
+      "FilterTag": "Filter by tag…",
+      "HiddenOnly": "Show hidden records only",
+      "Sort": { "name": "Name", "type": "Type", "updated": "Recently updated" }
     },
     "Sheets": {
       "Npc": "Campaign Record NPC Sheet",

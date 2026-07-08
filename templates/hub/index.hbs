@@ -1,3 +1,42 @@
 <section class="tab hub-index{{#if tabs.index.active}} active{{/if}}" data-group="primary" data-tab="index">
-  <p class="hint">{{localize "CAMPAIGNRECORD.Hub.Empty"}}</p>
+  <div class="index-controls">
+    <span class="type-chips">
+      {{#each typeChips}}
+      <button type="button" class="type-chip {{#if this.active}}active{{/if}}"
+              data-action="filterType" data-type="{{this.type}}">{{this.label}}</button>
+      {{/each}}
+    </span>
+    <input type="text" name="tag-filter" value="{{state.tag}}"
+           placeholder="{{localize "CAMPAIGNRECORD.Hub.FilterTag"}}">
+    <select name="sort-select">
+      {{#each sortOptions}}
+      <option value="{{this.value}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>
+      {{/each}}
+    </select>
+    {{#if isGM}}
+    <button type="button" class="hidden-toggle {{#if state.hiddenOnly}}active{{/if}}"
+            data-action="toggleHiddenOnly" data-tooltip="CAMPAIGNRECORD.Hub.HiddenOnly">
+      <i class="fa-solid fa-eye-slash"></i>
+    </button>
+    {{/if}}
+    <button type="button" data-action="newRecord">
+      <i class="fa-solid fa-plus"></i> {{localize "CAMPAIGNRECORD.Hub.NewRecord"}}
+    </button>
+  </div>
+  <ol class="record-list">
+    {{#each records}}
+    <li class="record-row" data-uuid="{{this.uuid}}" data-drag-record draggable="true"
+        data-action="openRecord">
+      {{#if this.image}}<img src="{{this.image}}" alt="">{{else}}<i class="fa-solid fa-file-lines"></i>{{/if}}
+      <span class="record-name">{{this.name}}
+        {{#if this.hidden}}<i class="fa-solid fa-eye-slash" data-tooltip="CAMPAIGNRECORD.Hidden"></i>{{/if}}
+      </span>
+      <span class="record-subtitle">{{this.subtitle}}</span>
+      <span class="record-type">{{this.shortType}}</span>
+      <span class="record-group">{{this.groupName}}</span>
+    </li>
+    {{else}}
+    <li class="hint">{{localize "CAMPAIGNRECORD.Hub.NoRecords"}}</li>
+    {{/each}}
+  </ol>
 </section>
