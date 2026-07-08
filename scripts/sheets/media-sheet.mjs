@@ -1,11 +1,15 @@
 import { BaseRecordSheet } from "./base-record-sheet.mjs";
+import { broadcastPresenterMessage } from "../presenter/socket.mjs";
 
 export class MediaSheet extends BaseRecordSheet {
   static DEFAULT_OPTIONS = {
     actions: {
       addImage: MediaSheet.#onAddImage,
       deleteImage: MediaSheet.#onDeleteImage,
-      moveImage: MediaSheet.#onMoveImage
+      moveImage: MediaSheet.#onMoveImage,
+      showImage: MediaSheet.#onShowImage,
+      startSlideshow: MediaSheet.#onStartSlideshow,
+      endPresentation: MediaSheet.#onEndPresentation
     }
   };
 
@@ -53,5 +57,44 @@ export class MediaSheet extends BaseRecordSheet {
       if (i < 0 || j < 0 || j >= rows.length) return;
       [rows[i], rows[j]] = [rows[j], rows[i]];
     });
+  }
+
+  /** Build a show payload from document state, or null (guards + warnings). */
+  #presentPayload(index, interval) {
+    if (!game.user.isGM) return null;
+    if (this.document.system.hidden) {
+      ui.notifications.warn(game.i18n.localize("CAMPAIGNRECORD.Media.CannotPresentHidden"));
+      return null;
+    }
+    const images = this.document.system.toObject().images;
+    if (!images.length) {
+      ui.notifications.warn(game.i18n.localize("CAMPAIGNRECORD.Presenter.NoImages"));
+      return null;
+    }
+    return {
+      action: "show",
+      images: images.map((i) => ({ src: i.src, caption: i.caption })),
+      index: Math.max(0, Math.min(index, images.length - 1)),
+      presenterId: game.user.id,
+      interval
+    };
+  }
+
+  static #onShowImage(event, target) {
+    const images = this.document.system.toObject().images;
+    const rowId = target.closest("[data-row-id]")?.dataset.rowId;
+    const index = Math.max(0, images.findIndex((r) => r.id === rowId));
+    const payload = this.#presentPayload(index, 0);
+    if (payload) broadcastPresenterMessage(payload);
+  }
+
+  static #onStartSlideshow() {
+    const payload = this.#presentPayload(0, this.document.system.slideshowInterval);
+    if (payload) broadcastPresenterMessage(payload);
+  }
+
+  static #onEndPresentation() {
+    if (!game.user.isGM) return;
+    broadcastPresenterMessage({ action: "end" });
   }
 }

@@ -7,6 +7,10 @@
       <img src="{{this.src}}" alt="{{this.caption}}">
       <input type="text" data-row-field="caption" value="{{this.caption}}"
              placeholder="{{localize "CAMPAIGNRECORD.Media.CaptionPlaceholder"}}">
+      {{#if @root.isGM}}
+      <button type="button" data-action="showImage"
+              data-tooltip="CAMPAIGNRECORD.Presenter.ShowToPlayers"><i class="fa-solid fa-display"></i></button>
+      {{/if}}
       <button type="button" data-action="moveImage" data-dir="-1"
               aria-label="{{localize "CAMPAIGNRECORD.Media.MoveUp"}}"><i class="fa-solid fa-arrow-up"></i></button>
       <button type="button" data-action="moveImage" data-dir="1"
@@ -19,6 +23,14 @@
   <button type="button" data-action="addImage">
     <i class="fa-solid fa-plus"></i> {{localize "CAMPAIGNRECORD.Media.AddImage"}}
   </button>
+  {{#if isGM}}
+  <button type="button" data-action="startSlideshow">
+    <i class="fa-solid fa-play"></i> {{localize "CAMPAIGNRECORD.Presenter.StartSlideshow"}}
+  </button>
+  <button type="button" data-action="endPresentation">
+    <i class="fa-solid fa-stop"></i> {{localize "CAMPAIGNRECORD.Presenter.End"}}
+  </button>
+  {{/if}}
 </fieldset>
 {{formGroup systemFields.slideshowInterval value=system.slideshowInterval localize=true}}
 {{> campaign-record.common-edit}}

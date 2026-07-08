@@ -1,9 +1,14 @@
 <section class="campaign-record-content record-view">
 <div class="media-gallery">
   {{#each system.images}}
-  <figure>
+  <figure data-row-id="{{this.id}}">
     <img src="{{this.src}}" alt="{{this.caption}}">
     {{#if this.caption}}<figcaption>{{this.caption}}</figcaption>{{/if}}
+    {{#if @root.isGM}}
+    <button type="button" data-action="showImage">
+      <i class="fa-solid fa-display"></i> {{localize "CAMPAIGNRECORD.Presenter.ShowToPlayers"}}
+    </button>
+    {{/if}}
   </figure>
   {{/each}}
 </div>
