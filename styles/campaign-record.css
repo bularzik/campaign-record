@@ -159,3 +159,123 @@
   cursor: pointer;
   font-size: var(--font-size-12, 12px);
 }
+
+/* --- record sheet lists (shared data-rows contract) --- */
+.campaign-record [data-rows] {
+  list-style: none;
+  margin: 0.25rem 0;
+  padding: 0;
+}
+
+.campaign-record [data-rows] > li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.campaign-record [data-rows] input[type="text"] {
+  flex: 1;
+}
+
+.campaign-record [data-rows] input[type="number"] {
+  flex: 0 0 auto;
+  width: 4.5rem;
+  text-align: center;
+}
+
+.campaign-record [data-rows] select {
+  flex: 0 0 auto;
+  width: auto;
+  max-width: 10rem;
+}
+
+.campaign-record [data-rows] button {
+  flex: 0 0 auto;
+  width: auto;
+  line-height: 1;
+  padding: 0.15rem 0.4rem;
+}
+
+.campaign-record fieldset {
+  margin: 0.5rem 0;
+  border-radius: 4px;
+}
+
+/* --- fact lists (view mode) --- */
+.campaign-record .record-facts {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.15rem 0.75rem;
+  margin: 0.25rem 0 0.75rem;
+}
+
+.campaign-record .record-facts dt {
+  font-weight: bold;
+}
+
+.campaign-record .record-facts dd {
+  margin: 0;
+}
+
+/* --- checklist --- */
+.campaign-record .checklist-items .done {
+  text-decoration: line-through;
+  opacity: 0.7;
+}
+
+.campaign-record .checklist-items .assignee {
+  font-size: var(--font-size-12, 12px);
+  opacity: 0.8;
+  border: 1px solid var(--color-border-light-primary, #7a7971);
+  border-radius: 1rem;
+  padding: 0 0.5rem;
+}
+
+/* --- shop inventory table --- */
+.campaign-record table.shop-inventory {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.5rem 0;
+}
+
+.campaign-record table.shop-inventory th,
+.campaign-record table.shop-inventory td {
+  text-align: left;
+  padding: 0.25rem 0.5rem;
+  border-bottom: 1px solid var(--color-border-light-primary, #7a7971);
+}
+
+/* --- loot currency: five denominations in one row --- */
+.campaign-record .loot-currency .form-fields-grid {
+  grid-template-columns: repeat(5, 1fr);
+}
+
+/* --- media sheet rows and view gallery --- */
+.campaign-record .media-image-row img {
+  width: 3rem;
+  height: 3rem;
+  object-fit: cover;
+  flex: 0 0 auto;
+}
+
+.campaign-record .media-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 0.5rem;
+}
+
+.campaign-record .media-gallery figure {
+  margin: 0;
+}
+
+.campaign-record .media-gallery img {
+  max-width: 100%;
+  height: auto;
+}
+
+.campaign-record .media-gallery figcaption {
+  font-size: var(--font-size-12, 12px);
+  opacity: 0.8;
+  text-align: center;
+}
