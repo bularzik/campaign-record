@@ -237,7 +237,7 @@ export class CampaignHub extends HandlebarsApplicationMixin(ApplicationV2) {
     });
   }
 
-  static async #promptLabel(titleKey, initial = "") {
+  static async #promptLabel(titleKey, initial = "", okKey = "CAMPAIGNRECORD.Create") {
     return foundry.applications.api.DialogV2.prompt({
       window: { title: titleKey },
       content: `<div class="form-group">
@@ -245,7 +245,7 @@ export class CampaignHub extends HandlebarsApplicationMixin(ApplicationV2) {
         <input type="text" name="label" value="${foundry.utils.escapeHTML(initial)}" required autofocus>
       </div>`,
       ok: {
-        label: "CAMPAIGNRECORD.Create",
+        label: okKey,
         callback: (event, button) => button.form.elements.label.value.trim()
       },
       rejectClose: false
@@ -255,7 +255,8 @@ export class CampaignHub extends HandlebarsApplicationMixin(ApplicationV2) {
   static async #onAddTimepoint(event, target) {
     const group = game.journal.get(target.closest("[data-group-id]").dataset.groupId);
     if (!group) return;
-    const position = target.dataset.position ? Number(target.dataset.position) : null;
+    const raw = Number(target.dataset.position);
+    const position = target.dataset.position != null && Number.isInteger(raw) ? raw : null;
     const label = await CampaignHub.#promptLabel("CAMPAIGNRECORD.Hub.AddTimepoint");
     if (!label) return;
     await Timepoints.addTimepoint(group, label, position);
@@ -266,7 +267,9 @@ export class CampaignHub extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!group) return;
     const id = target.closest("[data-timepoint-id]").dataset.timepointId;
     const current = Timepoints.getTimepoints(group).find((t) => t.id === id)?.label ?? "";
-    const label = await CampaignHub.#promptLabel("CAMPAIGNRECORD.Hub.RenameTimepoint", current);
+    const label = await CampaignHub.#promptLabel(
+      "CAMPAIGNRECORD.Hub.RenameTimepoint", current, "CAMPAIGNRECORD.Hub.Rename"
+    );
     if (!label) return;
     await Timepoints.renameTimepoint(group, id, label);
   }
@@ -286,9 +289,8 @@ export class CampaignHub extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   static async #onDetachRecord(event, target) {
-    event.stopPropagation();
     const id = target.closest("[data-timepoint-id]").dataset.timepointId;
-    const page = await fromUuid(target.closest("[data-record-uuid]").dataset.recordUuid);
+    const page = await fromUuid(target.closest("[data-uuid]").dataset.uuid);
     if (page) await Timepoints.detachRecord(page, id);
   }
 
@@ -374,10 +376,14 @@ export class CampaignHub extends HandlebarsApplicationMixin(ApplicationV2) {
     const tagFilter = this.element.querySelector('input[name="tag-filter"]');
     if (tagFilter && !tagFilter.dataset.crBound) {
       tagFilter.dataset.crBound = "1";
-      tagFilter.addEventListener("change", (event) => {
+      tagFilter.addEventListener("input", foundry.utils.debounce(async (event) => {
         this.state.tag = event.target.value.trim();
-        this.render();
-      });
+        await this.render({ parts: ["index"] });
+        // render({parts}) replaces this part's DOM — restore focus to keep typing.
+        const restored = this.element.querySelector('input[name="tag-filter"]');
+        restored?.focus();
+        restored?.setSelectionRange(restored.value.length, restored.value.length);
+      }, 250));
     }
     const sortSelect = this.element.querySelector('select[name="sort-select"]');
     if (sortSelect && !sortSelect.dataset.crBound) {
@@ -391,6 +397,7 @@ export class CampaignHub extends HandlebarsApplicationMixin(ApplicationV2) {
     searchInput?.addEventListener("input", foundry.utils.debounce(async (event) => {
       this.state.query = event.target.value;
       await this.render({ parts: ["search"] });
+      // render({parts}) replaces this part's DOM — restore focus to keep typing.
       const restored = this.element.querySelector('input[name="search-query"]');
       restored?.focus();
       restored?.setSelectionRange(restored.value.length, restored.value.length);

@@ -19,7 +19,7 @@
         </div>
         <div class="timepoint-records">
           {{#each this.records}}
-          <span class="record-chip" data-record-uuid="{{this.uuid}}" data-uuid="{{this.uuid}}"
+          <span class="record-chip" data-uuid="{{this.uuid}}"
                 data-action="openRecord">{{this.name}}
             {{#if ../canEdit}}
             <a data-action="detachRecord" data-tooltip="CAMPAIGNRECORD.Hub.Detach"><i class="fa-solid fa-xmark"></i></a>

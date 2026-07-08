@@ -105,6 +105,14 @@ export async function deleteGroupsByPrefix(page, prefix) {
   }, prefix);
 }
 
+/**
+ * Bounded settle for asserting a change did NOT happen: a no-op has no
+ * observable completion signal to await, so we wait out the round-trip window.
+ */
+export async function settle(page, ms = 300) {
+  await page.waitForTimeout(ms);
+}
+
 /** Create a group + one page of the given type via the module API; returns ids. */
 export async function createGroupWithPage(page, groupName, pageName, type) {
   return page.evaluate(

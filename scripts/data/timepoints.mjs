@@ -13,6 +13,9 @@ async function setTimepoints(group, timepoints) {
 }
 
 export async function addTimepoint(group, label, position = null) {
+  // Concurrent edits to a group's timepoints are last-write-wins on the whole
+  // flag array (accepted: the array is small and edits are rare).
+  if (!Number.isInteger(position)) position = null;
   const tps = getTimepoints(group);
   const i = position == null ? tps.length : Math.max(0, Math.min(position, tps.length));
   const tp = {
@@ -41,16 +44,14 @@ export async function moveTimepoint(group, id, position) {
 
 export async function deleteTimepoint(group, id) {
   await setTimepoints(group, getTimepoints(group).filter((t) => t.id !== id));
-  for (const page of group.pages) {
-    const tps = page.system?.timepoints;
-    if (!tps?.has?.(id)) continue;
-    if (!page.canUserModify(game.user, "update")) continue;
-    const next = [...tps].filter((t) => t !== id);
-    try {
-      await page.update({ "system.timepoints": next });
-    } catch (error) {
-      console.warn("campaign-record | failed to detach deleted timepoint from page", page.uuid, error);
-    }
+  const updates = group.pages
+    .filter((p) => p.system?.timepoints?.has?.(id) && p.canUserModify(game.user, "update"))
+    .map((p) => ({ _id: p.id, "system.timepoints": [...p.system.timepoints].filter((t) => t !== id) }));
+  if (!updates.length) return;
+  try {
+    await group.updateEmbeddedDocuments("JournalEntryPage", updates);
+  } catch (error) {
+    console.warn("campaign-record | failed to detach deleted timepoint from pages", group.uuid, error);
   }
 }
 

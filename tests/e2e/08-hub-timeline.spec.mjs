@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { login, deleteGroupsByPrefix, createGroupWithPage } from "./helpers/foundry.mjs";
+import { login, deleteGroupsByPrefix, createGroupWithPage, settle } from "./helpers/foundry.mjs";
 
 test.describe("hub timeline", () => {
   let gmPage, playerCtx, playerPage, ids;
@@ -187,7 +187,7 @@ test.describe("hub timeline", () => {
     await dispatchDrop(dropSelector, {
       kind: "campaign-record.timepoint", id: timepointId, groupId: "not-the-real-group"
     });
-    await gmPage.waitForTimeout(300);
+    await settle(gmPage);
     expect(await timepointOrder(ids.groupId)).toEqual(orderBefore);
 
     await deleteGroupsByPrefix(gmPage, "E2E Timeline Other");

@@ -43,6 +43,7 @@
       "NoResults": "No records match.",
       "AddTimepoint": "Add Timepoint",
       "InsertBefore": "Insert a timepoint before this one",
+      "Rename": "Rename",
       "RenameTimepoint": "Rename Timepoint",
       "DeleteTimepoint": "Delete Timepoint",
       "DeleteTimepointConfirmNamed": "Delete the timepoint \"{label}\"? Attached records stay; only the timepoint is removed.",
