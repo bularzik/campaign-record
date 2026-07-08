@@ -71,6 +71,9 @@ walk only the manual section below with two browsers.
       (dialog flow not automated).
 - [ ] Drop an Actor from the sidebar onto an Encounter sheet and an Item onto
       a Shop sheet (real pointer drag; only synthetic drops are automated).
+- [ ] Drop an Encounter record onto a Loot sheet to set its source (and a
+      non-Encounter page: expect a silent no-op) (real pointer drag; only
+      synthetic drops are automated).
 - [ ] Subjective pass over the seven new sheets' (pc, item, encounter,
       checklist, shop, loot, media) layout/styling in both edit and view
       modes.

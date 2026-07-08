@@ -44,6 +44,12 @@ test.describe("encounter sheet", () => {
     await count.dispatchEvent("change");
     await expect.poll(async () => (await system()).combatants[0]).toMatchObject({ name: "Goblin", count: 4 });
 
+    // Clearing the count input must not persist as 0 (schema min: 1 would
+    // reject it) or silently diverge from the document.
+    await count.fill("");
+    await count.dispatchEvent("change");
+    await expect.poll(async () => (await system()).combatants[0].count).toBe(4);
+
     await sheet.locator('[data-action="addCombatant"]').click();
     await expect.poll(async () => (await system()).combatants.length).toBe(2);
     await sheet.locator('[data-action="deleteCombatant"]').last().click();

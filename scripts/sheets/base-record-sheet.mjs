@@ -67,15 +67,27 @@ export class BaseRecordSheet extends JournalEntryPageHandlebarsSheet {
     for (const input of this.element.querySelectorAll(`[data-rows="${field}"] [data-row-field]`)) {
       input.addEventListener("change", (event) => {
         event.stopPropagation();
-        const id = event.currentTarget.closest("[data-row-id]").dataset.rowId;
+        const rowEl = event.currentTarget.closest("[data-row-id]");
+        if (!rowEl) return;
+        const id = rowEl.dataset.rowId;
         const key = event.currentTarget.dataset.rowField;
-        const value = event.currentTarget.type === "number"
-          ? Number(event.currentTarget.value)
-          : event.currentTarget.value;
+        let value;
+        if (event.currentTarget.type === "number") {
+          // A cleared or non-numeric input coerces to 0 via Number(""), which
+          // can silently persist an unintended value or, where the schema
+          // rejects it (e.g. min: 1), throw from document.update. Skip the
+          // write and re-render so the input snaps back to the persisted value.
+          if (event.currentTarget.value === "") return this.render();
+          const num = Number(event.currentTarget.value);
+          if (!Number.isFinite(num)) return this.render();
+          value = num;
+        } else {
+          value = event.currentTarget.value;
+        }
         this.updateRows(field, (rows) => {
           const row = rows.find((r) => r.id === id);
           if (row) row[key] = value;
-        });
+        }).catch(() => this.render());
       });
     }
   }
