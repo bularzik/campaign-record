@@ -61,22 +61,30 @@ export async function ensureTestWorld() {
 
 /** Log a page in as the named user (no passwords in the test worlds). */
 export async function login(page, userName) {
-  await page.goto(`${BASE_URL}/join`);
-  const select = page.locator('select[name="userid"]');
-  await select.waitFor({ timeout: 15_000 });
-  const disabled = await select
-    .locator("option", { hasText: userName })
-    .first()
-    .isDisabled()
-    .catch(() => false);
-  if (disabled) {
-    throw new Error(
-      `User "${userName}" is already connected to the test world — close other sessions (browsers, stray test runners) and retry.`
-    );
+  for (let attempt = 0; attempt < 2; attempt++) {
+    await page.goto(`${BASE_URL}/join`);
+    const select = page.locator('select[name="userid"]');
+    await select.waitFor({ timeout: 15_000 });
+    const disabled = await select
+      .locator("option", { hasText: userName })
+      .first()
+      .isDisabled()
+      .catch(() => false);
+    if (disabled) {
+      throw new Error(
+        `User "${userName}" is already connected to the test world — close other sessions (browsers, stray test runners) and retry.`
+      );
+    }
+    await select.selectOption({ label: userName });
+    await page.locator('button[name="join"], form#join-game-form button[type="submit"]').first().click();
+    try {
+      await page.waitForURL("**/game", { timeout: 30_000 });
+      break;
+    } catch (error) {
+      // Cold server boots occasionally swallow the first join; retry once.
+      if (attempt === 1) throw error;
+    }
   }
-  await select.selectOption({ label: userName });
-  await page.locator('button[name="join"], form#join-game-form button[type="submit"]').first().click();
-  await page.waitForURL("**/game", { timeout: 30_000 });
   await page.waitForFunction(() => globalThis.game?.ready === true, null, { timeout: 60_000 });
 }
 

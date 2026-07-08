@@ -50,6 +50,10 @@ test.describe("media sheet", () => {
     await sheet.locator('[data-action="moveImage"][data-dir="-1"]').last().click();
     await expect.poll(async () => (await images()).map((i) => i.caption)).toEqual(["Second", "Cover"]);
 
+    // moveImage at the list boundary is a no-op
+    await sheet.locator('[data-action="moveImage"][data-dir="-1"]').first().click();
+    await expect.poll(async () => (await images()).map((i) => i.caption)).toEqual(["Second", "Cover"]);
+
     await sheet.locator('[data-action="deleteImage"]').first().click();
     await expect.poll(async () => (await images()).length).toBe(1);
     expect((await images())[0].caption).toBe("Cover");

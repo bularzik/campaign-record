@@ -101,6 +101,9 @@ export function toSearchRecord(page) {
     }
     // Rows of list fields (combatants, inventory, checklist items, loot items,
     // media captions) contribute their text-ish props under the field's key.
+    // Rows are expected to be objects; an ArrayField of primitive strings
+    // would yield no text here and be silently unsearchable — add a mapper
+    // if such a field ever ships.
     for (const [key, value] of Object.entries(s)) {
       if (key === "tags" || key === "timepoints" || key === "objectives") continue;
       if (!Array.isArray(value)) continue;

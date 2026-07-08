@@ -58,4 +58,28 @@ test.describe("loot sheet", () => {
     await expect(view).toContainText("2 × Ruby");
     await page.evaluate(({ groupId }) => game.journal.get(groupId).sheet.close(), ids);
   });
+
+  test("source link accepts only encounter pages via drop", async () => {
+    const uuids = await page.evaluate(async ({ groupId }) => {
+      const g = game.journal.get(groupId);
+      const [enc, npc] = await g.createEmbeddedDocuments("JournalEntryPage", [
+        { name: "E2E Loot Source Enc", type: "campaign-record.encounter" },
+        { name: "E2E Loot Source Npc", type: "campaign-record.npc" }
+      ]);
+      return { enc: enc.uuid, npc: npc.uuid };
+    }, { groupId: ids.groupId });
+    const drop = (uuid) =>
+      page.evaluate(
+        async ({ groupId, pageId, uuid }) => {
+          const sheet = game.journal.get(groupId).pages.get(pageId).sheet;
+          await sheet.render(true);
+          await sheet._onDropDocument({ type: "JournalEntryPage", uuid });
+        },
+        { groupId: ids.groupId, pageId: ids.pageId, uuid }
+      );
+    await drop(uuids.npc); // wrong type: silent no-op
+    await expect.poll(async () => (await system()).source).toBeFalsy();
+    await drop(uuids.enc);
+    await expect.poll(async () => (await system()).source).toBe(uuids.enc);
+  });
 });

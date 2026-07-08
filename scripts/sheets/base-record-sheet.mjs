@@ -87,7 +87,10 @@ export class BaseRecordSheet extends JournalEntryPageHandlebarsSheet {
         this.updateRows(field, (rows) => {
           const row = rows.find((r) => r.id === id);
           if (row) row[key] = value;
-        }).catch(() => this.render());
+        }).catch((error) => {
+          console.warn("campaign-record | row update rejected; resyncing sheet", error);
+          this.render();
+        });
       });
     }
   }

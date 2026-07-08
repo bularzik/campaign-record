@@ -101,8 +101,11 @@ test.describe("hub search", () => {
         await hub.render(true);
         return hub.element.querySelectorAll(".search-hit").length;
       }, q);
-    expect(await search("abcdef0123456789")).toBe(0);
-    expect(await search("zanzibar")).toBe(0);
-    await gmPage.evaluate(() => game.journal.getName("E2E Search Plain Journal")?.delete());
+    try {
+      expect(await search("abcdef0123456789")).toBe(0);
+      expect(await search("zanzibar")).toBe(0);
+    } finally {
+      await gmPage.evaluate(() => game.journal.getName("E2E Search Plain Journal")?.delete());
+    }
   });
 });
