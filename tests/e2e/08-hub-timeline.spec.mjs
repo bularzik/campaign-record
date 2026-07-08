@@ -197,4 +197,50 @@ test.describe("hub timeline", () => {
     await expect.poll(() => isAttached(ids.groupId, ids.pageId, timepointId)).toBe(false);
     expect(await timepointOrder(ids.groupId)).toEqual(orderBefore);
   });
+
+  test("player never sees a hidden attached record's chip; GM still does", async () => {
+    const timepointId = await gmPage.evaluate(async ({ groupId, pageId }) => {
+      const { getTimepoints, attachRecord } = await import("/modules/campaign-record/scripts/data/timepoints.mjs");
+      const { setRecordHidden } = await import("/modules/campaign-record/scripts/data/groups.mjs");
+      const group = game.journal.get(groupId);
+      const page = group.pages.get(pageId);
+      const tp = getTimepoints(group)[0];
+      await attachRecord(page, tp.id);
+      await setRecordHidden(page, true);
+      return tp.id;
+    }, { groupId: ids.groupId, pageId: ids.pageId });
+
+    await expect(gmPage.locator("#campaign-hub .record-chip", { hasText: "E2E Timeline NPC" }))
+      .toBeVisible({ timeout: 10_000 });
+    await expect(playerPage.locator("#campaign-hub .record-chip", { hasText: "E2E Timeline NPC" }))
+      .toHaveCount(0, { timeout: 10_000 });
+
+    await gmPage.evaluate(async ({ groupId, pageId, timepointId }) => {
+      const { detachRecord } = await import("/modules/campaign-record/scripts/data/timepoints.mjs");
+      const { setRecordHidden } = await import("/modules/campaign-record/scripts/data/groups.mjs");
+      const group = game.journal.get(groupId);
+      const page = group.pages.get(pageId);
+      await setRecordHidden(page, false);
+      await detachRecord(page, timepointId);
+    }, { groupId: ids.groupId, pageId: ids.pageId, timepointId });
+
+    await expect(gmPage.locator("#campaign-hub .record-chip", { hasText: "E2E Timeline NPC" }))
+      .toHaveCount(0, { timeout: 10_000 });
+  });
+
+  test("dragenter on the timeline tab nav link switches to it mid-drag", async () => {
+    const gmHub = gmPage.locator("#campaign-hub");
+    await gmHub.locator('[data-action="tab"][data-tab="index"]').click();
+    await expect(gmHub.locator('.hub-index[data-tab="index"]')).toHaveClass(/active/);
+
+    await gmPage.evaluate(() => {
+      const link = document.querySelector(
+        '#campaign-hub .hub-header nav.tabs a[data-action="tab"][data-tab="timeline"]'
+      );
+      link.dispatchEvent(new DragEvent("dragenter", { bubbles: true }));
+    });
+
+    await expect(gmHub.locator('.hub-timeline[data-tab="timeline"]')).toHaveClass(/active/);
+    await expect(gmHub.locator('.hub-index[data-tab="index"]')).not.toHaveClass(/active/);
+  });
 });
