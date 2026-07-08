@@ -41,13 +41,21 @@ walk only the manual section below with two browsers.
       from view mode and the GM sees the change *(11-checklist)*
 - [x] Shop inventory rows add/edit/delete (name, price, quantity); view mode
       renders the inventory table *(12-shop)*
-- [x] Loot currency persists; item rows add and edit; view mode renders
+- [x] Loot currency persists; item rows add and edit; view mode renders;
+      dropped Encounter sets source (junk drops are silently ignored)
       *(13-loot)*
 - [x] Media captions edit, reorder via up/down buttons, and delete, all
-      persisting in order; view mode renders the gallery *(14-media)*
+      persisting in order; view mode renders the gallery; reorder boundary
+      (at max index) is guarded *(14-media)*
 - [x] Hub shows one type chip per record type plus journal (11 total);
       phase-3 subtitles (shop, pc, checklist) render; search hits shop
       inventory item names and checklist item text *(15-hub-types)*
+- [x] GM presents an image via show/goto/end socket relay; player overlay
+      displays it; player sees dismiss button; hidden images do not display
+      *(16-presenter)*
+- [x] On a dnd5e world, dropping a weapon onto a Shop autofills price;
+      dropping onto an Item record autofills rarity; dropped linked actors
+      show name/portrait and AC/HP in NPC summaries *(17-dnd5e)*
 
 ## Manual (before each release)
 
@@ -77,3 +85,11 @@ walk only the manual section below with two browsers.
 - [ ] Subjective pass over the seven new sheets' (pc, item, encounter,
       checklist, shop, loot, media) layout/styling in both edit and view
       modes.
+- [ ] Run a slideshow with a non-zero auto-advance interval and confirm
+      images advance on both clients without interaction (timer behavior is
+      not automated).
+- [ ] Present an image and confirm the overlay looks correct on a real
+      second display (fullscreen fit, caption legibility).
+- [ ] On a non-dnd5e world, confirm Shop/Item drops still link items with
+      blank price/rarity and NPC/PC linked actors show name/portrait without
+      AC/HP.
