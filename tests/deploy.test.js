@@ -43,6 +43,25 @@ describe("deploy helpers", () => {
     expect(() => pinSymlink("/checkout/a", link)).toThrow(/not a symlink/);
   });
 
+  it("explicit dataDir wins over the FOUNDRY_MODULE_LINK env override", () => {
+    const prev = process.env.FOUNDRY_MODULE_LINK;
+    process.env.FOUNDRY_MODULE_LINK = "/env/override/campaign-record";
+    try {
+      expect(moduleLinkPath("/data/root")).toBe("/data/root/Data/modules/campaign-record");
+      expect(moduleLinkPath()).toBe("/env/override/campaign-record");
+    } finally {
+      if (prev === undefined) delete process.env.FOUNDRY_MODULE_LINK;
+      else process.env.FOUNDRY_MODULE_LINK = prev;
+    }
+  });
+
+  it("replaces a broken symlink", () => {
+    const link = path.join(tmp, "campaign-record");
+    pinSymlink(path.join(tmp, "does-not-exist"), link);
+    pinSymlink("/checkout/c", link);
+    expect(currentSymlinkTarget(link)).toBe("/checkout/c");
+  });
+
   it("exposes the two sentinel files", () => {
     expect(SENTINELS).toEqual(["module.json", "scripts/apps/hub/campaign-hub.mjs"]);
   });

@@ -12,8 +12,11 @@ export const MAIN_CHECKOUT =
 /** Files whose served bytes must match this checkout before any spec runs. */
 export const SENTINELS = ["module.json", "scripts/apps/hub/campaign-hub.mjs"];
 
-export function moduleLinkPath(dataDir = DEFAULT_DATA) {
-  return process.env.FOUNDRY_MODULE_LINK ?? path.join(dataDir, "Data", "modules", "campaign-record");
+export function moduleLinkPath(dataDir) {
+  if (!dataDir) {
+    return process.env.FOUNDRY_MODULE_LINK ?? path.join(DEFAULT_DATA, "Data", "modules", "campaign-record");
+  }
+  return path.join(dataDir, "Data", "modules", "campaign-record");
 }
 
 export function md5Hex(data) {
@@ -46,14 +49,20 @@ export async function verifyDeployment({
   baseURL, repoRoot, sentinels = SENTINELS, linkPath = moduleLinkPath()
 }) {
   const link = currentSymlinkTarget(linkPath);
-  if (!link || path.resolve(link) !== path.resolve(repoRoot)) {
+  const resolved = link == null ? null : path.resolve(path.dirname(linkPath), link);
+  if (!resolved || resolved !== path.resolve(repoRoot)) {
     throw new Error(
       `Deployment check failed: module symlink points at ${link}, expected ${repoRoot}. ` +
       `Another session may own the environment. ${UNLOCK_HINT}`
     );
   }
   for (const rel of sentinels) {
-    const res = await fetch(`${baseURL}/modules/campaign-record/${rel}`);
+    let res;
+    try {
+      res = await fetch(`${baseURL}/modules/campaign-record/${rel}`);
+    } catch (err) {
+      throw new Error(`Deployment check failed: could not reach the Foundry server for ${rel}: ${err.message}`);
+    }
     if (!res.ok) {
       throw new Error(`Deployment check failed: could not fetch ${rel} (HTTP ${res.status}).`);
     }
