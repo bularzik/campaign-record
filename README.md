@@ -1,38 +1,84 @@
 # Campaign Record
 
-A Foundry VTT (v13+) module for collaborative campaign journaling. Every player
-at the table can create and edit campaign records — NPCs, places, quests, and
-more — organized into shared campaign groups.
+A Foundry VTT (v13+) module for collaborative campaign journaling. Every
+connected player can create and edit typed campaign records — NPCs, places,
+quests, and more — organized into shared campaign groups, and surfaced
+through a Campaign Hub with a filterable index, a free-form timeline, and
+cross-document search. The core is system-agnostic, with deeper integration
+for dnd5e.
 
-**Status:** Phase 2 (Campaign Hub) — groups, NPC/Place/Quest record types,
-collaborative sheets, GM-only content, and the Campaign Hub: a filterable
-record index, cross-document search, and a free-form timeline. Further record
-types, the media presenter, and deeper dnd5e integration are planned; see
-`docs/superpowers/specs/2026-07-07-campaign-record-design.md`.
+## Features
 
-## Installation (development)
+- **Ten record types**: NPC, Place, Quest, PC, Item, Encounter, Checklist,
+  Shop, Loot, and Media — each a custom journal page type with its own
+  collaborative sheet.
+- **Groups**: multiple named campaign groups per world; every player can
+  create and edit records in a group by default, with a GM option to make a
+  group read-only.
+- **Campaign Hub**: a dedicated window with a filterable record index, a
+  free-form drag-reorderable timeline, and cross-document search that
+  matches structured fields with prefixes and snippets.
+- **GM-only media presenter**: push images from a Media record's gallery to
+  all connected players as a fullscreen overlay, with a synced slideshow
+  (prev/next and optional auto-advance) and per-viewer dismiss.
+- **Hidden records & GM notes**: GMs can hide any record from players and
+  keep private GM Notes on any record; both are stripped at render time.
+- **dnd5e integration**: dropping a weapon onto a Shop or Item record
+  autofills price/rarity, and linked Actors show a live name/AC/HP summary
+  on NPC and PC sheets.
 
-1. Clone this repository.
-2. Symlink it into your Foundry data directory:
-   `ln -s "$(pwd)" "$FOUNDRY_DATA/Data/modules/campaign-record"`
-3. Enable **Campaign Record** in your world's module management.
+## Installation
+
+- **From the Foundry package list** (once published): search for "Campaign
+  Record" in Foundry's **Add-on Modules** browser and install it directly.
+- **Manually**: in Foundry's **Add-on Modules** tab, click **Install
+  Module**, and paste this manifest URL:
+
+  ```
+  https://github.com/bularzik/campaign-record/releases/latest/download/module.json
+  ```
+
+Then enable **Campaign Record** in your world's module management.
 
 ## Usage
 
-- Click **Create Campaign Group** at the bottom of the Journal sidebar.
-- Open the group and add pages: NPC, Place, and Quest types appear alongside
+- Click **Create Campaign Group** at the bottom of the Journal sidebar to
+  start a new group.
+- Open the group and add pages: the ten record types appear alongside
   Foundry's standard page types.
-- Everyone owns group content by default — all players can add and edit records.
-- GMs can hide records from players (eye toggle) and keep GM Notes on any record.
-- Open the **Campaign Hub** from the Journal sidebar button (or Ctrl+Shift+H):
-  browse and filter all records in the Index, search everything in Search,
-  and organize events on the Timeline — drag records from the Index onto a
-  timepoint to attach them.
+- Open the **Campaign Hub** from the Journal sidebar button, the scene
+  controls tool, or the **Ctrl+Shift+H** shortcut: browse and filter records
+  in the Index, search everything in Search, and organize events on the
+  Timeline by dragging records onto a timepoint.
+- To present a slideshow: open a Media record's sheet as GM, click **Show to
+  players** on an image (or **Start slideshow**) — connected players see a
+  fullscreen overlay that follows the presenter's prev/next and can
+  auto-advance.
+
+## Permissions model
+
+Every record is editable by all players by default (new groups get `OWNER`
+ownership for everyone); the GM can flip a group to read-only. On top of
+that, GMs can hide individual records (blocked from all player-facing views
+and sheets) and keep GM-only fields (`gmNotes`, hidden objectives) on any
+record — both are stripped at render time.
+
+Explicit per-user ownership overrides (including the auto-assigned creator
+OWNER entry) are not swept and can leak hidden records to those users;
+accepted limitation, on the manual checklist.
 
 ## Development
 
-- No build step. Plain ES modules under `scripts/`.
+- No build step — plain ES modules under `scripts/`.
 - Unit tests: `npm test` (Vitest; pure logic only).
-- Integration tests: enable the [Quench](https://foundryvtt.com/packages/quench)
-  module and run the "Campaign Record: Core" batch.
-- Before release: run `docs/manual-test-checklist.md` with two clients.
+- Integration tests: enable the
+  [Quench](https://foundryvtt.com/packages/quench) module in a test world and
+  run the "Campaign Record: Core", "Campaign Record: Hub", and "Campaign
+  Record: Types" batches from its sidebar tab.
+- End-to-end tests: `npm run test:e2e` (Playwright) drives real GM and
+  player browser clients against a local Foundry v13 server — see
+  `tests/e2e/README.md` for the environment contract.
+
+## License
+
+[MIT](LICENSE)

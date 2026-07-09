@@ -72,6 +72,7 @@ walk only the manual section below with two browsers.
       (Note: page creators receive explicit OWNER automatically, so records a
       player created fall under this case for that player.)
 - [ ] Quench "Campaign Record: Hub" batch passes.
+- [ ] Quench "Campaign Record: Types" batch passes.
 - [ ] Drag a record row from the Hub index onto a timeline timepoint — the
       chip appears (pointer-driven drag is not automated).
 - [ ] Drag a timepoint onto another timepoint to reorder it.
@@ -94,3 +95,15 @@ walk only the manual section below with two browsers.
 - [ ] On a non-dnd5e world, confirm Shop/Item drops still link items with
       blank price/rarity and NPC/PC linked actors show name/portrait without
       AC/HP.
+
+## Release gate (before tagging each release)
+
+- [ ] Run all three Quench batches ("Campaign Record: Core", "Campaign
+      Record: Hub", "Campaign Record: Types") in a world with Quench
+      installed; all pass.
+- [ ] Create a fresh world, enable the module, and confirm it initializes the
+      `schemaVersion` world setting to `1` with no console errors.
+- [ ] After tagging a release, install the module via its manifest URL
+      (`https://github.com/bularzik/campaign-record/releases/latest/download/module.json`)
+      into a clean Foundry instance and smoke-test that the module loads
+      without errors.
