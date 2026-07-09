@@ -18,7 +18,9 @@ side instead.
 ## Requirements
 
 - Droppable sources: JournalEntry, JournalEntryPage, Actor, Scene, Item documents
-  (via Foundry drag data), and image/media files (file browser or OS drop).
+  (via Foundry drag data), and image files via Foundry's file browser or a
+  dragged image URL. (Direct OS file drops carry no server path and would need
+  an upload step — out of scope; possible follow-up.)
 - Visibility respects Foundry ownership: a document link is shown only to users
   with at least LIMITED permission on the target. Image files (no ownership) get a
   per-link `showPlayers` flag, default off, GM always sees them.
