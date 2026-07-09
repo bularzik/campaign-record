@@ -2,7 +2,7 @@ import "./testing/quench.mjs";
 import { registerDataModels } from "./data/registration.mjs";
 import { registerUpdateGuards } from "./hooks/guards.mjs";
 import { registerDirectoryUI } from "./hooks/directory.mjs";
-import { registerHubUI, registerHubKeybinding } from "./hooks/hub-ui.mjs";
+import { registerHubUI, registerHubKeybinding, registerHubSettings } from "./hooks/hub-ui.mjs";
 import { ensureRecordsFolder } from "./data/groups.mjs";
 import { registerSheets, registerPartials } from "./sheets/registration.mjs";
 import { registerPresenterSocket, requestPresentationSync } from "./presenter/socket.mjs";
@@ -18,6 +18,7 @@ Hooks.once("init", () => {
   registerDirectoryUI();
   registerHubUI();
   registerHubKeybinding();
+  registerHubSettings();
 });
 
 Hooks.once("ready", async () => {

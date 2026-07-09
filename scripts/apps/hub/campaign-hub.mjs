@@ -1,5 +1,5 @@
 import { getGroups } from "../../data/groups.mjs";
-import { RECORD_TYPES, typeId } from "../../constants.mjs";
+import { MODULE_ID, THUMBNAILS_SETTING, RECORD_TYPES, typeId } from "../../constants.mjs";
 import { collectRecords, isIndexablePage, getScopedGroups, toSearchRecord } from "./hub-data.mjs";
 import { createIndex, indexRecord, removeRecord, search } from "../../logic/search-index.mjs";
 import { hasGroupFlag } from "../../logic/visibility.mjs";
@@ -35,7 +35,11 @@ export class CampaignHub extends HandlebarsApplicationMixin(ApplicationV2) {
       addTimepoint: CampaignHub.#onAddTimepoint,
       renameTimepoint: CampaignHub.#onRenameTimepoint,
       deleteTimepoint: CampaignHub.#onDeleteTimepoint,
-      detachRecord: CampaignHub.#onDetachRecord
+      detachRecord: CampaignHub.#onDetachRecord,
+      openLink: CampaignHub.#onOpenLink,
+      removeLink: CampaignHub.#onRemoveLink,
+      toggleLinkShowPlayers: CampaignHub.#onToggleLinkShowPlayers,
+      toggleThumbnails: CampaignHub.#onToggleThumbnails
     }
   };
 
@@ -220,6 +224,7 @@ export class CampaignHub extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   #timelineGroups() {
+    const thumbnails = game.settings.get(MODULE_ID, THUMBNAILS_SETTING);
     return getScopedGroups(this.state.groupId).map((group) => {
       const canEdit = group.canUserModify(game.user, "update");
       return {
@@ -232,6 +237,12 @@ export class CampaignHub extends HandlebarsApplicationMixin(ApplicationV2) {
           canEdit,
           records: Timepoints.recordsAtTimepoint(group, tp.id, game.user).map((p) => ({
             uuid: p.uuid, name: p.name
+          })),
+          links: Timepoints.resolveLinks(tp, game.user).map((entry) => ({
+            ...entry,
+            broken: entry.kind === "broken",
+            thumb: thumbnails && entry.img ? entry.img : null,
+            canToggleVisibility: canEdit && game.user.isGM && entry.kind === "image"
           }))
         }))
       };
@@ -293,6 +304,42 @@ export class CampaignHub extends HandlebarsApplicationMixin(ApplicationV2) {
     const id = target.closest("[data-timepoint-id]").dataset.timepointId;
     const page = await fromUuid(target.closest("[data-uuid]").dataset.uuid);
     if (page) await Timepoints.detachRecord(page, id);
+  }
+
+  static async #onOpenLink(event, target) {
+    const chip = target.closest("[data-link-id]");
+    const { uuid, src, name } = chip.dataset;
+    if (src) {
+      return new foundry.applications.apps.ImagePopout({ src, window: { title: name } }).render(true);
+    }
+    const doc = await fromUuid(uuid);
+    if (!doc) return ui.notifications.warn(game.i18n.localize("CAMPAIGNRECORD.Hub.BrokenLink"));
+    if (doc.documentName === "JournalEntryPage") {
+      const sheet = doc.parent.sheet;
+      await sheet.render(true);
+      return sheet.goToPage(doc.id);
+    }
+    doc.sheet.render(true);
+  }
+
+  static async #onRemoveLink(event, target) {
+    const group = game.journal.get(target.closest("[data-group-id]").dataset.groupId);
+    const timepointId = target.closest("[data-timepoint-id]").dataset.timepointId;
+    const linkId = target.closest("[data-link-id]").dataset.linkId;
+    if (group) await Timepoints.removeLink(group, timepointId, linkId);
+  }
+
+  static async #onToggleLinkShowPlayers(event, target) {
+    const group = game.journal.get(target.closest("[data-group-id]").dataset.groupId);
+    const timepointId = target.closest("[data-timepoint-id]").dataset.timepointId;
+    const linkId = target.closest("[data-link-id]").dataset.linkId;
+    if (group) await Timepoints.toggleLinkShowPlayers(group, timepointId, linkId);
+  }
+
+  static async #onToggleThumbnails() {
+    const current = game.settings.get(MODULE_ID, THUMBNAILS_SETTING);
+    await game.settings.set(MODULE_ID, THUMBNAILS_SETTING, !current);
+    this.render();
   }
 
   #onTimelineDragStart(event) {
@@ -403,6 +450,7 @@ export class CampaignHub extends HandlebarsApplicationMixin(ApplicationV2) {
     }));
     context.searchGroups = this.#searchResults();
     context.timelineGroups = this.#timelineGroups();
+    context.thumbnails = game.settings.get(MODULE_ID, THUMBNAILS_SETTING);
     return context;
   }
 
