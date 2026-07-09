@@ -31,7 +31,8 @@ test.describe("presenter socket relay", () => {
       images: [{ src: "icons/svg/book.svg", caption: "One" }, { src: "icons/svg/chest.svg", caption: "Two" }],
       index: 0,
       presenterId: gmId,
-      interval: 0
+      interval: 0,
+      nonce: "e2e-nonce-1"
     });
 
     const playerImg = playerPage.locator("#campaign-record-overlay img");

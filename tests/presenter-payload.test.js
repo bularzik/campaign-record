@@ -6,13 +6,14 @@ const show = {
   images: [{ src: "a.webp", caption: "A" }, { src: "b.webp" }],
   index: 1,
   presenterId: "user1",
-  interval: 0
+  interval: 0,
+  nonce: "n1"
 };
 
 describe("validatePresenterPayload", () => {
   it("accepts and normalizes a valid show payload", () => {
     const p = validatePresenterPayload(show);
-    expect(p).toMatchObject({ action: "show", index: 1, presenterId: "user1", interval: 0 });
+    expect(p).toMatchObject({ action: "show", index: 1, presenterId: "user1", interval: 0, nonce: "n1" });
     expect(p.images).toEqual([{ src: "a.webp", caption: "A" }, { src: "b.webp", caption: "" }]);
   });
 
@@ -22,6 +23,12 @@ describe("validatePresenterPayload", () => {
     expect(validatePresenterPayload({ ...show, index: 2 })).toBeNull();
     expect(validatePresenterPayload({ ...show, index: -1 })).toBeNull();
     expect(validatePresenterPayload({ ...show, presenterId: "" })).toBeNull();
+  });
+
+  it("rejects a show payload without a nonce", () => {
+    const { nonce, ...withoutNonce } = show;
+    expect(validatePresenterPayload(withoutNonce)).toBeNull();
+    expect(validatePresenterPayload({ ...show, nonce: "" })).toBeNull();
   });
 
   it("coerces invalid intervals to 0", () => {

@@ -29,4 +29,25 @@ export function registerUpdateGuards() {
       return false;
     }
   });
+
+  Hooks.on("preCreateJournalEntryPage", (page, data) => {
+    if (isModuleReadOnly() && data.type?.startsWith(`${MODULE_ID}.`)) {
+      ui.notifications.warn(game.i18n.localize("CAMPAIGNRECORD.Warning.ReadOnly"));
+      return false;
+    }
+  });
+
+  Hooks.on("preDeleteJournalEntryPage", (page) => {
+    if (isModuleReadOnly() && page.type.startsWith(`${MODULE_ID}.`)) {
+      ui.notifications.warn(game.i18n.localize("CAMPAIGNRECORD.Warning.ReadOnly"));
+      return false;
+    }
+  });
+
+  Hooks.on("preCreateJournalEntry", (entry, data) => {
+    if (isModuleReadOnly() && foundry.utils.hasProperty(data, `flags.${MODULE_ID}`)) {
+      ui.notifications.warn(game.i18n.localize("CAMPAIGNRECORD.Warning.ReadOnly"));
+      return false;
+    }
+  });
 }

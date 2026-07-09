@@ -52,7 +52,7 @@ describe("i18n coverage", () => {
 
   it("every record type has a TYPES label", () => {
     const constants = fs.readFileSync(path.join(ROOT, "scripts/constants.mjs"), "utf8");
-    const types = [...constants.matchAll(/"(\w+)"/g)].map((m) => m[1]);
+    const types = [...new Set([...constants.matchAll(/"(\w+)"/g)].map((m) => m[1]))];
     const recordTypes = types.filter((t) =>
       ["npc", "place", "quest", "pc", "item", "encounter", "checklist", "shop", "loot", "media"].includes(t)
     );

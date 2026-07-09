@@ -12,8 +12,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Verify tag matches module version
+        run: |
+          test "v$(jq -r .version module.json)" = "${GITHUB_REF_NAME}"
+      - name: Pin download URL to this release
+        run: |
+          jq --arg tag "${GITHUB_REF_NAME}" \
+            '.download = "https://github.com/bularzik/campaign-record/releases/download/\($tag)/module.zip"' \
+            module.json > module.json.tmp && mv module.json.tmp module.json
       - name: Build module archive
-        run: zip -r module.zip module.json scripts templates styles lang
+        # scripts/testing/ is intentionally included: scripts/campaign-record.mjs
+        # imports ./testing/quench.mjs, so excluding it would break the shipped module.
+        run: zip -r module.zip module.json README.md LICENSE scripts templates styles lang
       - name: Attach release assets
         uses: softprops/action-gh-release@v2
         with:

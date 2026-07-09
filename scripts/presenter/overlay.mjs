@@ -10,6 +10,7 @@ export class MediaOverlay extends HandlebarsApplicationMixin(ApplicationV2) {
 
   #state = null;
   #timer = null;
+  #dismissedNonce = null;
 
   static DEFAULT_OPTIONS = {
     id: "campaign-record-overlay",
@@ -29,6 +30,8 @@ export class MediaOverlay extends HandlebarsApplicationMixin(ApplicationV2) {
   static show(state) {
     this.#instance ??= new MediaOverlay();
     const app = this.#instance;
+    if (state.nonce && state.nonce === app.#dismissedNonce) return; // viewer dismissed this presentation; a resync must not re-open it
+    if (state.nonce !== app.#dismissedNonce) app.#dismissedNonce = null;
     app.#state = state;
     app.render({ force: true });
     app.#restartTimer();
@@ -96,6 +99,7 @@ export class MediaOverlay extends HandlebarsApplicationMixin(ApplicationV2) {
     if (this.isPresenter && this.#state) {
       return void broadcastPresenterMessage({ action: "end", presenterId: this.#state.presenterId });
     }
+    this.#dismissedNonce = this.#state?.nonce ?? null;
     this.#stopTimer();
     await this.close();
   }
@@ -114,6 +118,13 @@ export class MediaOverlay extends HandlebarsApplicationMixin(ApplicationV2) {
 
   _onClose(options) {
     this.#stopTimer();
+    // Non-dismiss close paths (e.g. Escape) must end the presentation for
+    // everyone, not just close this client's window. endForAll nulls #state
+    // before calling close(), so the re-entrant _onClose sees no state and
+    // does not re-broadcast.
+    if (this.isPresenter && this.#state) {
+      broadcastPresenterMessage({ action: "end", presenterId: this.#state.presenterId });
+    }
     super._onClose(options);
   }
 }

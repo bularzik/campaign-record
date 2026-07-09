@@ -1,5 +1,6 @@
 import { BaseRecordSheet } from "./base-record-sheet.mjs";
 import { broadcastPresenterMessage } from "../presenter/socket.mjs";
+import { MediaOverlay } from "../presenter/overlay.mjs";
 
 export class MediaSheet extends BaseRecordSheet {
   static DEFAULT_OPTIONS = {
@@ -80,7 +81,8 @@ export class MediaSheet extends BaseRecordSheet {
       images: images.map((i) => ({ src: i.src, caption: i.caption })),
       index: Math.max(0, Math.min(index, images.length - 1)),
       presenterId: game.user.id,
-      interval
+      interval,
+      nonce: foundry.utils.randomID()
     };
   }
 
@@ -99,6 +101,6 @@ export class MediaSheet extends BaseRecordSheet {
 
   static #onEndPresentation() {
     if (!game.user.isGM) return;
-    broadcastPresenterMessage({ action: "end", presenterId: game.user.id });
+    broadcastPresenterMessage({ action: "end", presenterId: MediaOverlay.activePresenterId() ?? game.user.id });
   }
 }

@@ -69,6 +69,18 @@ test.describe("schema migrations", () => {
     }, pageId);
     expect(role).toBeUndefined();
 
+    // ...and module-page creates/deletes are blocked
+    const { countBefore, countAfter } = await page.evaluate(async () => {
+      const entry = game.journal.getName("E2E Migration Legacy");
+      const countBefore = entry.pages.size;
+      await entry
+        .createEmbeddedDocuments("JournalEntryPage", [{ name: "E2E RO Create", type: "campaign-record.npc" }])
+        .catch(() => {});
+      const countAfter = entry.pages.size;
+      return { countBefore, countAfter };
+    });
+    expect(countAfter).toBe(countBefore);
+
     // restore and confirm normal operation returns
     await page.evaluate(async () => {
       await game.settings.set("campaign-record", "schemaVersion", 1);

@@ -6,11 +6,12 @@ export function validatePresenterPayload(raw) {
   if (!raw || typeof raw !== "object") return null;
   switch (raw.action) {
     case "show": {
-      const { images, index, presenterId, interval } = raw;
+      const { images, index, presenterId, interval, nonce } = raw;
       if (!Array.isArray(images) || !images.length) return null;
       if (!images.every((i) => i && typeof i.src === "string" && i.src)) return null;
       if (!Number.isInteger(index) || index < 0 || index >= images.length) return null;
       if (typeof presenterId !== "string" || !presenterId) return null;
+      if (typeof nonce !== "string" || !nonce) return null;
       return {
         action: "show",
         images: images.map((i) => ({
@@ -19,7 +20,8 @@ export function validatePresenterPayload(raw) {
         })),
         index,
         presenterId,
-        interval: Number.isInteger(interval) && interval > 0 ? interval : 0
+        interval: Number.isInteger(interval) && interval > 0 ? interval : 0,
+        nonce
       };
     }
     case "goto":
