@@ -51,12 +51,48 @@
   display: block;
 }
 
+.campaign-hub .type-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.campaign-hub .type-chip {
+  width: auto;
+  line-height: 1.2;
+  padding: 0.15rem 0.6rem;
+  font-size: var(--font-size-12, 12px);
+  border-radius: 1rem;
+}
+
 .campaign-hub .index-controls {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
   align-items: center;
   margin-bottom: 0.5rem;
+}
+
+.campaign-hub .index-controls input[name="tag-filter"] {
+  width: auto;
+  flex: 1 1 8rem;
+  min-width: 8rem;
+  max-width: 16rem;
+}
+
+.campaign-hub .index-controls select[name="sort-select"] {
+  width: auto;
+  flex: 0 0 auto;
+}
+
+.campaign-hub .index-controls button {
+  width: auto;
+  flex: 0 0 auto;
+}
+
+.campaign-hub .index-controls button[data-action="newRecord"] {
+  margin-left: auto;
 }
 
 .campaign-hub .type-chip.active,

@@ -37,6 +37,17 @@ test.describe("hub index", () => {
     await hub.locator('.type-chip[data-type="quest"]').click(); // reset
   });
 
+  test("type chips render as compact pills on shared rows", async () => {
+    const chips = gmPage.locator("#campaign-hub .type-chip");
+    const first = await chips.nth(0).boundingBox();
+    const second = await chips.nth(1).boundingBox();
+    // Same row: full-width buttons would stack each chip on its own line.
+    expect(second.y).toBe(first.y);
+    expect(second.x).toBeGreaterThan(first.x);
+    // Compact: a pill, not a 760px-wide bar.
+    expect(first.width).toBeLessThan(150);
+  });
+
   test("re-renders live when a record is created elsewhere", async () => {
     const hub = gmPage.locator("#campaign-hub");
     await gmPage.evaluate(async ({ groupId }) => {

@@ -1,11 +1,11 @@
 <section class="tab hub-index{{#if tabs.index.active}} active{{/if}}" data-group="primary" data-tab="index">
+  <div class="type-chips">
+    {{#each typeChips}}
+    <button type="button" class="type-chip {{#if this.active}}active{{/if}}"
+            data-action="filterType" data-type="{{this.type}}">{{this.label}}</button>
+    {{/each}}
+  </div>
   <div class="index-controls">
-    <span class="type-chips">
-      {{#each typeChips}}
-      <button type="button" class="type-chip {{#if this.active}}active{{/if}}"
-              data-action="filterType" data-type="{{this.type}}">{{this.label}}</button>
-      {{/each}}
-    </span>
     <input type="text" name="tag-filter" value="{{state.tag}}"
            placeholder="{{localize "CAMPAIGNRECORD.Hub.FilterTag"}}">
     <select name="sort-select">
