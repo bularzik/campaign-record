@@ -48,3 +48,11 @@ See `docs/manual-test-checklist.md` — items requiring real pointer-driven
 drag-and-drop from the sidebar (Actor/Scene linking) and subjective checks
 (editor feel, layout) remain manual. Everything else on the checklist is
 exercised here.
+
+## Environment lock
+
+The suite takes an exclusive lock on the shared Foundry install
+(`$FOUNDRY_DATA/.claude-e2e-lock/`). A second concurrent run fails fast,
+naming the holder. Global setup pins the module symlink to this checkout
+and md5-verifies the served code; teardown restores the symlink to the
+main checkout. Force-release a stuck lock with `npm run e2e:unlock`.

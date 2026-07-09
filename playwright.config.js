@@ -13,6 +13,7 @@ export default defineConfig({
   expect: { timeout: 15_000 },
   reporter: [["list"]],
   globalSetup: "./tests/e2e/global-setup.mjs",
+  globalTeardown: "./tests/e2e/global-teardown.mjs",
   use: {
     baseURL: process.env.FOUNDRY_URL ?? "http://localhost:30000",
     viewport: { width: 1440, height: 900 },

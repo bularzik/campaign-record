@@ -1,6 +1,7 @@
 import { execFileSync, spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
+import { lockStatus } from "./env-lock.mjs";
 
 export const BASE_URL = process.env.FOUNDRY_URL ?? "http://localhost:30000";
 export const TEST_WORLD = process.env.FOUNDRY_TEST_WORLD ?? "world-b";
@@ -20,7 +21,19 @@ async function serverStatus() {
   }
 }
 
+/** Refuse server mutations while a live foreign session holds the env lock. */
+function assertEnvOwned(action) {
+  const { held, info, alive } = lockStatus();
+  if (held && info && alive && info.pid !== process.pid) {
+    throw new Error(
+      `Refusing to ${action}: Foundry e2e environment is locked by pid ${info.pid} ` +
+      `(worktree ${info.worktree}). Run \`npm run e2e:unlock\` to force-release it.`
+    );
+  }
+}
+
 function stopServer() {
+  assertEnvOwned("stop the Foundry server");
   try {
     const port = new URL(BASE_URL).port || "30000";
     const pids = execFileSync("lsof", ["-ti", `:${port}`], { encoding: "utf8" }).trim();
@@ -34,6 +47,7 @@ function stopServer() {
 }
 
 function startServer(worldId) {
+  assertEnvOwned("start the Foundry server");
   const log = fs.openSync(path.join(FOUNDRY_DATA, "Logs", "stdout.log"), "a");
   const child = spawn(
     FOUNDRY_NODE,
@@ -110,6 +124,14 @@ export async function deleteGroupsByPrefix(page, prefix) {
       (e) => e.getFlag("campaign-record", "group") && e.name.startsWith(p)
     );
     for (const entry of doomed) await entry.delete();
+  }, prefix);
+}
+
+/** Delete all actors whose name starts with the prefix (crashed-run artifacts). */
+export async function deleteActorsByPrefix(page, prefix) {
+  await page.evaluate(async (prefix) => {
+    const ids = game.actors.filter((a) => a.name.startsWith(prefix)).map((a) => a.id);
+    if (ids.length) await Actor.implementation.deleteDocuments(ids);
   }, prefix);
 }
 
