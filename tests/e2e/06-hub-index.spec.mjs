@@ -85,4 +85,24 @@ test.describe("hub index", () => {
     await expect(playerHub.locator(".hidden-toggle")).toHaveCount(0);
     await ctx.close();
   });
+
+  test("clear filters resets type, tag, and hidden-only in one click", async () => {
+    const hub = gmPage.locator("#campaign-hub");
+    // No filters active: control is absent.
+    await expect(hub.locator(".clear-filters")).toHaveCount(0);
+    await expect(hub.locator(".filtered-count")).toHaveCount(0);
+
+    await hub.locator('.type-chip[data-type="quest"]').click();
+    await hub.locator('input[name="tag-filter"]').fill("no-such-tag");
+    await expect(hub.locator(".record-row")).toHaveCount(0);
+    await expect(hub.locator(".filtered-count")).toBeVisible();
+    // Count reflects the filtered list: "0 of N" while nothing matches.
+    await expect(hub.locator(".filtered-count")).toHaveText(/^0 of \d+$/);
+
+    await hub.locator(".clear-filters").click();
+    await expect(hub.locator(".clear-filters")).toHaveCount(0);
+    await expect(hub.locator('input[name="tag-filter"]')).toHaveValue("");
+    await expect(hub.locator('.type-chip[data-type="quest"]')).not.toHaveClass(/active/);
+    await expect(hub.locator(".record-row", { hasText: "E2E Index NPC" })).toBeVisible();
+  });
 });

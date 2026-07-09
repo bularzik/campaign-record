@@ -91,6 +91,12 @@
   flex: 0 0 auto;
 }
 
+.campaign-hub .filtered-count {
+  font-size: var(--font-size-12, 12px);
+  opacity: 0.8;
+  white-space: nowrap;
+}
+
 .campaign-hub .index-controls button[data-action="newRecord"] {
   margin-left: auto;
 }
