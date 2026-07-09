@@ -57,19 +57,37 @@ export function acquireLock({
     if (err.code !== "EEXIST") throw err;
     const { info, alive } = lockStatus({ dataDir, isAlive });
     if (info && alive && info.pid !== pid) {
-      const ageMs = now() - Date.parse(info.acquiredAt);
-      const ageMin = Math.round(ageMs / 60000);
-      const stale = ageMs > STALE_MS
+      const acquiredMs = Date.parse(info.acquiredAt);
+      const ageMs = Number.isFinite(acquiredMs) ? now() - acquiredMs : null;
+      const age = ageMs == null ? "an unknown time" : `${Math.round(ageMs / 60000)} min`;
+      const stale = ageMs != null && ageMs > STALE_MS
         ? ` WARNING: this lock is ${Math.round(ageMs / 3600000)}h old — the holder may be wedged.`
         : "";
       throw new LockHeldError(
         `Foundry e2e environment is locked by pid ${info.pid} ` +
-        `(worktree ${info.worktree}, acquired ${ageMin} min ago).${stale} ${UNLOCK_HINT}`
+        `(worktree ${info.worktree}, acquired ${age} ago).${stale} ${UNLOCK_HINT}`
       );
     }
     console.warn(`env-lock | stealing lock from ${info ? (alive ? "own" : "dead") : "unidentifiable"} holder:`, info);
-    fs.rmSync(dir, { recursive: true, force: true });
-    fs.mkdirSync(dir);
+    // Steal atomically: rename claims the stale dir, so concurrent stealers
+    // cannot both win (the loser's rename throws ENOENT).
+    const graveyard = `${dir}.stale-${pid}-${now()}`;
+    try {
+      fs.renameSync(dir, graveyard);
+      fs.rmSync(graveyard, { recursive: true, force: true });
+    } catch (renameErr) {
+      if (renameErr.code !== "ENOENT") throw renameErr;
+    }
+    try {
+      fs.mkdirSync(dir);
+    } catch (raceErr) {
+      if (raceErr.code !== "EEXIST") throw raceErr;
+      const winner = lockStatus({ dataDir, isAlive });
+      throw new LockHeldError(
+        `Foundry e2e environment lock was claimed concurrently by pid ${winner.info?.pid ?? "?"} ` +
+        `(worktree ${winner.info?.worktree ?? "?"}). ${UNLOCK_HINT}`
+      );
+    }
   }
   const info = { pid, worktree, acquiredAt: new Date(now()).toISOString(), sessionHint };
   fs.writeFileSync(infoPath(dataDir), JSON.stringify(info, null, 2));

@@ -86,4 +86,26 @@ describe("env-lock", () => {
     const info = acquireLock({ dataDir, worktree: "/wt/b", pid: 222, isAlive: alive });
     expect(info.pid).toBe(222);
   });
+
+  it("steals when info.json contains invalid JSON", () => {
+    fs.mkdirSync(lockDirPath(dataDir));
+    fs.writeFileSync(path.join(lockDirPath(dataDir), "info.json"), "{not json");
+    const info = acquireLock({ dataDir, worktree: "/wt/b", pid: 222, isAlive: alive });
+    expect(info.pid).toBe(222);
+  });
+
+  it("reports an unknown age (not NaN) when a live lock lacks acquiredAt", () => {
+    fs.mkdirSync(lockDirPath(dataDir));
+    fs.writeFileSync(
+      path.join(lockDirPath(dataDir), "info.json"),
+      JSON.stringify({ pid: 111, worktree: "/wt/a" })
+    );
+    try {
+      acquireLock({ dataDir, worktree: "/wt/b", pid: 222, isAlive: alive });
+      throw new Error("should have thrown");
+    } catch (err) {
+      expect(err.message).toContain("an unknown time");
+      expect(err.message).not.toContain("NaN");
+    }
+  });
 });
