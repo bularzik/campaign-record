@@ -3,6 +3,7 @@ import { RECORD_TYPES, typeId } from "../../constants.mjs";
 import { collectRecords, isIndexablePage, getScopedGroups, toSearchRecord } from "./hub-data.mjs";
 import { createIndex, indexRecord, removeRecord, search } from "../../logic/search-index.mjs";
 import { hasGroupFlag } from "../../logic/visibility.mjs";
+import { classifyDropData, filenameFromSrc } from "../../logic/timeline-links.mjs";
 import * as Timepoints from "../../data/timepoints.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
@@ -318,23 +319,65 @@ export class CampaignHub extends HandlebarsApplicationMixin(ApplicationV2) {
     try {
       data = JSON.parse(event.dataTransfer.getData("text/plain"));
     } catch {
-      return;
+      data = {};
     }
     const groupId = target.closest("[data-group-id]").dataset.groupId;
     const group = game.journal.get(groupId);
+    const timepointId = target.dataset.timepointId;
     if (data.kind === "campaign-record.timepoint") {
       if (data.groupId !== groupId) return; // no cross-group reordering
-      await Timepoints.moveTimepoint(group, data.id, Number(target.dataset.position));
-    } else if (data.kind === "campaign-record.record") {
+      return Timepoints.moveTimepoint(group, data.id, Number(target.dataset.position));
+    }
+    if (data.kind === "campaign-record.record") {
       const page = await fromUuid(data.uuid);
-      if (!page || page.parent.id !== groupId) {
-        return ui.notifications.warn(game.i18n.localize("CAMPAIGNRECORD.Hub.WrongGroup"));
+      if (!page) return;
+      if (page.parent.id !== groupId) {
+        // Cross-group records attach as document links instead of warning.
+        return this.#dropLink(group, timepointId, {
+          uuid: page.uuid, name: page.name, type: "JournalEntryPage"
+        });
       }
       if (!page.system?.schema?.fields?.timepoints) {
         return ui.notifications.warn(game.i18n.localize("CAMPAIGNRECORD.Hub.CannotAttach"));
       }
-      await Timepoints.attachRecord(page, target.dataset.timepointId);
+      return Timepoints.attachRecord(page, timepointId);
     }
+    const drop = classifyDropData(data, event.dataTransfer.getData("text/uri-list"));
+    if (!drop) {
+      return ui.notifications.warn(game.i18n.localize("CAMPAIGNRECORD.Hub.CannotAttach"));
+    }
+    if (drop.kind === "document") {
+      const doc = await fromUuid(drop.uuid);
+      if (!doc) {
+        return ui.notifications.warn(game.i18n.localize("CAMPAIGNRECORD.Hub.CannotAttach"));
+      }
+      // A same-group record page dropped via Foundry drag data uses the
+      // record-attachment path so it stays a first-class record chip.
+      if (doc.documentName === "JournalEntryPage" && doc.parent?.id === groupId
+          && doc.system?.schema?.fields?.timepoints) {
+        return Timepoints.attachRecord(doc, timepointId);
+      }
+      return this.#dropLink(group, timepointId, { uuid: drop.uuid, name: doc.name, type: drop.type });
+    }
+    const showPlayers = await foundry.applications.api.DialogV2.confirm({
+      window: { title: "CAMPAIGNRECORD.Hub.ShowImageToPlayers" },
+      content: `<p>${game.i18n.format("CAMPAIGNRECORD.Hub.ShowImageToPlayersPrompt", {
+        name: foundry.utils.escapeHTML(filenameFromSrc(drop.src))
+      })}</p>`,
+      rejectClose: false
+    });
+    if (showPlayers === null) return; // dialog dismissed: cancel the drop
+    return this.#dropLink(group, timepointId, {
+      src: drop.src, name: filenameFromSrc(drop.src), showPlayers: showPlayers === true
+    });
+  }
+
+  /** Permission-checked link attach shared by the drop paths. */
+  async #dropLink(group, timepointId, link) {
+    if (!group.canUserModify(game.user, "update")) {
+      return ui.notifications.warn(game.i18n.localize("CAMPAIGNRECORD.Hub.CannotEditTimeline"));
+    }
+    await Timepoints.addLink(group, timepointId, link);
   }
 
   async _prepareContext(options) {
