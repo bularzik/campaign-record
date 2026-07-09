@@ -390,6 +390,9 @@ export class CampaignHub extends HandlebarsApplicationMixin(ApplicationV2) {
     if (tagFilter && !tagFilter.dataset.crBound) {
       tagFilter.dataset.crBound = "1";
       tagFilter.addEventListener("input", foundry.utils.debounce(async (event) => {
+        // A re-render (e.g. clear-filters) may have replaced this input while
+        // the debounce was pending; its stale value must not win.
+        if (!event.target.isConnected) return;
         this.state.tag = event.target.value.trim();
         await this.render({ parts: ["index"] });
         // render({parts}) replaces this part's DOM — restore focus to keep typing.
