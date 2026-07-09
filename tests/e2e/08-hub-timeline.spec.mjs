@@ -34,7 +34,10 @@ test.describe("hub timeline", () => {
     const gmHub = await openTimeline(gmPage);
     const playerHub = await openTimeline(playerPage);
 
-    await gmHub.locator('.timeline-group button[data-action="addTimepoint"]').last().click();
+    // Scope to this spec's group: journal collection order is per-client
+    // (initial payload vs. live-created appends), so a bare `.last()` can
+    // land on a permanent group like "Black Keep Campaign".
+    await gmHub.locator(`.timeline-group[data-group-id="${ids.groupId}"] button[data-action="addTimepoint"]`).last().click();
     const dialogInput = gmPage.locator('dialog input[name="label"], .application.dialog input[name="label"]');
     await dialogInput.waitFor({ timeout: 10_000 });
     await dialogInput.fill("Session 1: The Hook");
@@ -48,7 +51,7 @@ test.describe("hub timeline", () => {
 
   test("player can add and rename timepoints (collaborative by default)", async () => {
     const playerHub = playerPage.locator("#campaign-hub");
-    await playerHub.locator('.timeline-group button[data-action="addTimepoint"]').last().click();
+    await playerHub.locator(`.timeline-group[data-group-id="${ids.groupId}"] button[data-action="addTimepoint"]`).last().click();
     const input = playerPage.locator('dialog input[name="label"], .application.dialog input[name="label"]');
     await input.waitFor({ timeout: 10_000 });
     await input.fill("Session 2");
@@ -75,7 +78,9 @@ test.describe("hub timeline", () => {
     }, ids);
     expect(await order()).toEqual(["Session 2", "Session 1: The Hook"]);
 
-    const labels = playerPage.locator("#campaign-hub .timepoint-label");
+    const labels = playerPage.locator(
+      `#campaign-hub .timeline-group[data-group-id="${ids.groupId}"] .timepoint-label`
+    );
     await expect(labels.first()).toHaveText("Session 2", { timeout: 10_000 });
   });
 
@@ -147,40 +152,13 @@ test.describe("hub timeline", () => {
     );
     await expect.poll(() => isAttached(ids.groupId, ids.pageId, timepointId)).toBe(false);
 
-    // 2. Cross-group record drop warns and does not attach.
+    // 2. Cross-group record drop attaches as a link instead of warning.
     const otherIds = await createGroupWithPage(
       gmPage, "E2E Timeline Other", "E2E Timeline Other NPC", "campaign-record.npc"
     );
-    const warnCount = await gmPage.evaluate(
-      ({ selector, payload }) =>
-        new Promise((resolve) => {
-          const original = ui.notifications.warn;
-          let count = 0;
-          ui.notifications.warn = (...args) => {
-            count++;
-            return original.apply(ui.notifications, args);
-          };
-          const dt = new DataTransfer();
-          dt.setData("text/plain", JSON.stringify(payload));
-          const el = document.querySelector(selector);
-          el.dispatchEvent(new DragEvent("drop", { dataTransfer: dt, bubbles: true, cancelable: true }));
-          setTimeout(() => {
-            ui.notifications.warn = original;
-            resolve(count);
-          }, 300);
-        }),
-      { selector: dropSelector, payload: { kind: "campaign-record.record", uuid: otherIds.pageUuid } }
-    );
-    expect(warnCount).toBeGreaterThan(0);
-
-    const otherAttachedAnywhere = await gmPage.evaluate(
-      ({ groupId, pageId }) => {
-        const page = game.journal.get(groupId).pages.get(pageId);
-        return !!page.system?.timepoints?.size;
-      },
-      { groupId: otherIds.groupId, pageId: otherIds.pageId }
-    );
-    expect(otherAttachedAnywhere).toBe(false);
+    await dispatchDrop(dropSelector, { kind: "campaign-record.record", uuid: otherIds.pageUuid });
+    await expect(gmPage.locator("#campaign-hub .link-chip", { hasText: "E2E Timeline Other NPC" }))
+      .toBeVisible({ timeout: 10_000 });
 
     // 3. Cross-group timepoint reorder is a no-op (guarded by data.groupId mismatch).
     const orderBefore = await timepointOrder(ids.groupId);

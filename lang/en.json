@@ -60,7 +60,14 @@
       "TimepointLabel": "Label",
       "NoTimepoints": "No timepoints yet.",
       "Detach": "Detach from this timepoint",
-      "WrongGroup": "Records can only attach to timepoints in their own group."
+      "WrongGroup": "Records can only attach to timepoints in their own group.",
+      "CannotEditTimeline": "You lack permission to edit this group's timeline.",
+      "ShowImageToPlayers": "Show Image to Players?",
+      "ShowImageToPlayersPrompt": "Should players see \"{name}\" on the timeline? You can change this later with the eye toggle on the chip.",
+      "BrokenLink": "The linked document no longer exists.",
+      "RemoveLink": "Remove this link",
+      "ToggleShowPlayers": "Toggle player visibility of this image",
+      "ToggleThumbnails": "Toggle thumbnail view"
     },
     "Sheets": {
       "Npc": "Campaign Record NPC Sheet",

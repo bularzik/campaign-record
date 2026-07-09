@@ -1,6 +1,7 @@
 import { MODULE_ID, GROUP_FLAG } from "../constants.mjs";
 import { sortKeyBetween, sortTimepoints } from "../logic/timeline-sort.mjs";
 import { isRecordVisible } from "../logic/visibility.mjs";
+import { withLink, withoutLink, displayLink } from "../logic/timeline-links.mjs";
 
 /** Sorted timepoints of a group. */
 export function getTimepoints(group) {
@@ -65,6 +66,61 @@ export async function detachRecord(page, timepointId) {
   const next = new Set(page.system.timepoints ?? []);
   next.delete(timepointId);
   await page.update({ "system.timepoints": [...next] });
+}
+
+async function updateTimepoint(group, timepointId, patch) {
+  const tps = getTimepoints(group).map((t) => (t.id === timepointId ? { ...t, ...patch } : t));
+  await setTimepoints(group, tps);
+}
+
+/**
+ * Attach a document/image link to a timepoint. Generates the link id.
+ * Returns the stored entry, or null for a duplicate or unknown timepoint.
+ */
+export async function addLink(group, timepointId, link) {
+  const tp = getTimepoints(group).find((t) => t.id === timepointId);
+  if (!tp) return null;
+  const entry = { id: foundry.utils.randomID(), ...link };
+  const links = withLink(tp.links, entry);
+  if (!links) return null;
+  await updateTimepoint(group, timepointId, { links });
+  return entry;
+}
+
+export async function removeLink(group, timepointId, linkId) {
+  const tp = getTimepoints(group).find((t) => t.id === timepointId);
+  if (!tp) return;
+  await updateTimepoint(group, timepointId, { links: withoutLink(tp.links, linkId) });
+}
+
+/** Flip an image link's player visibility. No-op for document links. */
+export async function toggleLinkShowPlayers(group, timepointId, linkId) {
+  const tp = getTimepoints(group).find((t) => t.id === timepointId);
+  const link = tp?.links?.find((l) => l.id === linkId);
+  if (!link?.src) return;
+  const links = tp.links.map((l) =>
+    l.id === linkId ? { ...l, showPlayers: l.showPlayers !== true } : l
+  );
+  await updateTimepoint(group, timepointId, { links });
+}
+
+/**
+ * Timepoint links resolved and permission-filtered for a user.
+ * Permission is evaluated at call time, never cached.
+ */
+export function resolveLinks(timepoint, user) {
+  return (timepoint.links ?? [])
+    .map((link) => {
+      if (link.src) return displayLink(link, { isGM: user.isGM });
+      const doc = fromUuidSync(link.uuid);
+      // Compendium index entries lack testUserPermission; GMs pass regardless.
+      const permitted = user.isGM || doc?.testUserPermission?.(user, "LIMITED") === true;
+      return displayLink(link, {
+        isGM: user.isGM,
+        doc: doc ? { permitted, name: doc.name, img: doc.img ?? doc.thumb ?? null } : null
+      });
+    })
+    .filter(Boolean);
 }
 
 /** Records of a group attached to a timepoint, filtered by user visibility. */

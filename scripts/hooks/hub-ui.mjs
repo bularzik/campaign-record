@@ -1,4 +1,4 @@
-import { MODULE_ID } from "../constants.mjs";
+import { MODULE_ID, THUMBNAILS_SETTING } from "../constants.mjs";
 import { CampaignHub } from "../apps/hub/campaign-hub.mjs";
 
 /** Journal sidebar footer button — visible to every user. */
@@ -25,6 +25,16 @@ export function registerHubUI() {
       order: 99,
       onChange: () => CampaignHub.open()
     };
+  });
+}
+
+/** Hub client preferences. Call during init. */
+export function registerHubSettings() {
+  game.settings.register(MODULE_ID, THUMBNAILS_SETTING, {
+    scope: "client",
+    config: false,
+    type: Boolean,
+    default: false
   });
 }
 

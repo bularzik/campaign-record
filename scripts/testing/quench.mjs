@@ -2,7 +2,8 @@ import { createGroup, isGroup, setRecordHidden } from "../data/groups.mjs";
 import { RECORD_TYPES, typeId } from "../constants.mjs";
 import {
   getTimepoints, addTimepoint, renameTimepoint, moveTimepoint, deleteTimepoint,
-  attachRecord, detachRecord, recordsAtTimepoint
+  attachRecord, detachRecord, recordsAtTimepoint,
+  addLink, removeLink, toggleLinkShowPlayers, resolveLinks
 } from "../data/timepoints.mjs";
 import { isRecordVisible } from "../logic/visibility.mjs";
 
@@ -105,6 +106,54 @@ Hooks.on("quenchReady", (quench) => {
           await attachRecord(page, tp.id);
           await deleteTimepoint(group, tp.id);
           assert.equal(page.system.timepoints.has(tp.id), false);
+        });
+
+        it("adds document links with dedupe and removes them", async () => {
+          const tp = await addTimepoint(group, "Linked Session");
+          const entry = await addLink(group, tp.id, {
+            uuid: page.uuid, name: page.name, type: "JournalEntryPage"
+          });
+          assert.ok(entry.id);
+          const dup = await addLink(group, tp.id, {
+            uuid: page.uuid, name: page.name, type: "JournalEntryPage"
+          });
+          assert.equal(dup, null);
+          let stored = getTimepoints(group).find((t) => t.id === tp.id);
+          assert.equal(stored.links.length, 1);
+          await removeLink(group, tp.id, entry.id);
+          stored = getTimepoints(group).find((t) => t.id === tp.id);
+          assert.equal(stored.links.length, 0);
+          await deleteTimepoint(group, tp.id);
+        });
+
+        it("resolves links live: permitted docs, dangling links, image gating", async () => {
+          const tp = await addTimepoint(group, "Resolved Session");
+          await addLink(group, tp.id, { uuid: page.uuid, name: "stale name", type: "JournalEntryPage" });
+          await addLink(group, tp.id, { uuid: "Actor.deadbeefdead", name: "Ghost", type: "Actor" });
+          await addLink(group, tp.id, { src: "icons/svg/mystery-man.svg", name: "mystery-man.svg", showPlayers: false });
+          const stored = getTimepoints(group).find((t) => t.id === tp.id);
+          const entries = resolveLinks(stored, game.user); // quench runs as GM
+          assert.equal(entries.length, 3);
+          const doc = entries.find((e) => e.kind === "document");
+          assert.equal(doc.name, page.name); // live name, not the cached "stale name"
+          assert.ok(entries.some((e) => e.kind === "broken"));
+          assert.ok(entries.some((e) => e.kind === "image")); // GM sees hidden images
+          await deleteTimepoint(group, tp.id);
+        });
+
+        it("toggles showPlayers on image links only", async () => {
+          const tp = await addTimepoint(group, "Toggle Session");
+          const img = await addLink(group, tp.id, {
+            src: "icons/svg/mystery-man.svg", name: "mystery-man.svg", showPlayers: false
+          });
+          await toggleLinkShowPlayers(group, tp.id, img.id);
+          let stored = getTimepoints(group).find((t) => t.id === tp.id);
+          assert.equal(stored.links[0].showPlayers, true);
+          const doc = await addLink(group, tp.id, { uuid: page.uuid, name: page.name, type: "JournalEntryPage" });
+          await toggleLinkShowPlayers(group, tp.id, doc.id); // no-op on documents
+          stored = getTimepoints(group).find((t) => t.id === tp.id);
+          assert.equal(stored.links.find((l) => l.id === doc.id).showPlayers, undefined);
+          await deleteTimepoint(group, tp.id);
         });
       });
     },
