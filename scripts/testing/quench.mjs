@@ -1,9 +1,10 @@
 import { createGroup, isGroup, setRecordHidden } from "../data/groups.mjs";
-import { typeId } from "../constants.mjs";
+import { RECORD_TYPES, typeId } from "../constants.mjs";
 import {
   getTimepoints, addTimepoint, renameTimepoint, moveTimepoint, deleteTimepoint,
   attachRecord, detachRecord, recordsAtTimepoint
 } from "../data/timepoints.mjs";
+import { isRecordVisible } from "../logic/visibility.mjs";
 
 Hooks.on("quenchReady", (quench) => {
   quench.registerBatch(
@@ -108,5 +109,77 @@ Hooks.on("quenchReady", (quench) => {
       });
     },
     { displayName: "Campaign Record: Hub" }
+  );
+
+  quench.registerBatch(
+    "campaign-record.types",
+    (context) => {
+      const { describe, it, assert, before, after } = context;
+      let group;
+
+      describe("Record types", () => {
+        before(async () => {
+          group = await createGroup("Quench Types Group");
+        });
+        after(async () => {
+          await group.delete();
+        });
+
+        it("registers a data model for every record type", () => {
+          for (const t of RECORD_TYPES) {
+            assert.ok(CONFIG.JournalEntryPage.dataModels[typeId(t)], `missing model for ${t}`);
+          }
+        });
+
+        it("creates every type with schema defaults", async () => {
+          for (const t of RECORD_TYPES) {
+            const [page] = await group.createEmbeddedDocuments("JournalEntryPage", [
+              { name: `Quench ${t}`, type: typeId(t) }
+            ]);
+            assert.equal(page.system.hidden, false, `${t} hidden default`);
+            assert.ok(page.system.schema.fields.timepoints, `${t} timepoints field`);
+          }
+        });
+
+        it("list rows round-trip through targeted updates", async () => {
+          const rows = {
+            encounter: ["combatants", { id: foundry.utils.randomID(), name: "Goblin", count: 3, actor: null }],
+            checklist: ["items", { id: foundry.utils.randomID(), text: "Pack rations", done: false, assignee: "" }],
+            shop: ["inventory", { id: foundry.utils.randomID(), name: "Rope", price: "1 gp", quantity: 2, item: null }],
+            loot: ["items", { id: foundry.utils.randomID(), name: "Gem", quantity: 1, item: null }],
+            media: ["images", { id: foundry.utils.randomID(), src: "icons/svg/book.svg", caption: "Cover" }]
+          };
+          for (const [t, [field, row]] of Object.entries(rows)) {
+            const [page] = await group.createEmbeddedDocuments("JournalEntryPage", [
+              { name: `Quench rows ${t}`, type: typeId(t) }
+            ]);
+            await page.update({ [`system.${field}`]: [row] });
+            const stored = page.system.toObject()[field];
+            assert.equal(stored.length, 1, `${t}.${field} length`);
+            assert.equal(stored[0].id, row.id, `${t}.${field} id survives`);
+          }
+        });
+
+        it("loot currency stores integer denominations", async () => {
+          const [loot] = await group.createEmbeddedDocuments("JournalEntryPage", [
+            { name: "Quench Currency", type: typeId("loot") }
+          ]);
+          await loot.update({ "system.currency.gp": 250 });
+          assert.equal(loot.system.currency.gp, 250);
+          assert.equal(loot.system.currency.cp, 0);
+        });
+
+        it("hidden records are invisible to a non-GM perspective", async () => {
+          const [page] = await group.createEmbeddedDocuments("JournalEntryPage", [
+            { name: "Quench Hidden", type: typeId("npc") }
+          ]);
+          await setRecordHidden(page, true);
+          const player = game.users.find((u) => !u.isGM);
+          assert.equal(isRecordVisible(player, page), false);
+          assert.equal(isRecordVisible(game.user, page), true); // GM runs Quench
+        });
+      });
+    },
+    { displayName: "Campaign Record: Types" }
   );
 });
