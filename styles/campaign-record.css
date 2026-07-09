@@ -201,6 +201,17 @@
   width: auto;
   line-height: 1;
   padding: 0.15rem 0.35rem;
+  opacity: 0;
+  transition: opacity 0.15s ease-in-out;
+}
+
+.campaign-hub .timepoint:hover .timepoint-head button,
+.campaign-hub .timepoint-head button:focus-visible {
+  opacity: 1;
+}
+
+.campaign-hub .timeline-group > button[data-action="addTimepoint"] {
+  width: auto;
 }
 
 .campaign-hub .record-chip {
