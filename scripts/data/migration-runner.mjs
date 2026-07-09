@@ -51,8 +51,17 @@ export async function runMigrations() {
   }
   if (!game.user.isGM || stored >= SCHEMA_VERSION) return;
   for (const migration of pendingMigrations(MIGRATIONS, stored, SCHEMA_VERSION)) {
-    console.log(`campaign-record | migrating world data to schema ${migration.version}`);
-    await migration.run();
-    await game.settings.set(MODULE_ID, SCHEMA_SETTING, migration.version);
+    try {
+      console.log(`campaign-record | migrating world data to schema ${migration.version}`);
+      await migration.run();
+      await game.settings.set(MODULE_ID, SCHEMA_SETTING, migration.version);
+    } catch (error) {
+      console.error(`campaign-record | migration to schema ${migration.version} failed`, error);
+      ui.notifications.error(
+        game.i18n.format("CAMPAIGNRECORD.Warning.MigrationFailed", { version: migration.version }),
+        { permanent: true }
+      );
+      return; // stop at the failed step; remaining migrations wait for the next attempt
+    }
   }
 }

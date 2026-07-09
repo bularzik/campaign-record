@@ -67,7 +67,7 @@ test.describe("schema migrations", () => {
       await p.update({ "system.role": "Should Not Persist" }).catch(() => {});
       return p.system.role;
     }, pageId);
-    expect(role).not.toBe("Should Not Persist");
+    expect(role).toBeUndefined();
 
     // restore and confirm normal operation returns
     await page.evaluate(async () => {
