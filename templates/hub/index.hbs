@@ -1,11 +1,11 @@
 <section class="tab hub-index{{#if tabs.index.active}} active{{/if}}" data-group="primary" data-tab="index">
+  <div class="type-chips">
+    {{#each typeChips}}
+    <button type="button" class="type-chip {{#if this.active}}active{{/if}}"
+            data-action="filterType" data-type="{{this.type}}">{{this.label}}</button>
+    {{/each}}
+  </div>
   <div class="index-controls">
-    <span class="type-chips">
-      {{#each typeChips}}
-      <button type="button" class="type-chip {{#if this.active}}active{{/if}}"
-              data-action="filterType" data-type="{{this.type}}">{{this.label}}</button>
-      {{/each}}
-    </span>
     <input type="text" name="tag-filter" value="{{state.tag}}"
            placeholder="{{localize "CAMPAIGNRECORD.Hub.FilterTag"}}">
     <select name="sort-select">
@@ -17,6 +17,13 @@
     <button type="button" class="hidden-toggle {{#if state.hiddenOnly}}active{{/if}}"
             data-action="toggleHiddenOnly" data-tooltip="CAMPAIGNRECORD.Hub.HiddenOnly">
       <i class="fa-solid fa-eye-slash"></i>
+    </button>
+    {{/if}}
+    {{#if hasActiveFilters}}
+    <span class="filtered-count">{{localize "CAMPAIGNRECORD.Hub.FilteredCount" shown=filteredCount total=totalCount}}</span>
+    <button type="button" class="clear-filters" data-action="clearFilters"
+            data-tooltip="CAMPAIGNRECORD.Hub.ClearFilters">
+      <i class="fa-solid fa-filter-circle-xmark"></i>
     </button>
     {{/if}}
     <button type="button" data-action="newRecord">

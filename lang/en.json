@@ -46,6 +46,8 @@
       "NoRecords": "No records match the current filters.",
       "FilterTag": "Filter by tag…",
       "HiddenOnly": "Show hidden records only",
+      "ClearFilters": "Clear filters",
+      "FilteredCount": "{shown} of {total}",
       "Sort": { "name": "Name", "type": "Type", "updated": "Recently updated" },
       "SearchPlaceholder": "Search all records…",
       "SearchHint": "Type at least two characters to search.",

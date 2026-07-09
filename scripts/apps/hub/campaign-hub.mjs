@@ -32,6 +32,7 @@ export class CampaignHub extends HandlebarsApplicationMixin(ApplicationV2) {
       newRecord: CampaignHub.#onNewRecord,
       filterType: CampaignHub.#onFilterType,
       toggleHiddenOnly: CampaignHub.#onToggleHiddenOnly,
+      clearFilters: CampaignHub.#onClearFilters,
       addTimepoint: CampaignHub.#onAddTimepoint,
       renameTimepoint: CampaignHub.#onRenameTimepoint,
       deleteTimepoint: CampaignHub.#onDeleteTimepoint,
@@ -150,7 +151,8 @@ export class CampaignHub extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   #indexEntries() {
-    let records = collectRecords({ groupId: this.state.groupId, user: game.user });
+    const all = collectRecords({ groupId: this.state.groupId, user: game.user });
+    let records = all;
     if (this.state.types.size) records = records.filter((r) => this.state.types.has(r.shortType));
     if (this.state.tag) {
       const tag = this.state.tag.toLowerCase();
@@ -162,7 +164,7 @@ export class CampaignHub extends HandlebarsApplicationMixin(ApplicationV2) {
       type: (a, b) => a.shortType.localeCompare(b.shortType) || a.name.localeCompare(b.name),
       updated: (a, b) => b.sortTime - a.sortTime
     };
-    return records.sort(sorters[this.state.sort] ?? sorters.name);
+    return { records: records.sort(sorters[this.state.sort] ?? sorters.name), total: all.length };
   }
 
   static async #onOpenRecord(event, target) {
@@ -220,6 +222,13 @@ export class CampaignHub extends HandlebarsApplicationMixin(ApplicationV2) {
 
   static #onToggleHiddenOnly() {
     this.state.hiddenOnly = !this.state.hiddenOnly;
+    this.render();
+  }
+
+  static #onClearFilters() {
+    this.state.types.clear();
+    this.state.tag = "";
+    this.state.hiddenOnly = false;
     this.render();
   }
 
@@ -435,7 +444,11 @@ export class CampaignHub extends HandlebarsApplicationMixin(ApplicationV2) {
       id: g.id, name: g.name, selected: g.id === this.state.groupId
     }));
     context.allSelected = this.state.groupId === "all";
-    context.records = this.#indexEntries();
+    const { records, total } = this.#indexEntries();
+    context.records = records;
+    context.filteredCount = records.length;
+    context.totalCount = total;
+    context.hasActiveFilters = this.state.types.size > 0 || !!this.state.tag || this.state.hiddenOnly;
     context.typeChips = [...RECORD_TYPES, "journal"].map((t) => ({
       type: t,
       label: t === "journal"
@@ -468,6 +481,9 @@ export class CampaignHub extends HandlebarsApplicationMixin(ApplicationV2) {
     if (tagFilter && !tagFilter.dataset.crBound) {
       tagFilter.dataset.crBound = "1";
       tagFilter.addEventListener("input", foundry.utils.debounce(async (event) => {
+        // A re-render (e.g. clear-filters) may have replaced this input while
+        // the debounce was pending; its stale value must not win.
+        if (!event.target.isConnected) return;
         this.state.tag = event.target.value.trim();
         await this.render({ parts: ["index"] });
         // render({parts}) replaces this part's DOM — restore focus to keep typing.

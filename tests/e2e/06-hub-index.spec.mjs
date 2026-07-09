@@ -37,6 +37,17 @@ test.describe("hub index", () => {
     await hub.locator('.type-chip[data-type="quest"]').click(); // reset
   });
 
+  test("type chips render as compact pills on shared rows", async () => {
+    const chips = gmPage.locator("#campaign-hub .type-chip");
+    const first = await chips.nth(0).boundingBox();
+    const second = await chips.nth(1).boundingBox();
+    // Same row: full-width buttons would stack each chip on its own line.
+    expect(second.y).toBe(first.y);
+    expect(second.x).toBeGreaterThan(first.x);
+    // Compact: a pill, not a 760px-wide bar.
+    expect(first.width).toBeLessThan(150);
+  });
+
   test("re-renders live when a record is created elsewhere", async () => {
     const hub = gmPage.locator("#campaign-hub");
     await gmPage.evaluate(async ({ groupId }) => {
@@ -73,5 +84,25 @@ test.describe("hub index", () => {
     await expect(playerHub.locator(".record-row", { hasText: "E2E Index Quest" })).toHaveCount(0);
     await expect(playerHub.locator(".hidden-toggle")).toHaveCount(0);
     await ctx.close();
+  });
+
+  test("clear filters resets type, tag, and hidden-only in one click", async () => {
+    const hub = gmPage.locator("#campaign-hub");
+    // No filters active: control is absent.
+    await expect(hub.locator(".clear-filters")).toHaveCount(0);
+    await expect(hub.locator(".filtered-count")).toHaveCount(0);
+
+    await hub.locator('.type-chip[data-type="quest"]').click();
+    await hub.locator('input[name="tag-filter"]').fill("no-such-tag");
+    await expect(hub.locator(".record-row")).toHaveCount(0);
+    await expect(hub.locator(".filtered-count")).toBeVisible();
+    // Count reflects the filtered list: "0 of N" while nothing matches.
+    await expect(hub.locator(".filtered-count")).toHaveText(/^0 of \d+$/);
+
+    await hub.locator(".clear-filters").click();
+    await expect(hub.locator(".clear-filters")).toHaveCount(0);
+    await expect(hub.locator('input[name="tag-filter"]')).toHaveValue("");
+    await expect(hub.locator('.type-chip[data-type="quest"]')).not.toHaveClass(/active/);
+    await expect(hub.locator(".record-row", { hasText: "E2E Index NPC" })).toBeVisible();
   });
 });
