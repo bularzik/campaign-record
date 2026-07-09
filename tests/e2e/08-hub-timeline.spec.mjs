@@ -4,6 +4,12 @@ import { login, deleteGroupsByPrefix, createGroupWithPage, settle } from "./help
 test.describe("hub timeline", () => {
   let gmPage, playerCtx, playerPage, ids;
 
+  // The test world may contain real campaign groups alongside this spec's
+  // group; every locator must stay inside our group's section or clicks and
+  // label reads can land in someone else's timeline.
+  const groupSection = (p) =>
+    p.locator(`#campaign-hub .timeline-group[data-group-id="${ids.groupId}"]`);
+
   const openTimeline = async (p) => {
     await p.evaluate(async () => {
       const { CampaignHub } = await import("/modules/campaign-record/scripts/apps/hub/campaign-hub.mjs");
@@ -34,28 +40,27 @@ test.describe("hub timeline", () => {
     const gmHub = await openTimeline(gmPage);
     const playerHub = await openTimeline(playerPage);
 
-    await gmHub.locator('.timeline-group button[data-action="addTimepoint"]').last().click();
+    await groupSection(gmPage).locator('button[data-action="addTimepoint"]:not([data-position])').click();
     const dialogInput = gmPage.locator('dialog input[name="label"], .application.dialog input[name="label"]');
     await dialogInput.waitFor({ timeout: 10_000 });
     await dialogInput.fill("Session 1: The Hook");
     await gmPage.locator('dialog button[data-action="ok"], .application.dialog button[data-action="ok"]').click();
 
-    await expect(gmHub.locator(".timepoint-label", { hasText: "Session 1: The Hook" }))
+    await expect(groupSection(gmPage).locator(".timepoint-label", { hasText: "Session 1: The Hook" }))
       .toBeVisible({ timeout: 10_000 });
-    await expect(playerHub.locator(".timepoint-label", { hasText: "Session 1: The Hook" }))
+    await expect(groupSection(playerPage).locator(".timepoint-label", { hasText: "Session 1: The Hook" }))
       .toBeVisible({ timeout: 10_000 });
   });
 
   test("player can add and rename timepoints (collaborative by default)", async () => {
-    const playerHub = playerPage.locator("#campaign-hub");
-    await playerHub.locator('.timeline-group button[data-action="addTimepoint"]').last().click();
+    await groupSection(playerPage).locator('button[data-action="addTimepoint"]:not([data-position])').click();
     const input = playerPage.locator('dialog input[name="label"], .application.dialog input[name="label"]');
     await input.waitFor({ timeout: 10_000 });
     await input.fill("Session 2");
     await playerPage.locator('dialog button[data-action="ok"], .application.dialog button[data-action="ok"]').click();
-    await expect(playerHub.locator(".timepoint-label", { hasText: "Session 2" }))
+    await expect(groupSection(playerPage).locator(".timepoint-label", { hasText: "Session 2" }))
       .toBeVisible({ timeout: 10_000 });
-    await expect(gmPage.locator("#campaign-hub .timepoint-label", { hasText: "Session 2" }))
+    await expect(groupSection(gmPage).locator(".timepoint-label", { hasText: "Session 2" }))
       .toBeVisible({ timeout: 10_000 });
   });
 
@@ -75,7 +80,7 @@ test.describe("hub timeline", () => {
     }, ids);
     expect(await order()).toEqual(["Session 2", "Session 1: The Hook"]);
 
-    const labels = playerPage.locator("#campaign-hub .timepoint-label");
+    const labels = groupSection(playerPage).locator(".timepoint-label");
     await expect(labels.first()).toHaveText("Session 2", { timeout: 10_000 });
   });
 
