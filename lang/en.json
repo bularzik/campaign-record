@@ -26,6 +26,9 @@
     "DropActorHint": "Drop an Actor here to link it.",
     "DropSceneHint": "Drop a Scene here to link it.",
     "DropItemHint": "Drop an Item here to link it.",
+    "LinkActor": "Link Actor",
+    "SelectActor": "Actor",
+    "Link": "Link",
     "DeleteRow": "Delete row",
     "Hub": {
       "Title": "Campaign Hub",
@@ -85,6 +88,7 @@
     },
     "Warning": {
       "HiddenGMOnly": "Only a Gamemaster can hide or reveal records.",
+      "NoActorsToLink": "There are no Actors you have permission to see.",
       "CreateGroupFailed": "Failed to create the campaign group. See the console for details.",
       "SchemaNewer": "Campaign Record: this world's data (schema {stored}) was written by a newer module version than the one installed (schema {current}). Records are read-only until you update the module.",
       "ReadOnly": "Campaign Record is read-only: the world's data schema is newer than the installed module.",

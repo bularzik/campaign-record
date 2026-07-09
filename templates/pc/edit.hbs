@@ -9,6 +9,9 @@
   {{#if enriched.actorLink}}{{{enriched.actorLink}}}{{else}}
     <span class="hint">{{localize "CAMPAIGNRECORD.DropActorHint"}}</span>
   {{/if}}
+  <button type="button" data-action="linkActor">
+    <i class="fa-solid fa-link"></i> {{localize "CAMPAIGNRECORD.LinkActor"}}
+  </button>
   {{> campaign-record.actor-info}}
 </div>
 {{> campaign-record.common-edit}}

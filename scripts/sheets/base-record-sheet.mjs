@@ -1,4 +1,5 @@
 import { setRecordHidden } from "../data/groups.mjs";
+import { promptSelectActor } from "../apps/actor-picker.mjs";
 
 const { JournalEntryPageHandlebarsSheet } = foundry.applications.sheets.journal;
 const TextEditorImpl = foundry.applications.ux.TextEditor.implementation;
@@ -9,7 +10,8 @@ export class BaseRecordSheet extends JournalEntryPageHandlebarsSheet {
     classes: ["campaign-record", "record-sheet"],
     form: { submitOnChange: true, closeOnSubmit: false },
     actions: {
-      toggleHidden: BaseRecordSheet.#onToggleHidden
+      toggleHidden: BaseRecordSheet.#onToggleHidden,
+      linkActor: BaseRecordSheet.#onLinkActor
     }
   };
 
@@ -46,6 +48,15 @@ export class BaseRecordSheet extends JournalEntryPageHandlebarsSheet {
 
   /** Subclasses override to accept dropped documents ({type, uuid}). */
   async _onDropDocument(data) {}
+
+  /**
+   * Drag-free actor linking: players can't drag Actors from the sidebar
+   * (core requires TOKEN_CREATE), so a picker feeds the same drop handler.
+   */
+  static async #onLinkActor() {
+    const uuid = await promptSelectActor();
+    if (uuid) await this._onDropDocument({ type: "Actor", uuid });
+  }
 
   static async #onToggleHidden() {
     if (!game.user.isGM) return;

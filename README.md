@@ -43,7 +43,10 @@ Then enable **Campaign Record** in your world's module management.
 ## Usage
 
 - Click **Create Campaign Group** at the bottom of the Journal sidebar to
-  start a new group.
+  start a new group. The button appears for any user with Foundry's
+  **Create Journal Entries** permission — by default that is Trusted
+  Players and up, so regular Players won't see it (see
+  [Permissions model](#permissions-model)).
 - Open the group and add pages: the ten record types appear alongside
   Foundry's standard page types.
 - Open the **Campaign Hub** from the Journal sidebar button, the scene
@@ -58,7 +61,21 @@ Then enable **Campaign Record** in your world's module management.
 ## Permissions model
 
 Every record is editable by all players by default (new groups get `OWNER`
-ownership for everyone); the GM can flip a group to read-only. On top of
+ownership for everyone); the GM can flip a group to read-only.
+
+Players also cannot *drag* Actors out of the sidebar — core Foundry gates
+that drag on the **Create Token** permission (Assistant GM by default). The
+NPC, PC, and Encounter sheets therefore offer a **Link Actor** button that
+opens a picker of the actors the user can see, as a drag-free alternative
+with the same result.
+
+Creating a *new group* is different: a group is a `JournalEntry` document,
+so it requires Foundry's **Create Journal Entries** permission, which
+defaults to the Trusted Player role. Regular Players can add and edit
+records inside existing groups but cannot create groups — and won't see the
+**Create Campaign Group** button. To allow it, either promote those users
+to Trusted Player or grant **Create Journal Entries** to the Player role
+(**Configure Settings → Open Permission Configuration**). On top of
 that, GMs can hide individual records (blocked from all player-facing views
 and sheets) and keep GM-only fields (`gmNotes`, hidden objectives) on any
 record — both are stripped at render time.
