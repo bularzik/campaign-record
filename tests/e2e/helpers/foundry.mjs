@@ -1,7 +1,7 @@
 import { execFileSync, spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import { lockStatus } from "./env-lock.mjs";
+import { lockStatus, UNLOCK_HINT } from "./env-lock.mjs";
 
 export const BASE_URL = process.env.FOUNDRY_URL ?? "http://localhost:30000";
 export const TEST_WORLD = process.env.FOUNDRY_TEST_WORLD ?? "world-b";
@@ -27,7 +27,7 @@ function assertEnvOwned(action) {
   if (held && info && alive && info.pid !== process.pid) {
     throw new Error(
       `Refusing to ${action}: Foundry e2e environment is locked by pid ${info.pid} ` +
-      `(worktree ${info.worktree}). Run \`npm run e2e:unlock\` to force-release it.`
+      `(worktree ${info.worktree}). ${UNLOCK_HINT}`
     );
   }
 }
