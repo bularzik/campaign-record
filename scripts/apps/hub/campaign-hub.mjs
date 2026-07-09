@@ -364,7 +364,7 @@ export class CampaignHub extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!target) return;
     let data;
     try {
-      data = JSON.parse(event.dataTransfer.getData("text/plain"));
+      data = JSON.parse(event.dataTransfer.getData("text/plain")) ?? {};
     } catch {
       data = {};
     }

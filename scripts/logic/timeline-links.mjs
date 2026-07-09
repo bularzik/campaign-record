@@ -26,7 +26,12 @@ export function isImagePath(src) {
 /** Decoded final path segment of a src, without query/fragment. */
 export function filenameFromSrc(src) {
   const clean = src.split("?")[0].split("#")[0];
-  return decodeURIComponent(clean.split("/").pop());
+  const segment = clean.split("/").pop();
+  try {
+    return decodeURIComponent(segment);
+  } catch {
+    return segment; // malformed percent-encoding: fall back to the raw segment
+  }
 }
 
 /** Dedupe key of a link: uuid for documents, src for images. */

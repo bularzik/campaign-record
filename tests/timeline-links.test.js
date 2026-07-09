@@ -24,6 +24,10 @@ describe("filenameFromSrc", () => {
     expect(filenameFromSrc("assets/art/old%20map.png?v=2")).toBe("old map.png");
     expect(filenameFromSrc("map.png")).toBe("map.png");
   });
+
+  it("falls back to the raw segment on malformed percent-encoding", () => {
+    expect(filenameFromSrc("assets/a%zz.png")).toBe("a%zz.png");
+  });
 });
 
 describe("withLink / withoutLink", () => {
