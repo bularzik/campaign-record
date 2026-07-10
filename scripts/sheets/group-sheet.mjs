@@ -11,7 +11,7 @@ export class CampaignGroupSheet extends JournalEntrySheet {
   #deferredRender = null;
 
   async render(options = {}, _options = {}) {
-    if (typeof options === "boolean") options = { force: options };
+    if (typeof options === "boolean") options = { force: options, ..._options };
     if (this.rendered && hasInlineFocus(this.element)) {
       this.#deferredRender = foundry.utils.mergeObject(this.#deferredRender ?? {}, options, {
         inplace: false
