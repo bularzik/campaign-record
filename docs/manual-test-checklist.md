@@ -96,6 +96,19 @@ walk only the manual section below with two browsers.
       blank price/rarity and NPC/PC linked actors show name/portrait without
       AC/HP.
 
+## Import / Export
+
+- [ ] Hub → Import Document → pick a .docx: sections listed with sensible
+      suggested types; dated sessions pre-checked as timepoints.
+- [ ] Import into a NEW group and an EXISTING group.
+- [ ] Skip and Merge rows behave; empty sections default to Skip.
+- [ ] Imported images appear in descriptions (GM with upload permission).
+- [ ] Export Group as player view: no hidden records, no GM notes.
+- [ ] Export Group with "Include GM content": both present.
+- [ ] Export single record from its sheet menu.
+- [ ] Exported .docx opens in Word/Pages and converts in Google Drive.
+- [ ] Re-import an exported group docx: types pre-suggested from markers.
+
 ## Release gate (before tagging each release)
 
 - [ ] Run all three Quench batches ("Campaign Record: Core", "Campaign
