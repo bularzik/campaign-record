@@ -237,10 +237,11 @@ export function HubMixin(Base) {
       this.#searchIndex = null;
       this.#teardownHooks();
       this.#pane.close();
-      // A closed hub reopens at the index — the previously viewed record is
-      // session-scoped state, not something to resume mid-view like the
-      // window position or the collapsed-rail client setting.
+      // A closed hub reopens at the index — the previously viewed record and
+      // its navigation history are session-scoped state, not something to
+      // resume like the window position or the collapsed-rail client setting.
       this.state.view = null;
+      this.#history = createHistory();
       super._onClose(options);
     }
 
@@ -634,14 +635,17 @@ export function HubMixin(Base) {
         });
       }
       const searchInput = this.element.querySelector('input[name="search-query"]');
-      searchInput?.addEventListener("input", foundry.utils.debounce(async (event) => {
-        this.state.query = event.target.value;
-        await this.render({ parts: ["search"] });
-        // render({parts}) replaces this part's DOM — restore focus to keep typing.
-        const restored = this.element.querySelector('input[name="search-query"]');
-        restored?.focus();
-        restored?.setSelectionRange(restored.value.length, restored.value.length);
-      }, 250));
+      if (searchInput && !searchInput.dataset.crBound) {
+        searchInput.dataset.crBound = "1";
+        searchInput.addEventListener("input", foundry.utils.debounce(async (event) => {
+          this.state.query = event.target.value;
+          await this.render({ parts: ["search"] });
+          // render({parts}) replaces this part's DOM — restore focus to keep typing.
+          const restored = this.element.querySelector('input[name="search-query"]');
+          restored?.focus();
+          restored?.setSelectionRange(restored.value.length, restored.value.length);
+        }, 250));
+      }
 
       // Dragging a record from the Index tab needs a way to reach a Timeline
       // drop target while the tabs are mutually exclusive: hovering a tab's

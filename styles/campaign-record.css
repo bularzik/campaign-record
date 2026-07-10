@@ -484,12 +484,6 @@
 .campaign-hub:not(.viewing-record) .hub-record {
   flex: 0 0 auto;
 }
-.campaign-hub.viewing-record .hub-record {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-height: 0;
-}
 .campaign-hub.viewing-record section.tab { display: none; }
 .record-pane-header {
   display: flex;
