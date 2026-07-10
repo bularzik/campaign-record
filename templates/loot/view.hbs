@@ -1,4 +1,32 @@
-<section class="campaign-record-content record-view">
+<section class="campaign-record-content record-view{{#if inlineEdit}} inline-edit{{/if}}">
+{{#if inlineEdit}}
+<fieldset class="loot-currency">
+  <legend>{{localize "CAMPAIGNRECORD.Loot.FIELDS.currency.label"}}</legend>
+  <dl class="record-facts loot-currency">
+    <dt>{{localize "CAMPAIGNRECORD.Loot.FIELDS.currency.pp.label"}}</dt>
+    <dd><input type="number" name="system.currency.pp" value="{{system.currency.pp}}" min="0" step="1"></dd>
+    <dt>{{localize "CAMPAIGNRECORD.Loot.FIELDS.currency.gp.label"}}</dt>
+    <dd><input type="number" name="system.currency.gp" value="{{system.currency.gp}}" min="0" step="1"></dd>
+    <dt>{{localize "CAMPAIGNRECORD.Loot.FIELDS.currency.ep.label"}}</dt>
+    <dd><input type="number" name="system.currency.ep" value="{{system.currency.ep}}" min="0" step="1"></dd>
+    <dt>{{localize "CAMPAIGNRECORD.Loot.FIELDS.currency.sp.label"}}</dt>
+    <dd><input type="number" name="system.currency.sp" value="{{system.currency.sp}}" min="0" step="1"></dd>
+    <dt>{{localize "CAMPAIGNRECORD.Loot.FIELDS.currency.cp.label"}}</dt>
+    <dd><input type="number" name="system.currency.cp" value="{{system.currency.cp}}" min="0" step="1"></dd>
+  </dl>
+</fieldset>
+{{> campaign-record.loot-items}}
+<div class="form-group">
+  <label>{{localize "CAMPAIGNRECORD.Loot.FIELDS.source.label"}}</label>
+  {{#if enriched.sourceLink}}{{{enriched.sourceLink}}}{{else}}
+    <span class="hint">{{localize "CAMPAIGNRECORD.Loot.DropEncounterHint"}}</span>
+  {{/if}}
+</div>
+<section class="loot-distribution form-group stacked">
+  <h3>{{localize "CAMPAIGNRECORD.Loot.FIELDS.distribution.label"}}</h3>
+  <prose-mirror name="system.distribution" value="{{system.distribution}}" collaborate data-inline-prose data-document-uuid="{{page.uuid}}"></prose-mirror>
+</section>
+{{else}}
 <dl class="record-facts loot-currency">
   {{#if system.currency.pp}}<dt>{{localize "CAMPAIGNRECORD.Loot.FIELDS.currency.pp.label"}}</dt><dd>{{system.currency.pp}}</dd>{{/if}}
   {{#if system.currency.gp}}<dt>{{localize "CAMPAIGNRECORD.Loot.FIELDS.currency.gp.label"}}</dt><dd>{{system.currency.gp}}</dd>{{/if}}
@@ -22,6 +50,7 @@
   <h3>{{localize "CAMPAIGNRECORD.Loot.FIELDS.distribution.label"}}</h3>
   {{{enriched.distribution}}}
 </section>
+{{/if}}
 {{/if}}
 {{> campaign-record.common-view}}
 </section>

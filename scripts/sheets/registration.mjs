@@ -60,6 +60,12 @@ export function registerPartials() {
   return foundry.applications.handlebars.loadTemplates({
     "campaign-record.common-edit": "modules/campaign-record/templates/partials/common-edit.hbs",
     "campaign-record.common-view": "modules/campaign-record/templates/partials/common-view.hbs",
-    "campaign-record.actor-info": "modules/campaign-record/templates/partials/actor-info.hbs"
+    "campaign-record.actor-info": "modules/campaign-record/templates/partials/actor-info.hbs",
+    "campaign-record.quest-objectives": "modules/campaign-record/templates/partials/quest-objectives.hbs",
+    "campaign-record.encounter-combatants": "modules/campaign-record/templates/partials/encounter-combatants.hbs",
+    "campaign-record.checklist-items": "modules/campaign-record/templates/partials/checklist-items.hbs",
+    "campaign-record.shop-inventory": "modules/campaign-record/templates/partials/shop-inventory.hbs",
+    "campaign-record.loot-items": "modules/campaign-record/templates/partials/loot-items.hbs",
+    "campaign-record.media-images": "modules/campaign-record/templates/partials/media-images.hbs"
   });
 }

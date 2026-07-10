@@ -1,5 +1,6 @@
 import { BaseRecordSheet } from "./base-record-sheet.mjs";
 import { actorSummary } from "../integrations/dnd5e.mjs";
+import { NPC_STATUSES } from "../data/npc.mjs";
 
 const TextEditorImpl = foundry.applications.ux.TextEditor.implementation;
 
@@ -22,6 +23,7 @@ export class NpcSheet extends BaseRecordSheet {
     context.actorInfo = this.document.system.actor
       ? actorSummary(await fromUuid(this.document.system.actor))
       : null;
+    context.statusChoices = NPC_STATUSES;
     return context;
   }
 

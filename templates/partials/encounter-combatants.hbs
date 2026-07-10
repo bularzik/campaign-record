@@ -1,0 +1,20 @@
+<fieldset class="encounter-combatants campaign-record-drop">
+  <legend>{{localize "CAMPAIGNRECORD.Encounter.FIELDS.combatants.label"}}</legend>
+  <ol data-rows="combatants">
+    {{#each system.combatants}}
+    <li data-row-id="{{this.id}}">
+      <input type="text" data-row-field="name" value="{{this.name}}">
+      <input type="number" data-row-field="count" value="{{this.count}}" min="1" step="1">
+      <button type="button" data-action="deleteCombatant"
+              aria-label="{{localize "CAMPAIGNRECORD.DeleteRow"}}"><i class="fa-solid fa-trash"></i></button>
+    </li>
+    {{/each}}
+  </ol>
+  <button type="button" data-action="addCombatant">
+    <i class="fa-solid fa-plus"></i> {{localize "CAMPAIGNRECORD.Encounter.AddCombatant"}}
+  </button>
+  <button type="button" data-action="linkActor">
+    <i class="fa-solid fa-link"></i> {{localize "CAMPAIGNRECORD.LinkActor"}}
+  </button>
+  <p class="hint">{{localize "CAMPAIGNRECORD.DropActorHint"}}</p>
+</fieldset>

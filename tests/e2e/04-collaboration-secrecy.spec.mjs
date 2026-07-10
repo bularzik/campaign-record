@@ -61,9 +61,13 @@ test.describe("multi-client collaboration and GM secrecy", () => {
     const gmSheet = gmPage.locator(".campaign-record.record-sheet").last();
     const playerSheet = playerPage.locator(".campaign-record.record-sheet").last();
 
-    // open the description editor on both clients (toggled prose-mirror)
+    // open the description editor on both clients (toggled prose-mirror).
+    // Core CSS only reveals the toggle button on `:hover` of the prose-mirror
+    // element (foundry2.css `.prosemirror:hover button.toggle:enabled`), so
+    // Playwright's actionability check fails without an explicit hover first.
     for (const sheet of [gmSheet, playerSheet]) {
       const pm = sheet.locator('prose-mirror[name="system.description"]');
+      await pm.hover();
       await pm.locator('button[data-action="edit"], button.icon.toggle').first().click();
       await pm.locator('.editor-content.ProseMirror, .ProseMirror[contenteditable="true"]').waitFor({
         timeout: 15_000

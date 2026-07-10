@@ -1,4 +1,22 @@
-<section class="campaign-record-content record-view">
+<section class="campaign-record-content record-view{{#if inlineEdit}} inline-edit{{/if}}">
+{{#if inlineEdit}}
+<dl class="record-facts">
+  <dt>{{localize "CAMPAIGNRECORD.Place.FIELDS.placeType.label"}}</dt>
+  <dd><select name="system.placeType">{{selectOptions placeTypeChoices selected=system.placeType localize=true}}</select></dd>
+  <dt>{{localize "CAMPAIGNRECORD.Place.FIELDS.location.label"}}</dt>
+  <dd><input type="text" name="system.location" value="{{system.location}}"></dd>
+  <dt>{{localize "CAMPAIGNRECORD.Place.FIELDS.government.label"}}</dt>
+  <dd><input type="text" name="system.government" value="{{system.government}}"></dd>
+  <dt>{{localize "CAMPAIGNRECORD.Place.FIELDS.size.label"}}</dt>
+  <dd><input type="text" name="system.size" value="{{system.size}}"></dd>
+</dl>
+<div class="form-group campaign-record-drop">
+  <label>{{localize "CAMPAIGNRECORD.Place.FIELDS.scene.label"}}</label>
+  {{#if enriched.sceneLink}}{{{enriched.sceneLink}}}{{else}}
+    <span class="hint">{{localize "CAMPAIGNRECORD.DropSceneHint"}}</span>
+  {{/if}}
+</div>
+{{else}}
 <dl class="record-facts">
   <dt>{{localize "CAMPAIGNRECORD.Place.FIELDS.placeType.label"}}</dt><dd>{{system.placeType}}</dd>
   {{#if system.location}}<dt>{{localize "CAMPAIGNRECORD.Place.FIELDS.location.label"}}</dt><dd>{{system.location}}</dd>{{/if}}
@@ -6,5 +24,6 @@
   {{#if system.size}}<dt>{{localize "CAMPAIGNRECORD.Place.FIELDS.size.label"}}</dt><dd>{{system.size}}</dd>{{/if}}
   {{#if enriched.sceneLink}}<dt>{{localize "CAMPAIGNRECORD.Place.FIELDS.scene.label"}}</dt><dd>{{{enriched.sceneLink}}}</dd>{{/if}}
 </dl>
+{{/if}}
 {{> campaign-record.common-view}}
 </section>

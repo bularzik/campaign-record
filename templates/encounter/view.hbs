@@ -1,4 +1,21 @@
-<section class="campaign-record-content record-view">
+<section class="campaign-record-content record-view{{#if inlineEdit}} inline-edit{{/if}}">
+{{#if inlineEdit}}
+<dl class="record-facts">
+  <dt>{{localize "CAMPAIGNRECORD.Encounter.FIELDS.location.label"}}</dt>
+  <dd><input type="text" name="system.location" value="{{system.location}}"></dd>
+  <dt>{{localize "CAMPAIGNRECORD.Encounter.FIELDS.difficulty.label"}}</dt>
+  <dd><input type="text" name="system.difficulty" value="{{system.difficulty}}"></dd>
+  <dt>{{localize "CAMPAIGNRECORD.Encounter.FIELDS.outcome.label"}}</dt>
+  <dd><input type="text" name="system.outcome" value="{{system.outcome}}"></dd>
+</dl>
+{{> campaign-record.encounter-combatants}}
+<div class="form-group campaign-record-drop">
+  <label>{{localize "CAMPAIGNRECORD.Encounter.FIELDS.scene.label"}}</label>
+  {{#if enriched.sceneLink}}{{{enriched.sceneLink}}}{{else}}
+    <span class="hint">{{localize "CAMPAIGNRECORD.DropSceneHint"}}</span>
+  {{/if}}
+</div>
+{{else}}
 <dl class="record-facts">
   {{#if system.location}}<dt>{{localize "CAMPAIGNRECORD.Encounter.FIELDS.location.label"}}</dt><dd>{{system.location}}</dd>{{/if}}
   {{#if system.difficulty}}<dt>{{localize "CAMPAIGNRECORD.Encounter.FIELDS.difficulty.label"}}</dt><dd>{{system.difficulty}}</dd>{{/if}}
@@ -14,6 +31,7 @@
     {{/each}}
   </ul>
 </section>
+{{/if}}
 {{/if}}
 {{> campaign-record.common-view}}
 </section>

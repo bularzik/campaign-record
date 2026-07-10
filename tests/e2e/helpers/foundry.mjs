@@ -36,7 +36,13 @@ function stopServer() {
   assertEnvOwned("stop the Foundry server");
   try {
     const port = new URL(BASE_URL).port || "30000";
-    const pids = execFileSync("lsof", ["-ti", `:${port}`], { encoding: "utf8" }).trim();
+    // -sTCP:LISTEN: only the server's listening socket. A bare `-ti :port`
+    // also lists CLIENT sockets on the port — including this very process's
+    // keep-alive connection from the status probe (killing the test runner
+    // with SIGTERM mid-setup) and any user browser tab attached to Foundry.
+    const pids = execFileSync("lsof", ["-ti", `:${port}`, "-sTCP:LISTEN"], {
+      encoding: "utf8"
+    }).trim();
     for (const pid of pids.split("\n").filter((p) => /^\d+$/.test(p))) {
       process.kill(Number(pid));
     }

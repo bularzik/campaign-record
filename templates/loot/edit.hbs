@@ -9,23 +9,7 @@
     {{formGroup systemFields.currency.fields.cp value=system.currency.cp localize=true}}
   </div>
 </fieldset>
-<fieldset class="loot-items campaign-record-drop">
-  <legend>{{localize "CAMPAIGNRECORD.Loot.FIELDS.items.label"}}</legend>
-  <ol data-rows="items">
-    {{#each system.items}}
-    <li data-row-id="{{this.id}}">
-      <input type="text" data-row-field="name" value="{{this.name}}">
-      <input type="number" data-row-field="quantity" value="{{this.quantity}}" min="0" step="1">
-      <button type="button" data-action="deleteLootItem"
-              aria-label="{{localize "CAMPAIGNRECORD.DeleteRow"}}"><i class="fa-solid fa-trash"></i></button>
-    </li>
-    {{/each}}
-  </ol>
-  <button type="button" data-action="addLootItem">
-    <i class="fa-solid fa-plus"></i> {{localize "CAMPAIGNRECORD.Loot.AddItem"}}
-  </button>
-  <p class="hint">{{localize "CAMPAIGNRECORD.DropItemHint"}}</p>
-</fieldset>
+{{> campaign-record.loot-items}}
 <div class="form-group">
   <label>{{localize "CAMPAIGNRECORD.Loot.FIELDS.source.label"}}</label>
   {{#if enriched.sourceLink}}{{{enriched.sourceLink}}}{{else}}
@@ -34,7 +18,7 @@
 </div>
 <div class="form-group stacked">
   <label>{{localize "CAMPAIGNRECORD.Loot.FIELDS.distribution.label"}}</label>
-  <prose-mirror name="system.distribution" toggled collaborate data-document-uuid="{{page.uuid}}">{{{enriched.distribution}}}</prose-mirror>
+  <prose-mirror name="system.distribution" value="{{system.distribution}}" toggled collaborate data-document-uuid="{{page.uuid}}">{{{enriched.distribution}}}</prose-mirror>
 </div>
 {{> campaign-record.common-edit}}
 </section>

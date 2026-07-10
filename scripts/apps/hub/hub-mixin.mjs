@@ -1,5 +1,8 @@
 import { getGroups } from "../../data/groups.mjs";
-import { MODULE_ID, THUMBNAILS_SETTING, RAIL_SETTING, RECORD_TYPES, typeId } from "../../constants.mjs";
+import {
+  MODULE_ID, THUMBNAILS_SETTING, RAIL_SETTING, INLINE_EDIT_SETTING, RECORD_TYPES, typeId
+} from "../../constants.mjs";
+import { hasInlineFocus } from "../../logic/inline-edit.mjs";
 import { collectRecords, isIndexablePage, getScopedGroups, toSearchRecord } from "./hub-data.mjs";
 import { createIndex, indexRecord, removeRecord, search } from "../../logic/search-index.mjs";
 import { hasGroupFlag, isRecordVisible } from "../../logic/visibility.mjs";
@@ -48,6 +51,7 @@ export function HubMixin(Base) {
         removeLink: HubBase.#onRemoveLink,
         toggleLinkShowPlayers: HubBase.#onToggleLinkShowPlayers,
         toggleThumbnails: HubBase.#onToggleThumbnails,
+        toggleInlineEdit: HubBase.#onToggleInlineEdit,
         paneBack: HubBase.#onPaneBack,
         paneForward: HubBase.#onPaneForward,
         toggleRail: HubBase.#onToggleRail,
@@ -154,6 +158,38 @@ export function HubMixin(Base) {
     #debouncedRender = foundry.utils.debounce(() => {
       if (this.rendered) this.render();
     }, 100);
+
+    #deferredRender = null;
+
+    /**
+     * A hub re-render replaces the whole DOM and re-mounts the record pane,
+     * which detaches any active always-open <prose-mirror> (its
+     * disconnectedCallback saves + destroys the editor) and steals focus
+     * mid-typing. Defer re-renders while the user is typing in an
+     * inline-editable control INSIDE the pane mount; flushed on focusout.
+     * The hub's own tag-filter/search inputs manage their own partial
+     * re-render + refocus, so they must not defer.
+     */
+    async render(options = {}, _options = {}) {
+      if (typeof options === "boolean") options = { force: options, ..._options };
+      const mount = this.rendered ? this.element?.querySelector(".record-pane-mount") : null;
+      if (mount && hasInlineFocus(mount)) {
+        this.#deferredRender = foundry.utils.mergeObject(this.#deferredRender ?? {}, options, {
+          inplace: false
+        });
+        return this;
+      }
+      return super.render(options, _options);
+    }
+
+    #flushDeferredRender() {
+      if (!this.#deferredRender) return;
+      const mount = this.element?.querySelector(".record-pane-mount");
+      if (mount && hasInlineFocus(mount)) return;
+      const options = this.#deferredRender;
+      this.#deferredRender = null;
+      this.render(options);
+    }
 
     #searchIndex = null;
 
@@ -481,6 +517,12 @@ export function HubMixin(Base) {
       this.render();
     }
 
+    static async #onToggleInlineEdit() {
+      const current = game.settings.get(MODULE_ID, INLINE_EDIT_SETTING);
+      // The setting's onChange re-renders every hub and record sheet.
+      await game.settings.set(MODULE_ID, INLINE_EDIT_SETTING, !current);
+    }
+
     #onTimelineDragStart(event) {
       const tpRow = event.target.closest("[data-drag-timepoint]");
       const recordRow = event.target.closest("[data-drag-record]");
@@ -596,6 +638,7 @@ export function HubMixin(Base) {
       context.searchGroups = this.#searchResults();
       context.timelineGroups = this.#timelineGroups();
       context.thumbnails = game.settings.get(MODULE_ID, THUMBNAILS_SETTING);
+      context.inlineEditing = game.settings.get(MODULE_ID, INLINE_EDIT_SETTING);
       const viewedPage = this.#resolveViewedPage();
       if (this.state.view && (!viewedPage || !isRecordVisible(game.user, viewedPage))) {
         // Deleted or no longer visible: fall back to the index.
@@ -618,6 +661,14 @@ export function HubMixin(Base) {
 
     _onRender(context, options) {
       super._onRender(context, options);
+      if (!this.element.dataset.crFlushBound) {
+        this.element.dataset.crFlushBound = "1";
+        this.element.addEventListener("focusout", () => {
+          // change handlers and the resulting update run after focusout — flush
+          // on the next tick so a render deferred by this very blur isn't stranded.
+          setTimeout(() => this.#flushDeferredRender(), 0);
+        });
+      }
       const groupSelect = this.element.querySelector('select[name="group-select"]');
       if (groupSelect && !groupSelect.dataset.crBound) {
         groupSelect.dataset.crBound = "1";

@@ -38,6 +38,11 @@ test.describe("PC and Item record sheets", () => {
         )
       )
       .toBe("Wizard 5");
+    // Inline editing (client-scoped, default on) renders these facts as
+    // inputs; that branch is covered by 18-inline-edit. This assertion
+    // checks the read-only view text, so switch the toggle off for this
+    // client (established fix from 03-quest).
+    await page.evaluate(() => game.settings.set("campaign-record", "inlineEditing", false));
     await page.evaluate(
       async ({ groupId, pageId }) => {
         const g = game.journal.get(groupId);

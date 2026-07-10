@@ -1,4 +1,7 @@
-<section class="campaign-record-content record-view">
+<section class="campaign-record-content record-view{{#if inlineEdit}} inline-edit{{/if}}">
+{{#if inlineEdit}}
+{{> campaign-record.checklist-items}}
+{{else}}
 <section class="checklist-items">
   <ol data-rows="items">
     {{#each items}}
@@ -10,5 +13,6 @@
     {{/each}}
   </ol>
 </section>
+{{/if}}
 {{> campaign-record.common-view}}
 </section>

@@ -1,4 +1,24 @@
-<section class="campaign-record-content record-view">
+<section class="campaign-record-content record-view{{#if inlineEdit}} inline-edit{{/if}}">
+{{#if inlineEdit}}
+<dl class="record-facts">
+  <dt>{{localize "CAMPAIGNRECORD.Pc.FIELDS.playerName.label"}}</dt>
+  <dd><input type="text" name="system.playerName" value="{{system.playerName}}"></dd>
+  <dt>{{localize "CAMPAIGNRECORD.Pc.FIELDS.classLevel.label"}}</dt>
+  <dd><input type="text" name="system.classLevel" value="{{system.classLevel}}"></dd>
+  <dt>{{localize "CAMPAIGNRECORD.Pc.FIELDS.faction.label"}}</dt>
+  <dd><input type="text" name="system.faction" value="{{system.faction}}"></dd>
+</dl>
+<div class="form-group campaign-record-drop">
+  <label>{{localize "CAMPAIGNRECORD.Pc.FIELDS.actor.label"}}</label>
+  {{#if enriched.actorLink}}{{{enriched.actorLink}}}{{else}}
+    <span class="hint">{{localize "CAMPAIGNRECORD.DropActorHint"}}</span>
+  {{/if}}
+  <button type="button" data-action="linkActor">
+    <i class="fa-solid fa-link"></i> {{localize "CAMPAIGNRECORD.LinkActor"}}
+  </button>
+</div>
+{{> campaign-record.actor-info}}
+{{else}}
 <dl class="record-facts">
   {{#if system.playerName}}<dt>{{localize "CAMPAIGNRECORD.Pc.FIELDS.playerName.label"}}</dt><dd>{{system.playerName}}</dd>{{/if}}
   {{#if system.classLevel}}<dt>{{localize "CAMPAIGNRECORD.Pc.FIELDS.classLevel.label"}}</dt><dd>{{system.classLevel}}</dd>{{/if}}
@@ -6,5 +26,6 @@
   {{#if enriched.actorLink}}<dt>{{localize "CAMPAIGNRECORD.Pc.FIELDS.actor.label"}}</dt><dd>{{{enriched.actorLink}}}</dd>{{/if}}
 </dl>
 {{> campaign-record.actor-info}}
+{{/if}}
 {{> campaign-record.common-view}}
 </section>

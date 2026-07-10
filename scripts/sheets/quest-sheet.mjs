@@ -1,4 +1,5 @@
 import { BaseRecordSheet } from "./base-record-sheet.mjs";
+import { QUEST_STATUSES } from "../data/quest.mjs";
 
 const TextEditorImpl = foundry.applications.ux.TextEditor.implementation;
 
@@ -29,6 +30,7 @@ export class QuestSheet extends BaseRecordSheet {
       relativeTo: this.document
     });
     context.objectives = system.objectives.filter((o) => game.user.isGM || !o.gmOnly);
+    context.statusChoices = QUEST_STATUSES;
     return context;
   }
 

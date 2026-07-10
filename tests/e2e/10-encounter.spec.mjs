@@ -58,6 +58,11 @@ test.describe("encounter sheet", () => {
   });
 
   test("view mode lists combatants with counts", async () => {
+    // Inline editing (client-scoped, default on) renders combatants as
+    // inputs; that branch is covered by 18-inline-edit. This test asserts
+    // the read-only view, so switch the toggle off for this client, then
+    // restore it since `page` is reused across this describe block.
+    await page.evaluate(() => game.settings.set("campaign-record", "inlineEditing", false));
     await page.evaluate(
       async ({ groupId, pageId }) => {
         const g = game.journal.get(groupId);
@@ -71,5 +76,6 @@ test.describe("encounter sheet", () => {
     await combatants.waitFor({ timeout: 15_000 });
     await expect(combatants).toContainText("4 × Goblin");
     await page.evaluate(({ groupId }) => game.journal.get(groupId).sheet.close(), ids);
+    await page.evaluate(() => game.settings.set("campaign-record", "inlineEditing", true));
   });
 });
