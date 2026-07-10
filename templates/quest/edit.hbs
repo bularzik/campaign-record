@@ -26,7 +26,7 @@
 </fieldset>
 <div class="form-group stacked">
   <label>{{localize "CAMPAIGNRECORD.Quest.FIELDS.rewards.label"}}</label>
-  <prose-mirror name="system.rewards" toggled collaborate data-document-uuid="{{page.uuid}}">{{{enriched.rewards}}}</prose-mirror>
+  <prose-mirror name="system.rewards" value="{{system.rewards}}" toggled collaborate data-document-uuid="{{page.uuid}}">{{{enriched.rewards}}}</prose-mirror>
 </div>
 {{> campaign-record.common-edit}}
 </section>

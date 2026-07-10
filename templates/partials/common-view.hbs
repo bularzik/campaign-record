@@ -1,3 +1,30 @@
+{{#if inlineEdit}}
+{{#if system.image}}<img class="record-image" src="{{system.image}}" alt="{{page.name}}">{{/if}}
+{{formGroup systemFields.image value=system.image localize=true}}
+{{formGroup systemFields.tags value=system.tags localize=true}}
+{{#if isGM}}
+<div class="form-group gm-only">
+  <label>{{localize "CAMPAIGNRECORD.Common.FIELDS.hidden.label"}}</label>
+  <button type="button" data-action="toggleHidden">
+    {{#if system.hidden}}
+      <i class="fa-solid fa-eye-slash"></i> {{localize "CAMPAIGNRECORD.Hidden"}}
+    {{else}}
+      <i class="fa-solid fa-eye"></i> {{localize "CAMPAIGNRECORD.Visible"}}
+    {{/if}}
+  </button>
+</div>
+{{/if}}
+<section class="record-description form-group stacked">
+  <label>{{localize "CAMPAIGNRECORD.Common.FIELDS.description.label"}}</label>
+  <prose-mirror name="system.description" value="{{system.description}}" collaborate data-inline-prose data-document-uuid="{{page.uuid}}"></prose-mirror>
+</section>
+{{#if isGM}}
+<section class="gm-only form-group stacked">
+  <label>{{localize "CAMPAIGNRECORD.Common.FIELDS.gmNotes.label"}}</label>
+  <prose-mirror name="system.gmNotes" value="{{system.gmNotes}}" collaborate data-inline-prose data-document-uuid="{{page.uuid}}"></prose-mirror>
+</section>
+{{/if}}
+{{else}}
 {{#if system.image}}<img class="record-image" src="{{system.image}}" alt="{{page.name}}">{{/if}}
 <section class="record-description">{{{enriched.description}}}</section>
 {{#if isGM}}{{#if enriched.gmNotes}}
@@ -6,3 +33,4 @@
   {{{enriched.gmNotes}}}
 </section>
 {{/if}}{{/if}}
+{{/if}}
