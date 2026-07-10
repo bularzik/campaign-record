@@ -103,6 +103,19 @@
       "NothingToImport": "Every section is set to skip — nothing to import.",
       "CreateFailed": "Import failed — see the console for details."
     },
+    "Export": {
+      "GroupButton": "Export Group",
+      "RecordControl": "Export to Word",
+      "Title": "Export to Word",
+      "IncludeGM": "Include GM content (hidden records, GM notes)",
+      "GoogleHint": "To turn this into a Google Doc, drag the downloaded file into drive.google.com — it converts automatically.",
+      "Download": "Download .docx",
+      "Timeline": "Timeline",
+      "GmNotes": "GM Notes",
+      "SelectGroup": "Select a specific group to export.",
+      "Failed": "Export failed — see the console for details.",
+      "Done": "Exported \"{name}\"."
+    },
     "Sheets": {
       "Npc": "Campaign Record NPC Sheet",
       "Place": "Campaign Record Place Sheet",

@@ -6,6 +6,7 @@ import { hasGroupFlag } from "../../logic/visibility.mjs";
 import { classifyDropData, filenameFromSrc } from "../../logic/timeline-links.mjs";
 import * as Timepoints from "../../data/timepoints.mjs";
 import { ImportWizard } from "../import-wizard.mjs";
+import { exportGroupDialog } from "../export-dialog.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -32,6 +33,7 @@ export class CampaignHub extends HandlebarsApplicationMixin(ApplicationV2) {
       openRecord: CampaignHub.#onOpenRecord,
       newRecord: CampaignHub.#onNewRecord,
       importDocument: CampaignHub.#onImportDocument,
+      exportGroup: CampaignHub.#onExportGroup,
       filterType: CampaignHub.#onFilterType,
       toggleHiddenOnly: CampaignHub.#onToggleHiddenOnly,
       clearFilters: CampaignHub.#onClearFilters,
@@ -217,6 +219,12 @@ export class CampaignHub extends HandlebarsApplicationMixin(ApplicationV2) {
 
   static #onImportDocument() {
     ImportWizard.open();
+  }
+
+  static async #onExportGroup() {
+    const group = game.journal.get(this.state.groupId);
+    if (!group) return ui.notifications.warn(game.i18n.localize("CAMPAIGNRECORD.Export.SelectGroup"));
+    await exportGroupDialog(group);
   }
 
   static #onFilterType(event, target) {
