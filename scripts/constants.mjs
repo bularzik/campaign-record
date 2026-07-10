@@ -30,3 +30,6 @@ export const THUMBNAILS_SETTING = "timelineThumbnails";
 
 /** Client setting: record-pane navigation rail collapsed. */
 export const RAIL_SETTING = "recordRailCollapsed";
+
+/** Registered sheet id (scope.ClassName) that opens groups in the Campaign Hub. */
+export const GROUP_SHEET_CLASS = `${MODULE_ID}.GroupHubSheet`;

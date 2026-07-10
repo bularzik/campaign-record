@@ -211,6 +211,28 @@ export function HubMixin(Base) {
       this.#registerDocHooks();
     }
 
+    /**
+     * Core routes page content-links as `page.parent.sheet.render(true, {pageId, anchor})`
+     * (`JournalEntryPage#_onClickDocumentLink`). Land that navigation in-pane instead of
+     * letting the default sheet-open behavior run.
+     *
+     * This must happen in `_configureRenderOptions`, not `_preRender`: core's render()
+     * builds the `_prepareContext` output *before* invoking `_preRender` (see
+     * `ApplicationV2#render`), so mutating `state.view` inside `_preRender` would arrive
+     * one render late — the very first paint (e.g. a not-yet-open group sheet opened via
+     * a cross-group link) would show the index with no record-pane markup to mount into.
+     * `_configureRenderOptions` runs before `_prepareContext`, so setting state there is
+     * picked up by the context this same render pass builds.
+     */
+    _configureRenderOptions(options) {
+      super._configureRenderOptions(options);
+      if (options.pageId) {
+        this.state.view = { pageId: options.pageId, mode: "view" };
+        pushEntry(this.#history, { kind: "record", pageId: options.pageId });
+        delete options.pageId; // consumed; must not re-trigger on later renders
+      }
+    }
+
     _onClose(options) {
       this.#searchIndex = null;
       this.#teardownHooks();

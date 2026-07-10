@@ -90,7 +90,8 @@
       "Checklist": "Campaign Record Checklist Sheet",
       "Shop": "Campaign Record Shop Sheet",
       "Loot": "Campaign Record Loot Sheet",
-      "Media": "Campaign Record Media Sheet"
+      "Media": "Campaign Record Media Sheet",
+      "GroupHub": "Campaign Hub (Group Sheet)"
     },
     "Warning": {
       "HiddenGMOnly": "Only a Gamemaster can hide or reveal records.",
