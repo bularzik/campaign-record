@@ -53,3 +53,68 @@ function toIsoDate(y, m, d) {
   if (!valid) return null;
   return `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
 }
+
+const HEADING_LEVELS = { H1: 1, H2: 2, H3: 3 };
+
+function isWhitespaceOnly(el) {
+  return !(el.textContent ?? "").replace(/[\s ]/g, "").length;
+}
+
+/** True when all of a paragraph's text sits inside <strong>/<b>. */
+function isFullyBold(el) {
+  const text = (el.textContent ?? "").trim();
+  if (!text) return false;
+  const boldText = [...el.querySelectorAll("strong, b")]
+    .map((b) => b.textContent).join("").trim();
+  return boldText === text;
+}
+
+function sectionBoundary(el) {
+  const level = HEADING_LEVELS[el.tagName];
+  if (level) return { level };
+  if (el.tagName === "P" && (isFullyBold(el) || !el.querySelector("*"))
+      && detectSessionHeader(el.textContent)) {
+    return { level: 0 };
+  }
+  return null;
+}
+
+/**
+ * Split a docx-derived HTML body into sections at headings (h1-h3) and
+ * session-header paragraphs. Returns the document title (leading h1, if any)
+ * and sections with cleaned titles, dates, html, and word counts.
+ */
+export function splitSections(root) {
+  const nodes = [...root.children].filter((el) => !isWhitespaceOnly(el) || el.tagName === "TABLE");
+  let title = null;
+  if (nodes[0]?.tagName === "H1") title = cleanTitle(nodes.shift().textContent);
+
+  const sections = [];
+  let current = null;
+  const open = (heading, level) => {
+    current = { title: cleanTitle(heading), level, htmlParts: [] };
+    current.isSession = detectSessionHeader(heading);
+    current.date = parseSectionDate(heading);
+    sections.push(current);
+  };
+
+  for (const el of nodes) {
+    const boundary = sectionBoundary(el);
+    if (boundary) {
+      open(el.textContent, boundary.level);
+      continue;
+    }
+    if (!current) open("Introduction", 1), current.isSession = false, current.date = null;
+    current.htmlParts.push(el.outerHTML);
+  }
+
+  return {
+    title,
+    sections: sections.map(({ htmlParts, ...s }) => {
+      const html = htmlParts.join("\n");
+      const text = htmlParts.join(" ").replace(/<[^>]+>/g, " ");
+      const wordCount = text.split(/\s+/).filter(Boolean).length;
+      return { ...s, html, wordCount, empty: htmlParts.length === 0 };
+    })
+  };
+}

@@ -50,3 +50,62 @@ describe("parseSectionDate", () => {
     expect(parseSectionDate("Session 4 9/31/25")).toBeNull(); // Sept 31 doesn't exist
   });
 });
+
+import { JSDOM } from "jsdom";
+import { splitSections } from "../scripts/logic/doc-import.mjs";
+
+function body(html) {
+  return new JSDOM(`<body>${html}</body>`).window.document.body;
+}
+
+describe("splitSections", () => {
+  it("splits on h1-h3 and captures the doc title from a leading h1", () => {
+    const { title, sections } = splitSections(body(`
+      <h1>Adventure Notes</h1>
+      <p>Some intro prose.</p>
+      <h1>Character List**</h1>
+      <p>Aracusa - Half Elf Rogue</p>
+      <h3>Radiant Citadel - April 27th 2025</h3>
+      <p>We arrive at the citadel.</p>`));
+    expect(title).toBe("Adventure Notes");
+    expect(sections.map((s) => s.title)).toEqual(
+      ["Introduction", "Character List", "Radiant Citadel - April 27th 2025"]);
+    expect(sections[2].date).toBe("2025-04-27");
+  });
+
+  it("splits on plain and fully-bold session-header paragraphs", () => {
+    const { sections } = splitSections(body(`
+      <p>Session Zero 10/6/2024</p>
+      <p>We are in Natick again.</p>
+      <p><strong>Arc 2 Session 3 2/23/25</strong></p>
+      <p>We fight the cult.</p>
+      <p><strong>Not a session</strong> but a bold lead-in to a very long paragraph of prose.</p>`));
+    expect(sections.map((s) => s.title)).toEqual(
+      ["Session Zero 10/6/2024", "Arc 2 Session 3 2/23/25"]);
+    expect(sections[0].isSession).toBe(true);
+    expect(sections[0].date).toBe("2024-10-06");
+    expect(sections[1].html).toContain("cult");
+    expect(sections[1].html).toContain("bold lead-in");
+  });
+
+  it("drops whitespace-only paragraphs and flags empty sections", () => {
+    // h2, not h1: a leading h1 is consumed as the document title.
+    const { sections } = splitSections(body(`
+      <h2>Party Inventory</h2>
+      <p>  </p>
+      <p> </p>`));
+    expect(sections).toHaveLength(1);
+    expect(sections[0].empty).toBe(true);
+    expect(sections[0].wordCount).toBe(0);
+  });
+
+  it("keeps tables and lists inside their section html", () => {
+    const { sections } = splitSections(body(`
+      <h2>Bastion</h2>
+      <table><tr><td>Aracusa</td><td>Bedroom</td></tr></table>
+      <ul><li>one</li><li>two</li></ul>`));
+    expect(sections[0].html).toContain("<table>");
+    expect(sections[0].html).toContain("<li>one</li>");
+    expect(sections[0].empty).toBe(false);
+  });
+});
