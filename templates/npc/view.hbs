@@ -1,4 +1,34 @@
-<section class="campaign-record-content record-view">
+<section class="campaign-record-content record-view{{#if inlineEdit}} inline-edit{{/if}}">
+{{#if inlineEdit}}
+<dl class="record-facts">
+  <dt>{{localize "CAMPAIGNRECORD.Npc.FIELDS.role.label"}}</dt>
+  <dd><input type="text" name="system.role" value="{{system.role}}"></dd>
+  <dt>{{localize "CAMPAIGNRECORD.Npc.FIELDS.location.label"}}</dt>
+  <dd><input type="text" name="system.location" value="{{system.location}}"></dd>
+  <dt>{{localize "CAMPAIGNRECORD.Npc.FIELDS.race.label"}}</dt>
+  <dd><input type="text" name="system.race" value="{{system.race}}"></dd>
+  <dt>{{localize "CAMPAIGNRECORD.Npc.FIELDS.gender.label"}}</dt>
+  <dd><input type="text" name="system.gender" value="{{system.gender}}"></dd>
+  <dt>{{localize "CAMPAIGNRECORD.Npc.FIELDS.profession.label"}}</dt>
+  <dd><input type="text" name="system.profession" value="{{system.profession}}"></dd>
+  <dt>{{localize "CAMPAIGNRECORD.Npc.FIELDS.voice.label"}}</dt>
+  <dd><input type="text" name="system.voice" value="{{system.voice}}"></dd>
+  <dt>{{localize "CAMPAIGNRECORD.Npc.FIELDS.faction.label"}}</dt>
+  <dd><input type="text" name="system.faction" value="{{system.faction}}"></dd>
+  <dt>{{localize "CAMPAIGNRECORD.Npc.FIELDS.status.label"}}</dt>
+  <dd><select name="system.status">{{selectOptions statusChoices selected=system.status localize=true}}</select></dd>
+</dl>
+<div class="form-group campaign-record-drop">
+  <label>{{localize "CAMPAIGNRECORD.Npc.FIELDS.actor.label"}}</label>
+  {{#if enriched.actorLink}}{{{enriched.actorLink}}}{{else}}
+    <span class="hint">{{localize "CAMPAIGNRECORD.DropActorHint"}}</span>
+  {{/if}}
+  <button type="button" data-action="linkActor">
+    <i class="fa-solid fa-link"></i> {{localize "CAMPAIGNRECORD.LinkActor"}}
+  </button>
+</div>
+{{> campaign-record.actor-info}}
+{{else}}
 <dl class="record-facts">
   {{#if system.role}}<dt>{{localize "CAMPAIGNRECORD.Npc.FIELDS.role.label"}}</dt><dd>{{system.role}}</dd>{{/if}}
   {{#if system.location}}<dt>{{localize "CAMPAIGNRECORD.Npc.FIELDS.location.label"}}</dt><dd>{{system.location}}</dd>{{/if}}
@@ -11,5 +41,6 @@
   {{#if enriched.actorLink}}<dt>{{localize "CAMPAIGNRECORD.Npc.FIELDS.actor.label"}}</dt><dd>{{{enriched.actorLink}}}</dd>{{/if}}
 </dl>
 {{> campaign-record.actor-info}}
+{{/if}}
 {{> campaign-record.common-view}}
 </section>
