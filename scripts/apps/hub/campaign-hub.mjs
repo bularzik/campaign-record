@@ -1,5 +1,5 @@
 import { getGroups } from "../../data/groups.mjs";
-import { MODULE_ID, THUMBNAILS_SETTING, RECORD_TYPES, typeId } from "../../constants.mjs";
+import { MODULE_ID, THUMBNAILS_SETTING, INLINE_EDIT_SETTING, RECORD_TYPES, typeId } from "../../constants.mjs";
 import { collectRecords, isIndexablePage, getScopedGroups, toSearchRecord } from "./hub-data.mjs";
 import { createIndex, indexRecord, removeRecord, search } from "../../logic/search-index.mjs";
 import { hasGroupFlag } from "../../logic/visibility.mjs";
@@ -40,7 +40,8 @@ export class CampaignHub extends HandlebarsApplicationMixin(ApplicationV2) {
       openLink: CampaignHub.#onOpenLink,
       removeLink: CampaignHub.#onRemoveLink,
       toggleLinkShowPlayers: CampaignHub.#onToggleLinkShowPlayers,
-      toggleThumbnails: CampaignHub.#onToggleThumbnails
+      toggleThumbnails: CampaignHub.#onToggleThumbnails,
+      toggleInlineEdit: CampaignHub.#onToggleInlineEdit
     }
   };
 
@@ -351,6 +352,12 @@ export class CampaignHub extends HandlebarsApplicationMixin(ApplicationV2) {
     this.render();
   }
 
+  static async #onToggleInlineEdit() {
+    const current = game.settings.get(MODULE_ID, INLINE_EDIT_SETTING);
+    await game.settings.set(MODULE_ID, INLINE_EDIT_SETTING, !current);
+    this.render();
+  }
+
   #onTimelineDragStart(event) {
     const tpRow = event.target.closest("[data-drag-timepoint]");
     const recordRow = event.target.closest("[data-drag-record]");
@@ -464,6 +471,7 @@ export class CampaignHub extends HandlebarsApplicationMixin(ApplicationV2) {
     context.searchGroups = this.#searchResults();
     context.timelineGroups = this.#timelineGroups();
     context.thumbnails = game.settings.get(MODULE_ID, THUMBNAILS_SETTING);
+    context.inlineEditing = game.settings.get(MODULE_ID, INLINE_EDIT_SETTING);
     return context;
   }
 

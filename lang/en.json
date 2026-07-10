@@ -72,7 +72,14 @@
       "BrokenLink": "The linked document no longer exists.",
       "RemoveLink": "Remove this link",
       "ToggleShowPlayers": "Toggle player visibility of this image",
-      "ToggleThumbnails": "Toggle thumbnail view"
+      "ToggleThumbnails": "Toggle thumbnail view",
+      "ToggleInlineEdit": "Toggle inline editing"
+    },
+    "Settings": {
+      "InlineEditing": {
+        "Name": "Inline editing",
+        "Hint": "Edit campaign records directly while viewing them; changes save automatically. Turn off for read-only views."
+      }
     },
     "Sheets": {
       "Npc": "Campaign Record NPC Sheet",
@@ -92,7 +99,8 @@
       "CreateGroupFailed": "Failed to create the campaign group. See the console for details.",
       "SchemaNewer": "Campaign Record: this world's data (schema {stored}) was written by a newer module version than the one installed (schema {current}). Records are read-only until you update the module.",
       "ReadOnly": "Campaign Record is read-only: the world's data schema is newer than the installed module.",
-      "MigrationFailed": "Campaign Record: migrating world data to schema {version} failed — see the console. The migration will retry on next load."
+      "MigrationFailed": "Campaign Record: migrating world data to schema {version} failed — see the console. The migration will retry on next load.",
+      "InlineSaveFailed": "Saving your change failed — see the console for details."
     },
     "Common": {
       "FIELDS": {

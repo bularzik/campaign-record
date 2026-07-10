@@ -27,3 +27,6 @@ export const SCHEMA_SETTING = "schemaVersion";
 
 /** Client setting: render timeline links as thumbnails instead of icon chips. */
 export const THUMBNAILS_SETTING = "timelineThumbnails";
+
+/** Client setting: record views are editable in place with auto-save. */
+export const INLINE_EDIT_SETTING = "inlineEditing";

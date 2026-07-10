@@ -1,4 +1,4 @@
-import { MODULE_ID, THUMBNAILS_SETTING } from "../constants.mjs";
+import { MODULE_ID, THUMBNAILS_SETTING, INLINE_EDIT_SETTING } from "../constants.mjs";
 import { CampaignHub } from "../apps/hub/campaign-hub.mjs";
 
 /** Journal sidebar footer button — visible to every user. */
@@ -35,6 +35,22 @@ export function registerHubSettings() {
     config: false,
     type: Boolean,
     default: false
+  });
+
+  game.settings.register(MODULE_ID, INLINE_EDIT_SETTING, {
+    name: "CAMPAIGNRECORD.Settings.InlineEditing.Name",
+    hint: "CAMPAIGNRECORD.Settings.InlineEditing.Hint",
+    scope: "client",
+    config: true,
+    type: Boolean,
+    default: true,
+    onChange: () => {
+      // Open journal sheets swap record views between read-only and editable.
+      const { JournalEntrySheet } = foundry.applications.sheets.journal;
+      for (const app of foundry.applications.instances.values()) {
+        if (app instanceof JournalEntrySheet && app.rendered) app.render();
+      }
+    }
   });
 }
 
