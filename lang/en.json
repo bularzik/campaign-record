@@ -72,7 +72,13 @@
       "BrokenLink": "The linked document no longer exists.",
       "RemoveLink": "Remove this link",
       "ToggleShowPlayers": "Toggle player visibility of this image",
-      "ToggleThumbnails": "Toggle thumbnail view"
+      "ToggleThumbnails": "Toggle thumbnail view",
+      "Back": "Back",
+      "Forward": "Forward",
+      "ToggleRail": "Toggle record list",
+      "EditRecord": "Edit record",
+      "DoneEditing": "Done editing",
+      "RecordUnavailable": "That record can no longer be displayed."
     },
     "Sheets": {
       "Npc": "Campaign Record NPC Sheet",

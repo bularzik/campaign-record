@@ -1,10 +1,14 @@
 import { getGroups } from "../../data/groups.mjs";
-import { MODULE_ID, THUMBNAILS_SETTING, RECORD_TYPES, typeId } from "../../constants.mjs";
+import { MODULE_ID, THUMBNAILS_SETTING, RAIL_SETTING, RECORD_TYPES, typeId } from "../../constants.mjs";
 import { collectRecords, isIndexablePage, getScopedGroups, toSearchRecord } from "./hub-data.mjs";
 import { createIndex, indexRecord, removeRecord, search } from "../../logic/search-index.mjs";
-import { hasGroupFlag } from "../../logic/visibility.mjs";
+import { hasGroupFlag, isRecordVisible } from "../../logic/visibility.mjs";
 import { classifyDropData, filenameFromSrc } from "../../logic/timeline-links.mjs";
 import * as Timepoints from "../../data/timepoints.mjs";
+import { RecordPane } from "./record-pane.mjs";
+import {
+  createHistory, pushEntry, canGoBack, canGoForward, goBack, goForward, prunePage
+} from "./pane-history.mjs";
 
 const { HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -38,7 +42,11 @@ export function HubMixin(Base) {
         openLink: HubBase.#onOpenLink,
         removeLink: HubBase.#onRemoveLink,
         toggleLinkShowPlayers: HubBase.#onToggleLinkShowPlayers,
-        toggleThumbnails: HubBase.#onToggleThumbnails
+        toggleThumbnails: HubBase.#onToggleThumbnails,
+        paneBack: HubBase.#onPaneBack,
+        paneForward: HubBase.#onPaneForward,
+        toggleRail: HubBase.#onToggleRail,
+        toggleEditMode: HubBase.#onToggleEditMode
       }
     };
 
@@ -46,7 +54,8 @@ export function HubMixin(Base) {
       header: { template: "modules/campaign-record/templates/hub/header.hbs" },
       index: { template: "modules/campaign-record/templates/hub/index.hbs" },
       timeline: { template: "modules/campaign-record/templates/hub/timeline.hbs" },
-      search: { template: "modules/campaign-record/templates/hub/search.hbs" }
+      search: { template: "modules/campaign-record/templates/hub/search.hbs" },
+      record: { template: "modules/campaign-record/templates/hub/record.hbs" }
     };
 
     static TABS = {
@@ -62,6 +71,61 @@ export function HubMixin(Base) {
     };
 
     state = { groupId: "all", types: new Set(), tag: "", hiddenOnly: false, sort: "name", query: "" };
+
+    #history = createHistory();
+    #pane = new RecordPane();
+
+    /** The viewed page resolved within scope, or null. */
+    #resolveViewedPage() {
+      if (!this.state.view) return null;
+      for (const group of getScopedGroups(this.groupScopeId)) {
+        const page = group.pages.get(this.state.view.pageId);
+        if (page) return page;
+      }
+      return null;
+    }
+
+    #inScope(page) {
+      return getScopedGroups(this.groupScopeId).some((g) => g.id === page.parent?.id);
+    }
+
+    async navigateToRecord(pageId, { mode = "view", pushHistory = true } = {}) {
+      this.state.view = { pageId, mode };
+      if (pushHistory) pushEntry(this.#history, { kind: "record", pageId });
+      await this.render();
+    }
+
+    async navigateToIndex({ pushHistory = true } = {}) {
+      this.state.view = null;
+      if (pushHistory) pushEntry(this.#history, { kind: "index" });
+      await this.render();
+    }
+
+    async #applyHistoryEntry(entry) {
+      if (!entry) return;
+      if (entry.kind === "index") return this.navigateToIndex({ pushHistory: false });
+      return this.navigateToRecord(entry.pageId, { pushHistory: false });
+    }
+
+    static async #onPaneBack() {
+      await this.#applyHistoryEntry(goBack(this.#history));
+    }
+
+    static async #onPaneForward() {
+      await this.#applyHistoryEntry(goForward(this.#history));
+    }
+
+    static async #onToggleRail() {
+      const current = game.settings.get(MODULE_ID, RAIL_SETTING);
+      await game.settings.set(MODULE_ID, RAIL_SETTING, !current);
+      this.render();
+    }
+
+    static async #onToggleEditMode() {
+      if (!this.state.view) return;
+      this.state.view.mode = this.state.view.mode === "edit" ? "view" : "edit";
+      await this.render();
+    }
 
     #hookHandlers = [];
 
@@ -134,6 +198,10 @@ export function HubMixin(Base) {
       }
       // groups carry many pages; rebuild lazily rather than patching membership incrementally
       if (hook === "deleteJournalEntry" || hook === "createJournalEntry") this.#searchIndex = null;
+      if (hook === "deleteJournalEntryPage" && this.state.view?.pageId === doc.id) {
+        prunePage(this.#history, doc.id);
+        this.state.view = null;
+      }
       this.#debouncedRender();
     }
 
@@ -145,6 +213,7 @@ export function HubMixin(Base) {
     _onClose(options) {
       this.#searchIndex = null;
       this.#teardownHooks();
+      this.#pane.close();
       super._onClose(options);
     }
 
@@ -168,9 +237,9 @@ export function HubMixin(Base) {
     static async #onOpenRecord(event, target) {
       const page = await fromUuid(target.closest("[data-uuid]").dataset.uuid);
       if (!page) return;
-      const sheet = page.parent.sheet;
-      await sheet.render(true);
-      sheet.goToPage(page.id);
+      if (this.#inScope(page)) return this.navigateToRecord(page.id);
+      // Out-of-scope record (e.g. cross-group timeline chip): open its group's sheet.
+      await page.parent.sheet.render(true, { pageId: page.id });
     }
 
     static async #onNewRecord() {
@@ -463,6 +532,23 @@ export function HubMixin(Base) {
       context.searchGroups = this.#searchResults();
       context.timelineGroups = this.#timelineGroups();
       context.thumbnails = game.settings.get(MODULE_ID, THUMBNAILS_SETTING);
+      const viewedPage = this.#resolveViewedPage();
+      if (this.state.view && (!viewedPage || !isRecordVisible(game.user, viewedPage))) {
+        // Deleted or no longer visible: fall back to the index.
+        if (this.state.view) prunePage(this.#history, this.state.view.pageId);
+        this.state.view = null;
+      }
+      context.view = this.state.view && viewedPage
+        ? {
+            name: viewedPage.name,
+            editing: this.state.view.mode === "edit",
+            canEdit: viewedPage.canUserModify(game.user, "update"),
+            canGoBack: canGoBack(this.#history),
+            canGoForward: canGoForward(this.#history),
+            railCollapsed: game.settings.get(MODULE_ID, RAIL_SETTING),
+            railGroups: []
+          }
+        : null;
       return context;
     }
 
@@ -519,6 +605,9 @@ export function HubMixin(Base) {
           link.addEventListener("dragenter", () => {
             if (link.dataset.tab !== this.tabGroups.primary) this.changeTab(link.dataset.tab, "primary");
           });
+          link.addEventListener("click", () => {
+            if (this.state.view) this.navigateToIndex();
+          });
         }
       }
 
@@ -530,6 +619,19 @@ export function HubMixin(Base) {
           drop: this.#onTimelineDrop.bind(this)
         }
       }).bind(this.element);
+
+      this.element.classList.toggle("viewing-record", !!this.state.view);
+      const mount = this.element.querySelector(".record-pane-mount");
+      if (mount && this.state.view) {
+        const page = this.#resolveViewedPage();
+        if (page) {
+          this.#pane.mount(mount, page, this.state.view.mode).catch((error) => {
+            console.error("campaign-record | failed to render record pane", error);
+            ui.notifications.warn(game.i18n.localize("CAMPAIGNRECORD.Hub.RecordUnavailable"));
+            this.navigateToIndex();
+          });
+        }
+      }
     }
   }
   return HubBase;

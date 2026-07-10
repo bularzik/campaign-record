@@ -27,3 +27,6 @@ export const SCHEMA_SETTING = "schemaVersion";
 
 /** Client setting: render timeline links as thumbnails instead of icon chips. */
 export const THUMBNAILS_SETTING = "timelineThumbnails";
+
+/** Client setting: record-pane navigation rail collapsed. */
+export const RAIL_SETTING = "recordRailCollapsed";
