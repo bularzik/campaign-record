@@ -628,9 +628,13 @@ export function HubMixin(Base) {
           this.#pane.mount(mount, page, this.state.view.mode).catch((error) => {
             console.error("campaign-record | failed to render record pane", error);
             ui.notifications.warn(game.i18n.localize("CAMPAIGNRECORD.Hub.RecordUnavailable"));
-            this.navigateToIndex();
+            this.navigateToIndex({ pushHistory: false });
           });
         }
+      } else if (!this.state.view) {
+        this.#pane.close().catch((error) => {
+          console.error("campaign-record | failed to close record pane", error);
+        });
       }
     }
   }
