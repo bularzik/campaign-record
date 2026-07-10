@@ -60,6 +60,8 @@ export function registerPartials() {
     "campaign-record.common-edit": "modules/campaign-record/templates/partials/common-edit.hbs",
     "campaign-record.common-view": "modules/campaign-record/templates/partials/common-view.hbs",
     "campaign-record.actor-info": "modules/campaign-record/templates/partials/actor-info.hbs",
-    "campaign-record.quest-objectives": "modules/campaign-record/templates/partials/quest-objectives.hbs"
+    "campaign-record.quest-objectives": "modules/campaign-record/templates/partials/quest-objectives.hbs",
+    "campaign-record.encounter-combatants": "modules/campaign-record/templates/partials/encounter-combatants.hbs",
+    "campaign-record.checklist-items": "modules/campaign-record/templates/partials/checklist-items.hbs"
   });
 }

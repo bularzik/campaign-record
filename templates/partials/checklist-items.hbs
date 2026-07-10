@@ -1,0 +1,20 @@
+<fieldset class="checklist-items">
+  <legend>{{localize "CAMPAIGNRECORD.Checklist.FIELDS.items.label"}}</legend>
+  <ol data-rows="items">
+    {{#each items}}
+    <li data-row-id="{{this.id}}">
+      <input type="checkbox" data-action="toggleItem" {{#if this.done}}checked{{/if}}>
+      <input type="text" data-row-field="text" value="{{this.text}}">
+      <select data-row-field="assignee">
+        <option value=""></option>
+        {{selectOptions @root.userOptions selected=this.assignee}}
+      </select>
+      <button type="button" data-action="deleteItem"
+              aria-label="{{localize "CAMPAIGNRECORD.DeleteRow"}}"><i class="fa-solid fa-trash"></i></button>
+    </li>
+    {{/each}}
+  </ol>
+  <button type="button" data-action="addItem">
+    <i class="fa-solid fa-plus"></i> {{localize "CAMPAIGNRECORD.Checklist.AddItem"}}
+  </button>
+</fieldset>
