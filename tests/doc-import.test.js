@@ -26,6 +26,7 @@ describe("detectSessionHeader", () => {
   it.each([
     "We talked about the session yesterday",
     "The session ended when Arc told us to stop by the tavern for a long rest",
+    "Session 5 saw the party finally reach the ruined tower",
     "Loot:",
     ""
   ])("rejects %s", (line) => {

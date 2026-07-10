@@ -14,14 +14,18 @@ export function cleanTitle(text) {
 /**
  * Session-header heuristic for short plain/bold lines that aren't headings:
  * "Arc N Session M <date>", "Session Zero <date>", "IN PERSON SESSION N",
- * "Out of Arc - ...". Long prose lines never match (word-count guard).
+ * "Out of Arc - ...". Long prose lines never match (word-count guard), and a
+ * pattern match must also carry a parseable date or be a very short line
+ * (<= 5 words) so prose sentences that open with a session phrase are rejected.
  */
 export function detectSessionHeader(text) {
   const t = cleanTitle(text);
   if (!t || t.split(/\s+/).length > 12) return false;
-  return /^(?:arc\s*\d+\s*,?\s*)?session\s+(?:zero|\d+)\b/i.test(t)
+  const matchesPattern = /^(?:arc\s*\d+\s*,?\s*)?session\s+(?:zero|\d+)\b/i.test(t)
     || /^in person session\s+\d+/i.test(t)
     || /^out of arc\b/i.test(t);
+  if (!matchesPattern) return false;
+  return parseSectionDate(t) !== null || t.split(/\s+/).length <= 5;
 }
 
 /** Extract an ISO date from a heading line; null when absent or invalid. */
