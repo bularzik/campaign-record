@@ -12,7 +12,7 @@ test.describe("schema migrations", () => {
   test.afterAll(async () => {
     // always restore the real schema version, even on failure
     await page.evaluate(async () => {
-      await game.settings.set("campaign-record", "schemaVersion", 1);
+      await game.settings.set("campaign-record", "schemaVersion", 2);
     });
     await deleteGroupsByPrefix(page, "E2E Migration");
     await page.close();
@@ -35,7 +35,7 @@ test.describe("schema migrations", () => {
         )
       )
       .toEqual({ timepoints: [] });
-    expect(await page.evaluate(() => game.settings.get("campaign-record", "schemaVersion"))).toBe(1);
+    expect(await page.evaluate(() => game.settings.get("campaign-record", "schemaVersion"))).toBe(2);
   });
 
   test("a newer stored schema puts the module in read-only", async () => {
@@ -83,7 +83,7 @@ test.describe("schema migrations", () => {
 
     // restore and confirm normal operation returns
     await page.evaluate(async () => {
-      await game.settings.set("campaign-record", "schemaVersion", 1);
+      await game.settings.set("campaign-record", "schemaVersion", 2);
     });
     await page.reload();
     await page.waitForFunction(() => globalThis.game?.ready === true, null, { timeout: 60_000 });
@@ -93,5 +93,36 @@ test.describe("schema migrations", () => {
       return p.system.role;
     }, pageId);
     expect(roleAfter).toBe("Writable Again");
+  });
+
+  test("migration 2 stamps the group sheet flag, respecting manual overrides", async () => {
+    const result = await page.evaluate(async () => {
+      // Simulate two pre-migration groups: no core flags at all, and a manual override.
+      const [plain] = await JournalEntry.createDocuments([{
+        name: "E2E Migration Plain",
+        flags: { "campaign-record": { group: { timepoints: [] } } }
+      }]);
+      const [manual] = await JournalEntry.createDocuments([{
+        name: "E2E Migration Manual",
+        flags: {
+          "campaign-record": { group: { timepoints: [] } },
+          core: { sheetClass: "core.JournalEntrySheet" }
+        }
+      }]);
+      await game.settings.set("campaign-record", "schemaVersion", 1);
+      const { runMigrations } = await import("/modules/campaign-record/scripts/data/migration-runner.mjs");
+      await runMigrations();
+      const out = {
+        plain: plain.flags?.core?.sheetClass ?? null,
+        manual: manual.flags?.core?.sheetClass ?? null,
+        version: game.settings.get("campaign-record", "schemaVersion")
+      };
+      await plain.delete();
+      await manual.delete();
+      return out;
+    });
+    expect(result.plain).toBe("campaign-record.GroupHubSheet");
+    expect(result.manual).toBe("core.JournalEntrySheet");
+    expect(result.version).toBe(2);
   });
 });

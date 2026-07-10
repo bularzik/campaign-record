@@ -1,4 +1,4 @@
-import { MODULE_ID, GROUP_FLAG, SCHEMA_VERSION, SCHEMA_SETTING } from "../constants.mjs";
+import { MODULE_ID, GROUP_FLAG, SCHEMA_VERSION, SCHEMA_SETTING, GROUP_SHEET_CLASS } from "../constants.mjs";
 import { pendingMigrations, isDowngrade } from "../logic/migrations.mjs";
 import { getGroups } from "./groups.mjs";
 
@@ -21,6 +21,17 @@ export const MIGRATIONS = [
         if (!Array.isArray(flag?.timepoints)) {
           await group.setFlag(MODULE_ID, GROUP_FLAG, { timepoints: [] });
         }
+      }
+    }
+  },
+  {
+    version: 2,
+    // Pre-existing groups open in the core journal sheet; point them at the
+    // hub sheet unless the user manually chose a different sheet.
+    async run() {
+      for (const group of getGroups()) {
+        if (group.flags?.core?.sheetClass) continue;
+        await group.update({ "flags.core.sheetClass": GROUP_SHEET_CLASS });
       }
     }
   }
