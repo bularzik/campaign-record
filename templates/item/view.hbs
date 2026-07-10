@@ -1,9 +1,26 @@
-<section class="campaign-record-content record-view">
+<section class="campaign-record-content record-view{{#if inlineEdit}} inline-edit{{/if}}">
+{{#if inlineEdit}}
+<dl class="record-facts">
+  <dt>{{localize "CAMPAIGNRECORD.Item.FIELDS.itemType.label"}}</dt>
+  <dd><input type="text" name="system.itemType" value="{{system.itemType}}"></dd>
+  <dt>{{localize "CAMPAIGNRECORD.Item.FIELDS.rarity.label"}}</dt>
+  <dd><input type="text" name="system.rarity" value="{{system.rarity}}"></dd>
+  <dt>{{localize "CAMPAIGNRECORD.Item.FIELDS.attunement.label"}}</dt>
+  <dd><input type="text" name="system.attunement" value="{{system.attunement}}"></dd>
+</dl>
+<div class="form-group campaign-record-drop">
+  <label>{{localize "CAMPAIGNRECORD.Item.FIELDS.item.label"}}</label>
+  {{#if enriched.itemLink}}{{{enriched.itemLink}}}{{else}}
+    <span class="hint">{{localize "CAMPAIGNRECORD.DropItemHint"}}</span>
+  {{/if}}
+</div>
+{{else}}
 <dl class="record-facts">
   {{#if system.itemType}}<dt>{{localize "CAMPAIGNRECORD.Item.FIELDS.itemType.label"}}</dt><dd>{{system.itemType}}</dd>{{/if}}
   {{#if system.rarity}}<dt>{{localize "CAMPAIGNRECORD.Item.FIELDS.rarity.label"}}</dt><dd>{{system.rarity}}</dd>{{/if}}
   {{#if system.attunement}}<dt>{{localize "CAMPAIGNRECORD.Item.FIELDS.attunement.label"}}</dt><dd>{{system.attunement}}</dd>{{/if}}
   {{#if enriched.itemLink}}<dt>{{localize "CAMPAIGNRECORD.Item.FIELDS.item.label"}}</dt><dd>{{{enriched.itemLink}}}</dd>{{/if}}
 </dl>
+{{/if}}
 {{> campaign-record.common-view}}
 </section>

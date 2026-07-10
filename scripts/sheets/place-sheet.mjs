@@ -1,4 +1,5 @@
 import { BaseRecordSheet } from "./base-record-sheet.mjs";
+import { PLACE_TYPES } from "../data/place.mjs";
 
 const TextEditorImpl = foundry.applications.ux.TextEditor.implementation;
 
@@ -18,6 +19,7 @@ export class PlaceSheet extends BaseRecordSheet {
     context.enriched.sceneLink = this.document.system.scene
       ? await TextEditorImpl.enrichHTML(`@UUID[${this.document.system.scene}]`)
       : "";
+    context.placeTypeChoices = PLACE_TYPES;
     return context;
   }
 
