@@ -5,6 +5,7 @@ import { createIndex, indexRecord, removeRecord, search } from "../../logic/sear
 import { hasGroupFlag } from "../../logic/visibility.mjs";
 import { classifyDropData, filenameFromSrc } from "../../logic/timeline-links.mjs";
 import * as Timepoints from "../../data/timepoints.mjs";
+import { ImportWizard } from "../import-wizard.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -30,6 +31,7 @@ export class CampaignHub extends HandlebarsApplicationMixin(ApplicationV2) {
     actions: {
       openRecord: CampaignHub.#onOpenRecord,
       newRecord: CampaignHub.#onNewRecord,
+      importDocument: CampaignHub.#onImportDocument,
       filterType: CampaignHub.#onFilterType,
       toggleHiddenOnly: CampaignHub.#onToggleHiddenOnly,
       clearFilters: CampaignHub.#onClearFilters,
@@ -211,6 +213,10 @@ export class CampaignHub extends HandlebarsApplicationMixin(ApplicationV2) {
       { name: result.name, type: result.type }
     ]);
     page.sheet.render(true);
+  }
+
+  static #onImportDocument() {
+    ImportWizard.open();
   }
 
   static #onFilterType(event, target) {
@@ -440,6 +446,7 @@ export class CampaignHub extends HandlebarsApplicationMixin(ApplicationV2) {
     const context = await super._prepareContext(options);
     context.state = this.state;
     context.isGM = game.user.isGM;
+    context.canImport = game.user.can("JOURNAL_CREATE");
     context.groups = getGroups().map((g) => ({
       id: g.id, name: g.name, selected: g.id === this.state.groupId
     }));

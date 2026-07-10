@@ -5,6 +5,11 @@
     <option value="{{this.id}}" {{#if this.selected}}selected{{/if}}>{{this.name}}</option>
     {{/each}}
   </select>
+  {{#if canImport}}
+  <button type="button" data-action="importDocument" data-tooltip="CAMPAIGNRECORD.Import.Button">
+    <i class="fa-solid fa-file-import"></i>
+  </button>
+  {{/if}}
   <nav class="tabs" data-group="primary">
     {{#each tabs}}
     <a class="{{this.cssClass}}" data-action="tab" data-group="primary" data-tab="{{this.id}}">

@@ -1,0 +1,61 @@
+<div class="import-wizard">
+  {{#if isSource}}
+  <p class="hint">{{localize "CAMPAIGNRECORD.Import.ReviewHint"}}</p>
+  {{#each sources}}
+  <fieldset class="import-source" data-source-id="{{this.id}}">
+    <legend>{{localize this.labelKey}}</legend>
+    <p class="hint">{{localize this.hintKey}}</p>
+    <input type="file" name="file-{{this.id}}" accept="{{this.accept}}"
+           aria-label="{{localize "CAMPAIGNRECORD.Import.ChooseFile"}}">
+  </fieldset>
+  {{/each}}
+  {{/if}}
+
+  {{#if isReview}}
+  <form class="import-review">
+    <div class="form-group">
+      <label>{{localize "CAMPAIGNRECORD.Import.TargetGroup"}}</label>
+      <select name="target-group">
+        <option value="">{{localize "CAMPAIGNRECORD.Import.NewGroup"}}</option>
+        {{#each groups}}<option value="{{this.id}}">{{this.name}}</option>{{/each}}
+      </select>
+      <input type="text" name="group-name" value="{{groupName}}"
+             aria-label="{{localize "CAMPAIGNRECORD.Import.GroupName"}}">
+    </div>
+    <table class="import-sections">
+      <thead><tr>
+        <th>{{localize "CAMPAIGNRECORD.Import.SectionTitle"}}</th>
+        <th>{{localize "CAMPAIGNRECORD.Import.SectionType"}}</th>
+        <th>{{localize "CAMPAIGNRECORD.Import.Timepoint"}}</th>
+      </tr></thead>
+      <tbody>
+        {{#each rows}}
+        <tr data-index="{{this.index}}">
+          <td>
+            <input type="text" name="title-{{this.index}}" value="{{this.title}}">
+            <p class="hint">{{this.preview}} ({{this.wordCount}} {{localize "CAMPAIGNRECORD.Import.Words"}})</p>
+          </td>
+          <td>
+            <select name="type-{{this.index}}">
+              {{#each this.typeOptions}}
+              <option value="{{this.value}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>
+              {{/each}}
+            </select>
+          </td>
+          <td>
+            <input type="checkbox" name="timepoint-{{this.index}}" {{#if this.timepoint}}checked{{/if}}>
+            {{#if this.date}}<span class="hint">{{this.date}}</span>{{/if}}
+          </td>
+        </tr>
+        {{/each}}
+      </tbody>
+    </table>
+    <footer class="form-footer">
+      <button type="button" data-action="backToSource">{{localize "CAMPAIGNRECORD.Import.Back"}}</button>
+      <button type="button" data-action="createImport" class="bright">
+        {{localize "CAMPAIGNRECORD.Import.Create"}}
+      </button>
+    </footer>
+  </form>
+  {{/if}}
+</div>
