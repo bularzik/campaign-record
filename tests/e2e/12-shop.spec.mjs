@@ -54,6 +54,11 @@ test.describe("shop inventory", () => {
   });
 
   test("view mode renders the inventory table", async () => {
+    // Inline editing (client-scoped, default on) renders inventory rows as
+    // inputs; that branch is covered by 18-inline-edit. This test asserts
+    // the read-only view, so switch the toggle off for this client, then
+    // restore it since `page` is reused across this describe block.
+    await page.evaluate(() => game.settings.set("campaign-record", "inlineEditing", false));
     await page.evaluate(
       async ({ groupId, pageId }) => {
         const g = game.journal.get(groupId);
@@ -68,5 +73,6 @@ test.describe("shop inventory", () => {
     await expect(table).toContainText("Longsword");
     await expect(table).toContainText("15 gp");
     await page.evaluate(({ groupId }) => game.journal.get(groupId).sheet.close(), ids);
+    await page.evaluate(() => game.settings.set("campaign-record", "inlineEditing", true));
   });
 });

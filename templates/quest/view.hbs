@@ -1,4 +1,17 @@
-<section class="campaign-record-content record-view">
+<section class="campaign-record-content record-view{{#if inlineEdit}} inline-edit{{/if}}">
+{{#if inlineEdit}}
+<dl class="record-facts">
+  <dt>{{localize "CAMPAIGNRECORD.Quest.FIELDS.source.label"}}</dt>
+  <dd><input type="text" name="system.source" value="{{system.source}}"></dd>
+  <dt>{{localize "CAMPAIGNRECORD.Quest.FIELDS.status.label"}}</dt>
+  <dd><select name="system.status">{{selectOptions statusChoices selected=system.status localize=true}}</select></dd>
+</dl>
+{{> campaign-record.quest-objectives}}
+<section class="quest-rewards form-group stacked">
+  <h3>{{localize "CAMPAIGNRECORD.Quest.FIELDS.rewards.label"}}</h3>
+  <prose-mirror name="system.rewards" value="{{system.rewards}}" collaborate data-inline-prose data-document-uuid="{{page.uuid}}"></prose-mirror>
+</section>
+{{else}}
 <dl class="record-facts">
   {{#if system.source}}<dt>{{localize "CAMPAIGNRECORD.Quest.FIELDS.source.label"}}</dt><dd>{{system.source}}</dd>{{/if}}
   <dt>{{localize "CAMPAIGNRECORD.Quest.FIELDS.status.label"}}</dt><dd>{{system.status}}</dd>
@@ -19,6 +32,7 @@
   <h3>{{localize "CAMPAIGNRECORD.Quest.FIELDS.rewards.label"}}</h3>
   {{{enriched.rewards}}}
 </section>
+{{/if}}
 {{/if}}
 {{> campaign-record.common-view}}
 </section>

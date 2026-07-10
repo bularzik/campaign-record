@@ -12,7 +12,8 @@ test.describe("schema migrations", () => {
   test.afterAll(async () => {
     // always restore the real schema version, even on failure
     await page.evaluate(async () => {
-      await game.settings.set("campaign-record", "schemaVersion", 2);
+      const { SCHEMA_VERSION } = await import("/modules/campaign-record/scripts/constants.mjs");
+      await game.settings.set("campaign-record", "schemaVersion", SCHEMA_VERSION);
     });
     await deleteGroupsByPrefix(page, "E2E Migration");
     await page.close();
@@ -35,7 +36,11 @@ test.describe("schema migrations", () => {
         )
       )
       .toEqual({ timepoints: [] });
-    expect(await page.evaluate(() => game.settings.get("campaign-record", "schemaVersion"))).toBe(2);
+    const schemaVersion = await page.evaluate(async () => {
+      const { SCHEMA_VERSION } = await import("/modules/campaign-record/scripts/constants.mjs");
+      return { stored: game.settings.get("campaign-record", "schemaVersion"), current: SCHEMA_VERSION };
+    });
+    expect(schemaVersion.stored).toBe(schemaVersion.current);
   });
 
   test("a newer stored schema puts the module in read-only", async () => {
@@ -83,7 +88,8 @@ test.describe("schema migrations", () => {
 
     // restore and confirm normal operation returns
     await page.evaluate(async () => {
-      await game.settings.set("campaign-record", "schemaVersion", 2);
+      const { SCHEMA_VERSION } = await import("/modules/campaign-record/scripts/constants.mjs");
+      await game.settings.set("campaign-record", "schemaVersion", SCHEMA_VERSION);
     });
     await page.reload();
     await page.waitForFunction(() => globalThis.game?.ready === true, null, { timeout: 60_000 });

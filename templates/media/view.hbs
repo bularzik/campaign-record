@@ -1,4 +1,8 @@
-<section class="campaign-record-content record-view">
+<section class="campaign-record-content record-view{{#if inlineEdit}} inline-edit{{/if}}">
+{{#if inlineEdit}}
+{{> campaign-record.media-images}}
+{{formGroup systemFields.slideshowInterval value=system.slideshowInterval localize=true}}
+{{else}}
 <div class="media-gallery">
   {{#each system.images}}
   <figure data-row-id="{{this.id}}">
@@ -12,5 +16,6 @@
   </figure>
   {{/each}}
 </div>
+{{/if}}
 {{> campaign-record.common-view}}
 </section>

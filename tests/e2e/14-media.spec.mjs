@@ -72,6 +72,12 @@ test.describe("media sheet", () => {
   });
 
   test("view mode renders the gallery with captions", async () => {
+    // Inline editing (client-scoped, default on) renders the editable
+    // images fieldset in view mode for update-capable users; that branch
+    // is covered by 18-inline-edit. This test asserts the read-only
+    // gallery markup, so switch the toggle off for this client, then
+    // restore it since `page` is reused across this describe block.
+    await page.evaluate(() => game.settings.set("campaign-record", "inlineEditing", false));
     await page.evaluate(
       async ({ groupId, pageId }) => {
         const g = game.journal.get(groupId);
@@ -86,5 +92,6 @@ test.describe("media sheet", () => {
     await expect(gallery.locator("figure")).toHaveCount(1);
     await expect(gallery).toContainText("Cover");
     await page.evaluate(({ groupId }) => game.journal.get(groupId).sheet.close(), ids);
+    await page.evaluate(() => game.settings.set("campaign-record", "inlineEditing", true));
   });
 });

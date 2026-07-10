@@ -41,6 +41,9 @@ test.describe("group hub sheet", () => {
 
   test("cross-group record links open the other group's hub", async ({ page }) => {
     await login(page, "Gamemaster");
+    // Content links only render as clickable anchors in the read-only
+    // (enriched) view — inline editing shows a live editor instead.
+    await page.evaluate(() => game.settings.set("campaign-record", "inlineEditing", false));
     const a = await createGroupWithPage(page, "E2E Sheet Alpha", "E2E Sheet Source", "campaign-record.npc");
     const b = await createGroupWithPage(page, "E2E Sheet Beta", "E2E Sheet Remote", "campaign-record.place");
     await page.evaluate(async ({ a, b }) => {

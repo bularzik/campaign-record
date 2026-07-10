@@ -119,6 +119,10 @@ test.describe("hub record pane", () => {
 
   test("edit toggle flips to the edit form and persists a change", async ({ page }) => {
     await login(page, "Gamemaster");
+    // Inline editing (client-scoped, default on) renders view-mode facts as
+    // inputs; that branch is covered by 18-inline-edit. This test asserts the
+    // read-only view text after leaving edit mode, so switch the toggle off.
+    await page.evaluate(() => game.settings.set("campaign-record", "inlineEditing", false));
     const ids = await createGroupWithPage(page, "E2E Pane Group", "E2E Pane Editable", "campaign-record.npc");
     await page.evaluate(async () => {
       const { CampaignHub } = await import("/modules/campaign-record/scripts/apps/hub/campaign-hub.mjs");
@@ -184,6 +188,9 @@ test.describe("hub record pane", () => {
 
   test("record links inside a record navigate in-pane", async ({ page }) => {
     await login(page, "Gamemaster");
+    // Content links only render as clickable anchors in the read-only
+    // (enriched) view — inline editing shows a live editor instead.
+    await page.evaluate(() => game.settings.set("campaign-record", "inlineEditing", false));
     const ids = await createGroupWithPage(page, "E2E Pane Group", "E2E Pane Source", "campaign-record.npc");
     await page.evaluate(async ({ groupId }) => {
       const group = game.journal.get(groupId);

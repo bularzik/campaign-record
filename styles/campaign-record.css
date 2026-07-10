@@ -472,6 +472,43 @@
   font-weight: bold;
 }
 
+/* ---------------------------------------- */
+/* Inline-editable record views             */
+/* ---------------------------------------- */
+
+.campaign-record-content.inline-edit .record-facts dd input,
+.campaign-record-content.inline-edit .record-facts dd select {
+  width: 100%;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  transition: border-color 0.15s ease-in-out;
+}
+
+.campaign-record-content.inline-edit .record-facts dd input:hover,
+.campaign-record-content.inline-edit .record-facts dd select:hover {
+  border-color: var(--color-border-light-tertiary, #7a7971);
+}
+
+.campaign-record-content.inline-edit .record-facts dd input:focus,
+.campaign-record-content.inline-edit .record-facts dd select:focus {
+  border-color: var(--color-border-highlight, #ff6400);
+  background: var(--color-bg-option, rgba(255, 255, 255, 0.5));
+}
+
+/* Core lays the active editor out as a flex column (menu + flex:1
+   .editor-container holding an absolutely-positioned .editor-content).
+   Overriding display would collapse the container to zero height and clip
+   the content unclickable — size it via core's own --min-height instead. */
+.campaign-record-content.inline-edit prose-mirror {
+  --min-height: 8rem;
+}
+
+.campaign-record-content.inline-edit .form-group.stacked > label,
+.campaign-record-content.inline-edit section > h3 {
+  margin-top: 0.5rem;
+}
+
 /* ---- Hub record pane ---- */
 .campaign-hub .hub-record {
   display: flex;

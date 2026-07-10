@@ -1,5 +1,7 @@
-import { MODULE_ID, THUMBNAILS_SETTING, RAIL_SETTING } from "../constants.mjs";
+import { MODULE_ID, THUMBNAILS_SETTING, RAIL_SETTING, INLINE_EDIT_SETTING } from "../constants.mjs";
 import { CampaignHub } from "../apps/hub/campaign-hub.mjs";
+import { GroupHubSheet } from "../apps/hub/group-hub-sheet.mjs";
+import { BaseRecordSheet } from "../sheets/base-record-sheet.mjs";
 
 /** Journal sidebar footer button — visible to every user. */
 export function registerHubUI() {
@@ -42,6 +44,26 @@ export function registerHubSettings() {
     config: false,
     type: Boolean,
     default: false
+  });
+
+  game.settings.register(MODULE_ID, INLINE_EDIT_SETTING, {
+    name: "CAMPAIGNRECORD.Settings.InlineEditing.Name",
+    hint: "CAMPAIGNRECORD.Settings.InlineEditing.Hint",
+    scope: "client",
+    config: true,
+    type: Boolean,
+    default: true,
+    onChange: () => {
+      // Pane-mounted record views swap between read-only and editable, and
+      // every hub's header toggle icon reflects the new state. Pane sheets
+      // are real app instances, so foundry.applications.instances sees them.
+      for (const app of foundry.applications.instances.values()) {
+        if (!app.rendered) continue;
+        if (app instanceof BaseRecordSheet || app instanceof CampaignHub || app instanceof GroupHubSheet) {
+          app.render();
+        }
+      }
+    }
   });
 }
 

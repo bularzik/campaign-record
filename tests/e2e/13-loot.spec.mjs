@@ -43,6 +43,11 @@ test.describe("loot sheet", () => {
     await qty.dispatchEvent("change");
     await expect.poll(async () => (await system()).items[0]).toMatchObject({ name: "Ruby", quantity: 2 });
 
+    // Inline editing (client-scoped, default on) renders currency and item
+    // rows as inputs; that branch is covered by 18-inline-edit. This test
+    // asserts the read-only view, so switch the toggle off for this client,
+    // then restore it since `page` is reused across this describe block.
+    await page.evaluate(() => game.settings.set("campaign-record", "inlineEditing", false));
     await page.evaluate(
       async ({ groupId, pageId }) => {
         const g = game.journal.get(groupId);
@@ -57,6 +62,7 @@ test.describe("loot sheet", () => {
     await expect(view).toContainText("250");
     await expect(view).toContainText("2 × Ruby");
     await page.evaluate(({ groupId }) => game.journal.get(groupId).sheet.close(), ids);
+    await page.evaluate(() => game.settings.set("campaign-record", "inlineEditing", true));
   });
 
   test("source link accepts only encounter pages via drop", async () => {
