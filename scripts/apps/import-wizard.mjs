@@ -1,9 +1,7 @@
 import { RECORD_TYPES, typeId } from "../constants.mjs";
-import { getGroups } from "../data/groups.mjs";
-import { splitSections, suggestType } from "../logic/doc-import.mjs";
+import { getGroups, createGroup } from "../data/groups.mjs";
+import { splitSections, suggestType, buildImportPlan } from "../logic/doc-import.mjs";
 import { DOC_SOURCES } from "../integrations/doc-sources.mjs";
-import { buildImportPlan } from "../logic/doc-import.mjs";
-import { createGroup } from "../data/groups.mjs";
 import * as Timepoints from "../data/timepoints.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
@@ -149,42 +147,49 @@ export class ImportWizard extends HandlebarsApplicationMixin(ApplicationV2) {
       return ui.notifications.warn(game.i18n.localize("CAMPAIGNRECORD.Import.NothingToImport"));
     }
     target.disabled = true;
+    try {
+      const group = groupId
+        ? game.journal.get(groupId)
+        : await createGroup(groupName || this.state.docTitle || "Imported Document");
+      if (!group) throw new Error(`group ${groupId} not found`);
 
-    const group = groupId
-      ? game.journal.get(groupId)
-      : await createGroup(groupName || this.state.docTitle || "Imported Document");
-    if (!group) return;
+      const slug = group.name.slugify({ strict: true }) || "import";
+      for (const page of plan.pages) {
+        page.html = await uploadDataUriImages(page.html, slug, plan.warnings);
+      }
 
-    const slug = group.name.slugify({ strict: true }) || "import";
-    for (const page of plan.pages) {
-      page.html = await uploadDataUriImages(page.html, slug, plan.warnings);
+      const payload = plan.pages.map((p) => p.type === "text"
+        ? { name: p.name, type: "text",
+            text: { content: p.html, format: CONST.JOURNAL_ENTRY_PAGE_FORMATS.HTML } }
+        : { name: p.name, type: typeId(p.type), system: { description: p.html } });
+      const created = await group.createEmbeddedDocuments("JournalEntryPage", payload);
+
+      let timepoints = 0;
+      for (let i = 0; i < plan.pages.length; i++) {
+        if (!plan.pages[i].timepoint) continue;
+        const tp = await Timepoints.addTimepoint(group, plan.pages[i].timepoint);
+        const page = created[i];
+        // Text pages have no system.timepoints; they attach as document links.
+        if (page?.system?.schema?.fields?.timepoints) await Timepoints.attachRecord(page, tp.id);
+        else if (page) await Timepoints.addLink(group, tp.id, {
+          uuid: page.uuid, name: page.name, type: "JournalEntryPage"
+        });
+        timepoints++;
+      }
+
+      ui.notifications.info(game.i18n.format("CAMPAIGNRECORD.Import.Created", {
+        pages: created.length, timepoints, group: group.name
+      }));
+      for (const warning of plan.warnings) ui.notifications.warn(warning, { console: false });
+      this.close();
+      group.sheet.render(true);
+    } catch (error) {
+      console.error("campaign-record | import failed", error);
+      ui.notifications.error(game.i18n.localize("CAMPAIGNRECORD.Import.CreateFailed"));
+      return;
+    } finally {
+      target.disabled = false;
     }
-
-    const payload = plan.pages.map((p) => p.type === "text"
-      ? { name: p.name, type: "text",
-          text: { content: p.html, format: CONST.JOURNAL_ENTRY_PAGE_FORMATS.HTML } }
-      : { name: p.name, type: typeId(p.type), system: { description: p.html } });
-    const created = await group.createEmbeddedDocuments("JournalEntryPage", payload);
-
-    let timepoints = 0;
-    for (let i = 0; i < plan.pages.length; i++) {
-      if (!plan.pages[i].timepoint) continue;
-      const tp = await Timepoints.addTimepoint(group, plan.pages[i].timepoint);
-      const page = created[i];
-      // Text pages have no system.timepoints; they attach as document links.
-      if (page?.system?.schema?.fields?.timepoints) await Timepoints.attachRecord(page, tp.id);
-      else if (page) await Timepoints.addLink(group, tp.id, {
-        uuid: page.uuid, name: page.name, type: "JournalEntryPage"
-      });
-      timepoints++;
-    }
-
-    ui.notifications.info(game.i18n.format("CAMPAIGNRECORD.Import.Created", {
-      pages: created.length, timepoints, group: group.name
-    }));
-    for (const warning of plan.warnings) ui.notifications.warn(warning, { console: false });
-    this.close();
-    group.sheet.render(true);
   }
 }
 
