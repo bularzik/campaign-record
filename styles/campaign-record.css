@@ -471,3 +471,41 @@
 .campaign-record .actor-info .actor-name {
   font-weight: bold;
 }
+
+/* ---------------------------------------- */
+/* Inline-editable record views             */
+/* ---------------------------------------- */
+
+.campaign-record-content.inline-edit .record-facts dd input,
+.campaign-record-content.inline-edit .record-facts dd select {
+  width: 100%;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  transition: border-color 0.15s ease-in-out;
+}
+
+.campaign-record-content.inline-edit .record-facts dd input:hover,
+.campaign-record-content.inline-edit .record-facts dd select:hover {
+  border-color: var(--color-border-light-tertiary, #7a7971);
+}
+
+.campaign-record-content.inline-edit .record-facts dd input:focus,
+.campaign-record-content.inline-edit .record-facts dd select:focus {
+  border-color: var(--color-border-highlight, #ff6400);
+  background: var(--color-bg-option, rgba(255, 255, 255, 0.5));
+}
+
+.campaign-record-content.inline-edit prose-mirror {
+  display: block;
+  min-height: 6rem;
+}
+
+.campaign-record-content.inline-edit prose-mirror .editor-content {
+  min-height: 5rem;
+}
+
+.campaign-record-content.inline-edit .form-group.stacked > label,
+.campaign-record-content.inline-edit section > h3 {
+  margin-top: 0.5rem;
+}

@@ -1,5 +1,6 @@
 import { setRecordHidden } from "../data/groups.mjs";
-import { promptSelectActor } from "../apps/actor-picker.mjs";
+import { MODULE_ID, INLINE_EDIT_SETTING } from "../constants.mjs";
+import { computeInlineEdit, createDebouncedSaver, hasInlineFocus } from "../logic/inline-edit.mjs";
 
 const { JournalEntryPageHandlebarsSheet } = foundry.applications.sheets.journal;
 const TextEditorImpl = foundry.applications.ux.TextEditor.implementation;
@@ -10,10 +11,13 @@ export class BaseRecordSheet extends JournalEntryPageHandlebarsSheet {
     classes: ["campaign-record", "record-sheet"],
     form: { submitOnChange: true, closeOnSubmit: false },
     actions: {
-      toggleHidden: BaseRecordSheet.#onToggleHidden,
-      linkActor: BaseRecordSheet.#onLinkActor
+      toggleHidden: BaseRecordSheet.#onToggleHidden
     }
   };
+
+  #deferredRender = null;
+
+  #proseSavers = [];
 
   async _prepareContext(options) {
     const context = await super._prepareContext(options);
@@ -22,6 +26,11 @@ export class BaseRecordSheet extends JournalEntryPageHandlebarsSheet {
     context.system = system;
     context.systemFields = system.schema.fields;
     context.isGM = game.user.isGM;
+    context.inlineEdit = computeInlineEdit({
+      enabled: game.settings.get(MODULE_ID, INLINE_EDIT_SETTING),
+      canUpdate: this.document.canUserModify(game.user, "update"),
+      isView: this.isView
+    });
     context.enriched = {
       description: await TextEditorImpl.enrichHTML(system.description, {
         relativeTo: this.document
@@ -33,12 +42,69 @@ export class BaseRecordSheet extends JournalEntryPageHandlebarsSheet {
     return context;
   }
 
+  /**
+   * While the user is focused in an inline-editable section, defer re-renders
+   * (triggered by our own auto-saves or by remote updates) so the active
+   * control isn't destroyed under the cursor. Flushed on focusout.
+   */
+  async render(options = {}, _options = {}) {
+    if (typeof options === "boolean") options = { force: options, ..._options };
+    if (this.isView && this.rendered && hasInlineFocus(this.element)) {
+      this.#deferredRender = foundry.utils.mergeObject(this.#deferredRender ?? {}, options, {
+        inplace: false
+      });
+      return this;
+    }
+    return super.render(options, _options);
+  }
+
+  #flushDeferredRender() {
+    if (!this.#deferredRender || hasInlineFocus(this.element)) return;
+    const options = this.#deferredRender;
+    this.#deferredRender = null;
+    this.render(options);
+  }
+
   _onRender(context, options) {
     super._onRender(context, options);
     new foundry.applications.ux.DragDrop.implementation({
       dropSelector: ".campaign-record-drop",
       callbacks: { drop: this.#onDrop.bind(this) }
     }).bind(this.element);
+    this.#bindInlineProse(context);
+    if (this.isView && !this.element.dataset.crFlushBound) {
+      this.element.dataset.crFlushBound = "1";
+      this.element.addEventListener("focusout", () => {
+        setTimeout(() => this.#flushDeferredRender(), 0);
+      });
+    }
+  }
+
+  /**
+   * Debounced as-you-type persistence for always-open inline prose editors.
+   * Mid-typing saves suppress re-renders everywhere ({render: false}) — other
+   * active editors stay in sync through collaborative editing; the final
+   * focusout save renders normally so passive viewers catch up.
+   */
+  #bindInlineProse(context) {
+    for (const saver of this.#proseSavers) saver.cancel();
+    this.#proseSavers = [];
+    if (!context.inlineEdit) return;
+    for (const el of this.element.querySelectorAll("prose-mirror[data-inline-prose]")) {
+      const fieldName = el.name;
+      const saver = createDebouncedSaver({
+        save: (html, { quiet }) => {
+          this.document.update({ [fieldName]: html }, { render: !quiet }).catch((error) => {
+            console.warn("campaign-record | inline prose save rejected", error);
+            ui.notifications.warn(game.i18n.localize("CAMPAIGNRECORD.Warning.InlineSaveFailed"));
+          });
+        }
+      });
+      saver.prime(foundry.utils.getProperty(this.document, fieldName) ?? "");
+      this.#proseSavers.push(saver);
+      el.addEventListener("input", () => saver.schedule(() => el.value));
+      el.addEventListener("focusout", () => saver.flush(() => el.value));
+    }
   }
 
   async #onDrop(event) {
@@ -48,15 +114,6 @@ export class BaseRecordSheet extends JournalEntryPageHandlebarsSheet {
 
   /** Subclasses override to accept dropped documents ({type, uuid}). */
   async _onDropDocument(data) {}
-
-  /**
-   * Drag-free actor linking: players can't drag Actors from the sidebar
-   * (core requires TOKEN_CREATE), so a picker feeds the same drop handler.
-   */
-  static async #onLinkActor() {
-    const uuid = await promptSelectActor();
-    if (uuid) await this._onDropDocument({ type: "Actor", uuid });
-  }
 
   static async #onToggleHidden() {
     if (!game.user.isGM) return;
