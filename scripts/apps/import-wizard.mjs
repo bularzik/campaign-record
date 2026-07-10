@@ -2,6 +2,9 @@ import { RECORD_TYPES, typeId } from "../constants.mjs";
 import { getGroups } from "../data/groups.mjs";
 import { splitSections, suggestType } from "../logic/doc-import.mjs";
 import { DOC_SOURCES } from "../integrations/doc-sources.mjs";
+import { buildImportPlan } from "../logic/doc-import.mjs";
+import { createGroup } from "../data/groups.mjs";
+import * as Timepoints from "../data/timepoints.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -64,6 +67,19 @@ export class ImportWizard extends HandlebarsApplicationMixin(ApplicationV2) {
         if (file) this.#onFileChosen(sourceId, file);
       });
     }
+    if (this.state.step === "review") {
+      const groupSelect = this.element.querySelector('select[name="target-group"]');
+      const groupNameInput = this.element.querySelector('input[name="group-name"]');
+      if (groupSelect && groupNameInput) {
+        if (!groupSelect.dataset.crBound) {
+          groupSelect.dataset.crBound = "1";
+          groupSelect.addEventListener("change", (event) => {
+            groupNameInput.disabled = event.target.value !== "";
+          });
+        }
+        groupNameInput.disabled = groupSelect.value !== "";
+      }
+    }
   }
 
   async #onFileChosen(sourceId, file) {
@@ -117,7 +133,94 @@ export class ImportWizard extends HandlebarsApplicationMixin(ApplicationV2) {
     this.render();
   }
 
-  static async #onCreate() {
-    console.log("campaign-record | import creation wired in the next task");
+  // Spec deviation, deliberate: unparseable session dates are surfaced as a
+  // missing date next to the timepoint checkbox in the review table rather
+  // than as a post-import warning notification.
+  static async #onCreate(event, target) {
+    const { rows, groupId, groupName } = this._readForm();
+    let plan;
+    try {
+      plan = buildImportPlan(this.state.sections, rows, RECORD_TYPES);
+    } catch (error) {
+      console.error("campaign-record | import plan failed", error);
+      return ui.notifications.error(game.i18n.localize("CAMPAIGNRECORD.Import.ParseError"));
+    }
+    if (!plan.pages.length) {
+      return ui.notifications.warn(game.i18n.localize("CAMPAIGNRECORD.Import.NothingToImport"));
+    }
+    target.disabled = true;
+
+    const group = groupId
+      ? game.journal.get(groupId)
+      : await createGroup(groupName || this.state.docTitle || "Imported Document");
+    if (!group) return;
+
+    const slug = group.name.slugify({ strict: true }) || "import";
+    for (const page of plan.pages) {
+      page.html = await uploadDataUriImages(page.html, slug, plan.warnings);
+    }
+
+    const payload = plan.pages.map((p) => p.type === "text"
+      ? { name: p.name, type: "text",
+          text: { content: p.html, format: CONST.JOURNAL_ENTRY_PAGE_FORMATS.HTML } }
+      : { name: p.name, type: typeId(p.type), system: { description: p.html } });
+    const created = await group.createEmbeddedDocuments("JournalEntryPage", payload);
+
+    let timepoints = 0;
+    for (let i = 0; i < plan.pages.length; i++) {
+      if (!plan.pages[i].timepoint) continue;
+      const tp = await Timepoints.addTimepoint(group, plan.pages[i].timepoint);
+      const page = created[i];
+      // Text pages have no system.timepoints; they attach as document links.
+      if (page?.system?.schema?.fields?.timepoints) await Timepoints.attachRecord(page, tp.id);
+      else if (page) await Timepoints.addLink(group, tp.id, {
+        uuid: page.uuid, name: page.name, type: "JournalEntryPage"
+      });
+      timepoints++;
+    }
+
+    ui.notifications.info(game.i18n.format("CAMPAIGNRECORD.Import.Created", {
+      pages: created.length, timepoints, group: group.name
+    }));
+    for (const warning of plan.warnings) ui.notifications.warn(warning, { console: false });
+    this.close();
+    group.sheet.render(true);
   }
+}
+
+function dataUriToFile(uri, basename) {
+  const match = uri.match(/^data:(image\/(\w+));base64,(.+)$/);
+  if (!match) return null;
+  const bytes = Uint8Array.from(atob(match[3]), (c) => c.charCodeAt(0));
+  const ext = match[2] === "jpeg" ? "jpg" : match[2];
+  return new File([bytes], `${basename}.${ext}`, { type: match[1] });
+}
+
+/**
+ * Upload data-URI images (mammoth inlines docx images) to the user data dir
+ * and rewrite srcs. On any failure the import proceeds without images.
+ */
+async function uploadDataUriImages(html, slug, warnings) {
+  if (!html?.includes("data:image")) return html;
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  const images = [...doc.body.querySelectorAll('img[src^="data:"]')];
+  if (!images.length) return html;
+  const FilePickerImpl = foundry.applications.apps.FilePicker.implementation;
+  const dir = `campaign-record-imports/${slug}`;
+  try {
+    await FilePickerImpl.browse("data", dir)
+      .catch(() => FilePickerImpl.createDirectory("data", dir));
+    let n = 0;
+    for (const img of images) {
+      const file = dataUriToFile(img.src, `import-${Date.now()}-${++n}`);
+      const result = file && await FilePickerImpl.upload("data", dir, file, {}, { notify: false });
+      if (result?.path) img.setAttribute("src", result.path);
+      else img.remove();
+    }
+  } catch (error) {
+    console.warn("campaign-record | image upload failed; importing without images", error);
+    for (const img of images) img.remove();
+    warnings.push(game.i18n.localize("CAMPAIGNRECORD.Import.ImagesDropped"));
+  }
+  return doc.body.innerHTML;
 }
