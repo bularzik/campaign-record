@@ -128,7 +128,7 @@ export class BaseRecordSheet extends JournalEntryPageHandlebarsSheet {
    * focusout save renders normally so passive viewers catch up.
    */
   #bindInlineProse(context) {
-    for (const saver of this.#proseSavers) saver.cancel();
+    for (const { saver } of this.#proseSavers) saver.cancel();
     this.#proseSavers = [];
     if (!context.inlineEdit) return;
     for (const el of this.element.querySelectorAll("prose-mirror[data-inline-prose]")) {
@@ -142,10 +142,24 @@ export class BaseRecordSheet extends JournalEntryPageHandlebarsSheet {
         }
       });
       saver.prime(foundry.utils.getProperty(this.document, fieldName) ?? "");
-      this.#proseSavers.push(saver);
+      this.#proseSavers.push({ saver, el });
       el.addEventListener("input", () => saver.schedule(() => el.value));
       el.addEventListener("focusout", () => saver.flush(() => el.value));
     }
+  }
+
+  /**
+   * The sheet can be torn down without a focusout (e.g. Escape-close while
+   * the caret is in a prose editor); flush any pending debounced save so
+   * those last keystrokes aren't lost. flush() is the non-quiet path used on
+   * focusout — right here too, since the sheet is going away and the final
+   * save should render passive viewers. The identical-value skip makes
+   * flushing an untouched editor a no-op.
+   */
+  async _preClose(options) {
+    await super._preClose(options);
+    for (const { saver, el } of this.#proseSavers) saver.flush(() => el.value);
+    this.#proseSavers = [];
   }
 
   async #onDrop(event) {
