@@ -62,10 +62,14 @@ test.describe("loot sheet", () => {
   test("source link accepts only encounter pages via drop", async () => {
     const uuids = await page.evaluate(async ({ groupId }) => {
       const g = game.journal.get(groupId);
-      const [enc, npc] = await g.createEmbeddedDocuments("JournalEntryPage", [
+      // createEmbeddedDocuments does not guarantee return order matches the
+      // input array (~30% of calls come back swapped) — select by type.
+      const created = await g.createEmbeddedDocuments("JournalEntryPage", [
         { name: "E2E Loot Source Enc", type: "campaign-record.encounter" },
         { name: "E2E Loot Source Npc", type: "campaign-record.npc" }
       ]);
+      const enc = created.find((p) => p.type === "campaign-record.encounter");
+      const npc = created.find((p) => p.type === "campaign-record.npc");
       return { enc: enc.uuid, npc: npc.uuid };
     }, { groupId: ids.groupId });
     const drop = (uuid) =>
