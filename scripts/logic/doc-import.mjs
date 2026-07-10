@@ -118,3 +118,73 @@ export function splitSections(root) {
     })
   };
 }
+
+export const RECORD_TYPE_MARKER_RE = /^Campaign Record type:\s*([a-z]+)$/i;
+
+const TYPE_KEYWORDS = [
+  [/loot|inventory|treasure/i, "loot"],
+  [/character|party member/i, "pc"],
+  [/shop|store|merchant/i, "shop"],
+  [/bastion|location|place/i, "place"],
+  [/npc/i, "npc"],
+  [/quest/i, "quest"],
+  [/encounter/i, "encounter"],
+  [/check\s?list|to.?do/i, "checklist"]
+];
+
+function markerType(html) {
+  const m = (html ?? "").match(/^\s*<p>([^<]*)<\/p>/);
+  const marker = m && m[1].trim().match(RECORD_TYPE_MARKER_RE);
+  return marker ? marker[1].toLowerCase() : null;
+}
+
+/** Suggest a wizard type for a section: exporter marker > title keywords > text. */
+export function suggestType(section, recordTypes) {
+  const fromMarker = markerType(section.html);
+  if (fromMarker && recordTypes.includes(fromMarker)) return { type: fromMarker, fromMarker: true };
+  if (!section.isSession) {
+    for (const [re, type] of TYPE_KEYWORDS) {
+      if (re.test(section.title) && recordTypes.includes(type)) return { type, fromMarker: false };
+    }
+  }
+  return { type: "text", fromMarker: false };
+}
+
+/** Remove a leading round-trip marker paragraph from section html. */
+export function stripTypeMarker(html) {
+  const type = markerType(html);
+  if (!type) return html;
+  return html.replace(/^\s*<p>[^<]*<\/p>\s*/, "");
+}
+
+/**
+ * Turn wizard rows into a creation plan. rows[i] corresponds to sections[i].
+ * type: "text" | record kind | "skip" | "merge".
+ */
+export function buildImportPlan(sections, rows, recordTypes) {
+  const pages = [];
+  const warnings = [];
+  rows.forEach((row, i) => {
+    const section = sections[i];
+    const name = cleanTitle(row.title) || section.title;
+    const html = stripTypeMarker(section.html);
+    if (row.type === "skip") {
+      if (!section.empty) warnings.push(`Skipped non-empty section "${name}"`);
+      return;
+    }
+    if (row.type === "merge") {
+      const previous = pages[pages.length - 1];
+      if (!previous) {
+        warnings.push(`Section "${name}" had nothing to merge into and was skipped`);
+        return;
+      }
+      previous.html = [previous.html, html].filter(Boolean).join("\n");
+      return;
+    }
+    if (row.type !== "text" && !recordTypes.includes(row.type)) {
+      throw new Error(`unknown import type "${row.type}"`);
+    }
+    pages.push({ name, type: row.type, html, timepoint: row.timepoint ? name : null });
+  });
+  return { pages, warnings };
+}

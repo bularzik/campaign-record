@@ -119,3 +119,70 @@ describe("splitSections", () => {
     expect(sections[0].empty).toBe(false);
   });
 });
+
+import { suggestType, stripTypeMarker, buildImportPlan } from "../scripts/logic/doc-import.mjs";
+
+const KINDS = ["npc", "place", "quest", "pc", "item", "encounter", "checklist", "shop", "loot", "media"];
+const sec = (over = {}) => ({
+  title: "Untitled", level: 1, date: null, isSession: false,
+  html: "<p>x</p>", wordCount: 1, empty: false, ...over
+});
+
+describe("suggestType", () => {
+  it("suggests from title keywords", () => {
+    expect(suggestType(sec({ title: "Party Inventory" }), KINDS).type).toBe("loot");
+    expect(suggestType(sec({ title: "Character List" }), KINDS).type).toBe("pc");
+    expect(suggestType(sec({ title: "Bastion Information" }), KINDS).type).toBe("place");
+  });
+
+  it("defaults sessions and unknown titles to text", () => {
+    expect(suggestType(sec({ title: "Arc 1 Session 1 10/26/24", isSession: true }), KINDS).type).toBe("text");
+    expect(suggestType(sec({ title: "Radiant Citadel" }), KINDS).type).toBe("text");
+  });
+
+  it("honors the exporter round-trip marker over keywords", () => {
+    const s = sec({ title: "Party Inventory", html: "<p>Campaign Record type: quest</p><p>body</p>" });
+    expect(suggestType(s, KINDS)).toEqual({ type: "quest", fromMarker: true });
+  });
+});
+
+describe("stripTypeMarker", () => {
+  it("removes only a leading marker paragraph", () => {
+    expect(stripTypeMarker("<p>Campaign Record type: quest</p><p>body</p>")).toBe("<p>body</p>");
+    expect(stripTypeMarker("<p>body</p>")).toBe("<p>body</p>");
+  });
+});
+
+describe("buildImportPlan", () => {
+  const sections = [
+    sec({ title: "Intro" }),
+    sec({ title: "Session 1 1/5/25", isSession: true, date: "2025-01-05" }),
+    sec({ title: "Part 2", html: "<p>more</p>" }),
+    sec({ title: "Empty", empty: true, html: "", wordCount: 0 })
+  ];
+
+  it("creates pages, merges, and skips", () => {
+    const { pages, warnings } = buildImportPlan(sections, [
+      { title: "Intro", type: "text", timepoint: false },
+      { title: "Session 1", type: "text", timepoint: true },
+      { title: "Part 2", type: "merge", timepoint: false },
+      { title: "Empty", type: "skip", timepoint: false }
+    ], KINDS);
+    expect(pages).toHaveLength(2);
+    expect(pages[1]).toEqual({
+      name: "Session 1", type: "text",
+      html: "<p>x</p>\n<p>more</p>", timepoint: "Session 1"
+    });
+    expect(warnings).toEqual([]);
+  });
+
+  it("rejects unknown types and downgrades a leading merge", () => {
+    const { pages, warnings } = buildImportPlan([sections[0]], [
+      { title: "Intro", type: "merge", timepoint: false }
+    ], KINDS);
+    expect(pages).toHaveLength(0);
+    expect(warnings).toHaveLength(1);
+    expect(() => buildImportPlan([sections[0]], [{ title: "x", type: "wizard", timepoint: false }], KINDS))
+      .toThrow(/unknown/i);
+  });
+});
