@@ -182,6 +182,26 @@ test.describe("hub record pane", () => {
     await expect(hub.locator('.record-pane-mount [name="system.role"]')).toBeVisible();
   });
 
+  test("record links inside a record navigate in-pane", async ({ page }) => {
+    await login(page, "Gamemaster");
+    const ids = await createGroupWithPage(page, "E2E Pane Group", "E2E Pane Source", "campaign-record.npc");
+    await page.evaluate(async ({ groupId }) => {
+      const group = game.journal.get(groupId);
+      const [target] = await group.createEmbeddedDocuments("JournalEntryPage", [
+        { name: "E2E Pane Target", type: "campaign-record.place" }
+      ]);
+      const source = group.pages.getName("E2E Pane Source");
+      await source.update({ "system.description": `<p>See @UUID[${target.uuid}]{the target}</p>` });
+      const { CampaignHub } = await import("/modules/campaign-record/scripts/apps/hub/campaign-hub.mjs");
+      CampaignHub.open();
+    }, ids);
+    const hub = page.locator("#campaign-hub");
+    await hub.locator(".record-row", { hasText: "E2E Pane Source" }).click();
+    await hub.locator(".record-pane-mount a.content-link", { hasText: "the target" }).click();
+    await expect(hub.locator(".record-pane-title")).toHaveText("E2E Pane Target");
+    await expect(hub.locator(".record-rail .rail-record", { hasText: "E2E Pane Target" })).toHaveClass(/current/);
+  });
+
   test("player without update permission gets no edit toggle", async ({ page, browser }) => {
     await login(page, "Gamemaster");
     const ids = await createGroupWithPage(page, "E2E Pane Group", "E2E Pane Locked", "campaign-record.npc");

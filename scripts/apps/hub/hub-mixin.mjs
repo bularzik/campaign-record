@@ -4,6 +4,7 @@ import { collectRecords, isIndexablePage, getScopedGroups, toSearchRecord } from
 import { createIndex, indexRecord, removeRecord, search } from "../../logic/search-index.mjs";
 import { hasGroupFlag, isRecordVisible } from "../../logic/visibility.mjs";
 import { classifyDropData, filenameFromSrc } from "../../logic/timeline-links.mjs";
+import { classifyLinkTarget } from "../../logic/record-links.mjs";
 import * as Timepoints from "../../data/timepoints.mjs";
 import { RecordPane } from "./record-pane.mjs";
 import {
@@ -634,6 +635,26 @@ export function HubMixin(Base) {
             if (this.state.view) this.navigateToIndex();
           });
         }
+      }
+
+      if (!this.element.dataset.crLinkBound) {
+        this.element.dataset.crLinkBound = "1";
+        this.element.addEventListener(
+          "click",
+          (event) => {
+            const link = event.target.closest("a.content-link[data-uuid]");
+            if (!link) return;
+            const doc = fromUuidSync(link.dataset.uuid);
+            const scoped = new Set(getScopedGroups(this.groupScopeId).map((g) => g.id));
+            const target = classifyLinkTarget(doc, scoped);
+            if (target.kind === "external") return; // Foundry's default handling
+            event.preventDefault();
+            event.stopPropagation();
+            if (target.kind === "in-pane") this.navigateToRecord(target.pageId);
+            else doc.parent.sheet.render(true, { pageId: target.pageId });
+          },
+          true
+        );
       }
 
       new foundry.applications.ux.DragDrop.implementation({
