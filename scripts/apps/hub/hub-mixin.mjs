@@ -644,7 +644,12 @@ export function HubMixin(Base) {
           (event) => {
             const link = event.target.closest("a.content-link[data-uuid]");
             if (!link) return;
-            const doc = fromUuidSync(link.dataset.uuid);
+            let doc;
+            try {
+              doc = fromUuidSync(link.dataset.uuid);
+            } catch {
+              return; // unresolvable synchronously: leave the click to Foundry's default handling
+            }
             const scoped = new Set(getScopedGroups(this.groupScopeId).map((g) => g.id));
             const target = classifyLinkTarget(doc, scoped);
             if (target.kind === "external") return; // Foundry's default handling
