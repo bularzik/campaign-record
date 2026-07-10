@@ -1,6 +1,21 @@
+import { hasGroupFlag } from "../logic/visibility.mjs";
+
 /** dnd5e-only enrichment; every helper degrades to null / plain fields elsewhere. */
 export function isDnd5e() {
   return game.system?.id === "dnd5e";
+}
+
+/**
+ * dnd5e themes journal page sheets only when the parent journal's sheet is the
+ * system's JournalEntrySheet5e. Campaign groups use GroupHubSheet, so restore
+ * the same styling classes for pages inside groups.
+ */
+export function registerJournalPageStyling() {
+  Hooks.on("renderJournalEntryPageSheet", (app, element) => {
+    if (!isDnd5e()) return;
+    if (!hasGroupFlag(app.document?.parent?.flags)) return;
+    element.classList.add("dnd5e2", "dnd5e2-journal", "titlebar", "dialog-lg");
+  });
 }
 
 /** Price/rarity/type for an Item dropped onto Shop/Item records. */

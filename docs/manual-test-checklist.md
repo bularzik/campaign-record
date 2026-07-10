@@ -115,7 +115,7 @@ walk only the manual section below with two browsers.
       Record: Hub", "Campaign Record: Types") in a world with Quench
       installed; all pass.
 - [ ] Create a fresh world, enable the module, and confirm it initializes the
-      `schemaVersion` world setting to `1` with no console errors.
+      `schemaVersion` world setting to `2` with no console errors.
 - [ ] After tagging a release, install the module via its manifest URL
       (`https://github.com/bularzik/campaign-record/releases/latest/download/module.json`)
       into a clean Foundry instance and smoke-test that the module loads

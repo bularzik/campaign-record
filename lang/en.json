@@ -72,7 +72,13 @@
       "BrokenLink": "The linked document no longer exists.",
       "RemoveLink": "Remove this link",
       "ToggleShowPlayers": "Toggle player visibility of this image",
-      "ToggleThumbnails": "Toggle thumbnail view"
+      "ToggleThumbnails": "Toggle thumbnail view",
+      "Back": "Back",
+      "Forward": "Forward",
+      "ToggleRail": "Toggle record list",
+      "EditRecord": "Edit record",
+      "DoneEditing": "Done editing",
+      "RecordUnavailable": "That record can no longer be displayed."
     },
     "Import": {
       "Title": "Import Document",
@@ -127,7 +133,8 @@
       "Checklist": "Campaign Record Checklist Sheet",
       "Shop": "Campaign Record Shop Sheet",
       "Loot": "Campaign Record Loot Sheet",
-      "Media": "Campaign Record Media Sheet"
+      "Media": "Campaign Record Media Sheet",
+      "GroupHub": "Campaign Hub (Group Sheet)"
     },
     "Warning": {
       "HiddenGMOnly": "Only a Gamemaster can hide or reveal records.",

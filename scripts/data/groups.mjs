@@ -1,4 +1,4 @@
-import { MODULE_ID, GROUP_FLAG, FOLDER_FLAG } from "../constants.mjs";
+import { MODULE_ID, GROUP_FLAG, FOLDER_FLAG, GROUP_SHEET_CLASS } from "../constants.mjs";
 
 /** Whether a JournalEntry is a Campaign Record group. */
 export function isGroup(entry) {
@@ -39,7 +39,10 @@ export async function createGroup(name) {
     name,
     folder: folderId,
     ownership: { default: CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER },
-    flags: { [MODULE_ID]: { [GROUP_FLAG]: { timepoints: [] } } }
+    flags: {
+      [MODULE_ID]: { [GROUP_FLAG]: { timepoints: [] } },
+      core: { sheetClass: GROUP_SHEET_CLASS }
+    }
   });
 }
 

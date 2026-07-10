@@ -7,6 +7,7 @@ import { ensureRecordsFolder } from "./data/groups.mjs";
 import { registerSheets, registerPartials } from "./sheets/registration.mjs";
 import { registerPresenterSocket, requestPresentationSync } from "./presenter/socket.mjs";
 import { registerSchemaSetting, runMigrations } from "./data/migration-runner.mjs";
+import { registerJournalPageStyling } from "./integrations/dnd5e.mjs";
 
 Hooks.once("init", () => {
   console.log("campaign-record | Initializing Campaign Record");
@@ -19,6 +20,7 @@ Hooks.once("init", () => {
   registerHubUI();
   registerHubKeybinding();
   registerHubSettings();
+  registerJournalPageStyling();
 });
 
 Hooks.once("ready", async () => {
