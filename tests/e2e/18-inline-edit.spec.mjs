@@ -46,6 +46,15 @@ test.describe("inline-editable record views", () => {
     const status = view.locator('select[name="system.status"]');
     await status.selectOption("active");
     await expect.poll(async () => (await questSystem(gmPage)).status).toBe("active");
+
+    // Pressing Enter in a single-line text input fires an implicit submit on
+    // the ancestor JournalEntrySheet form. That must not serialize system.*
+    // keys into a JournalEntry update — the change listener's save (or the
+    // group sheet's filtered submit) should be the only thing that persists.
+    await source.fill("Enter key test");
+    await source.press("Enter");
+    await expect.poll(async () => (await questSystem(gmPage)).source).toBe("Enter key test");
+    expect(await gmPage.locator("#notifications .notification.error").count()).toBe(0);
   });
 
   test("prose fields save as-you-type after the debounce and keep focus", async () => {

@@ -38,4 +38,15 @@ export class CampaignGroupSheet extends JournalEntrySheet {
     this.#deferredRender = null;
     this.render(options);
   }
+
+  _processFormData(event, form, formData) {
+    const data = super._processFormData(event, form, formData);
+    // Inline-editable record controls live inside this sheet's <form> but
+    // belong to embedded page documents — their saves go through the record
+    // sheets' change listeners, never through a JournalEntry update.
+    for (const key of Object.keys(data)) {
+      if (key === "system" || key.startsWith("system.")) delete data[key];
+    }
+    return data;
+  }
 }

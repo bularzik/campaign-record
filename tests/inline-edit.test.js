@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { computeInlineEdit, createDebouncedSaver } from "../scripts/logic/inline-edit.mjs";
+import { computeInlineEdit, createDebouncedSaver, hasInlineFocus } from "../scripts/logic/inline-edit.mjs";
 
 describe("computeInlineEdit", () => {
   it("is true only when enabled, permitted, and in view mode", () => {
@@ -68,5 +68,75 @@ describe("createDebouncedSaver", () => {
     saver.cancel();
     vi.advanceTimersByTime(5000);
     expect(save).not.toHaveBeenCalled();
+  });
+});
+
+describe("hasInlineFocus", () => {
+  // Minimal stub elements implementing only the DOM surface hasInlineFocus
+  // touches: contains() on the root, and closest()/matches()/
+  // isContentEditable on the active element.
+  const makeRoot = ({ containsActive = true } = {}) => ({
+    contains: () => containsActive
+  });
+
+  const makeActive = ({
+    inSection = true,
+    isTyping = false,
+    inProseMirror = false,
+    contentEditable = false
+  } = {}) => ({
+    matches: (selector) => (isTyping ? selector === "input, select, textarea" : false),
+    closest: (selector) => {
+      if (selector === ".campaign-record-content.inline-edit") return inSection ? {} : null;
+      if (selector === "prose-mirror") return inProseMirror ? {} : null;
+      return null;
+    },
+    isContentEditable: contentEditable
+  });
+
+  it("returns false when root is null", () => {
+    const active = makeActive({ isTyping: true });
+    expect(hasInlineFocus(null, active)).toBe(false);
+  });
+
+  it("returns false when active is null", () => {
+    const root = makeRoot();
+    expect(hasInlineFocus(root, null)).toBe(false);
+  });
+
+  it("returns false when the active element is outside root", () => {
+    const root = makeRoot({ containsActive: false });
+    const active = makeActive({ isTyping: true });
+    expect(hasInlineFocus(root, active)).toBe(false);
+  });
+
+  it("returns true for a typing control (input/select/textarea) inside an inline-edit section", () => {
+    const root = makeRoot();
+    const active = makeActive({ inSection: true, isTyping: true });
+    expect(hasInlineFocus(root, active)).toBe(true);
+  });
+
+  it("returns false for a structural button inside the section", () => {
+    const root = makeRoot();
+    const active = makeActive({ inSection: true, isTyping: false });
+    expect(hasInlineFocus(root, active)).toBe(false);
+  });
+
+  it("returns true for an element inside a prose-mirror editor", () => {
+    const root = makeRoot();
+    const active = makeActive({ inSection: true, isTyping: false, inProseMirror: true });
+    expect(hasInlineFocus(root, active)).toBe(true);
+  });
+
+  it("returns true for a contenteditable element", () => {
+    const root = makeRoot();
+    const active = makeActive({ inSection: true, isTyping: false, contentEditable: true });
+    expect(hasInlineFocus(root, active)).toBe(true);
+  });
+
+  it("returns false for a typing control that is not inside an inline-edit section", () => {
+    const root = makeRoot();
+    const active = makeActive({ inSection: false, isTyping: true });
+    expect(hasInlineFocus(root, active)).toBe(false);
   });
 });
