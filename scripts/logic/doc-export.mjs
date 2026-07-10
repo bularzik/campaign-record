@@ -41,14 +41,14 @@ function trimRuns(runs) {
   return runs.filter((r) => r.text);
 }
 
-function listItems(listEl, level, ordered, out) {
+function listItems(listEl, level, out) {
   for (const li of listEl.children) {
     if (li.tagName !== "LI") continue;
     const clone = li.cloneNode(true);
     for (const nested of clone.querySelectorAll("ul, ol")) nested.remove();
     out.push({ runs: trimRuns(collectRuns(clone)), level });
     for (const nested of li.children) {
-      if (nested.tagName === "UL" || nested.tagName === "OL") listItems(nested, level + 1, ordered, out);
+      if (nested.tagName === "UL" || nested.tagName === "OL") listItems(nested, level + 1, out);
     }
   }
 }
@@ -63,12 +63,17 @@ export function htmlToNodes(root, flags = {}) {
       if (text) nodes.push({ kind: "heading", level: Number(heading[1]), text });
     } else if (el.tagName === "P" || el.tagName === "PRE") {
       const runs = trimRuns(collectRuns(el, flags));
-      const img = el.querySelector("img[src]");
-      if (img) nodes.push({ kind: "image", src: img.getAttribute("src"), caption: img.getAttribute("alt") ?? "" });
+      // Intra-paragraph image position is not preserved: the paragraph's text
+      // runs are emitted first, then one image node per <img> in document order.
       if (runs.length) nodes.push({ kind: "paragraph", runs });
+      for (const img of el.querySelectorAll("img[src]")) {
+        nodes.push({ kind: "image", src: img.getAttribute("src"), caption: img.getAttribute("alt") ?? "" });
+      }
     } else if (el.tagName === "UL" || el.tagName === "OL") {
+      // Known limitation: nested lists flatten under the OUTER list's ordered
+      // flag — a nested <ol> inside a <ul> loses its orderedness (and vice versa).
       const items = [];
-      listItems(el, 0, el.tagName === "OL", items);
+      listItems(el, 0, items);
       if (items.length) nodes.push({ kind: "list", ordered: el.tagName === "OL", items });
     } else if (el.tagName === "TABLE") {
       const rows = [...el.querySelectorAll("tr")].map((tr) =>
