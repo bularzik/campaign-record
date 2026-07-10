@@ -36,6 +36,11 @@ test.describe("inline-editable record views", () => {
   };
 
   test("view mode is inline-editable by default and plain fields auto-save", async () => {
+    expect(
+      await gmPage.evaluate(
+        () => game.settings.settings.get("campaign-record.inlineEditing").default
+      )
+    ).toBe(true);
     await openView(gmPage);
     const view = gmPage.locator(".campaign-record-content.inline-edit").first();
     const source = view.locator('input[name="system.source"]');

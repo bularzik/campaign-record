@@ -96,7 +96,10 @@ test.describe("hub timeline", () => {
     await expect(playerPage.locator("#campaign-hub .record-chip", { hasText: "E2E Timeline NPC" }))
       .toBeVisible({ timeout: 10_000 });
 
-    await gmPage.locator('#campaign-hub .record-chip [data-action="detachRecord"]').click();
+    // The shared test world can contain real campaign groups with their own
+    // attached record chips (see the file-level comment); scope the click to
+    // our group's section so it doesn't hit a stray chip elsewhere in the hub.
+    await groupSection(gmPage).locator('.record-chip [data-action="detachRecord"]').click();
     await expect(gmPage.locator("#campaign-hub .record-chip", { hasText: "E2E Timeline NPC" }))
       .toHaveCount(0, { timeout: 10_000 });
   });

@@ -57,6 +57,11 @@ test.describe("record sheets (NPC, Place)", () => {
   });
 
   test("NPC view mode shows the fact list inside the journal entry sheet", async () => {
+    // Inline editing (client-scoped, default on) renders these facts as
+    // inputs; that branch is covered by 18-inline-edit. This assertion
+    // checks the read-only view text, so switch the toggle off for this
+    // client (established fix from 03-quest).
+    await page.evaluate(() => game.settings.set("campaign-record", "inlineEditing", false));
     const { groupId, pageId } = await page.evaluate(async () => {
       const g = game.journal.getName("E2E Records Group");
       const p = g.pages.getName("E2E NPC");
