@@ -78,6 +78,12 @@ test.describe("quest objectives", () => {
     const ctx = await browser.newContext();
     const playerPage = await ctx.newPage();
     await login(playerPage, "User 1");
+    // Inline editing (client-scoped, default on) renders objectives as inputs;
+    // that branch is covered by 18-inline-edit. This test asserts the
+    // read-only view, so switch the toggle off for this client.
+    await playerPage.evaluate(() =>
+      game.settings.set("campaign-record", "inlineEditing", false)
+    );
     await playerPage.evaluate(
       async ({ groupId, pageId }) => {
         const g = game.journal.get(groupId);

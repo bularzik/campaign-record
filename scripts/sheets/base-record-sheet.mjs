@@ -79,7 +79,43 @@ export class BaseRecordSheet extends JournalEntryPageHandlebarsSheet {
       this.element.addEventListener("focusout", () => {
         setTimeout(() => this.#flushDeferredRender(), 0);
       });
+      this.element.addEventListener("change", (event) => this.#onInlineChange(event));
     }
+  }
+
+  /**
+   * Auto-save plain named fields in the inline-editable view. Core builds
+   * embedded view-mode page sheets with tag "div" (JournalEntrySheet
+   * #getPageSheet), so the root is not a <form> and the submitOnChange
+   * machinery never runs here. Without this handler the change would bubble
+   * to the group journal's own <form> and be misapplied to the JournalEntry.
+   */
+  #onInlineChange(event) {
+    const target = event.target;
+    if (!target?.closest?.(".campaign-record-content.inline-edit")) return;
+    // Nothing inside the inline view may reach the group journal's form.
+    event.stopPropagation();
+    if (target.tagName === "PROSE-MIRROR") return; // debounced saver owns prose
+    const name = target.name;
+    if (!name?.startsWith("system.")) return; // row inputs save via bindRowInputs
+    let value;
+    if (target.type === "checkbox") {
+      value = target.checked;
+    } else if (target.type === "number") {
+      // Mirror bindRowInputs: never persist a coerced 0 from a cleared or
+      // non-numeric input; re-render so the field snaps back.
+      if (target.value === "") return this.render();
+      const num = Number(target.value);
+      if (!Number.isFinite(num)) return this.render();
+      value = num;
+    } else {
+      value = target.value;
+    }
+    this.document.update({ [name]: value }).catch((error) => {
+      console.warn("campaign-record | inline field save rejected; resyncing sheet", error);
+      ui.notifications.warn(game.i18n.localize("CAMPAIGNRECORD.Warning.InlineSaveFailed"));
+      this.render();
+    });
   }
 
   /**

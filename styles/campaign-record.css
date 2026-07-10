@@ -496,13 +496,12 @@
   background: var(--color-bg-option, rgba(255, 255, 255, 0.5));
 }
 
+/* Core lays the active editor out as a flex column (menu + flex:1
+   .editor-container holding an absolutely-positioned .editor-content).
+   Overriding display would collapse the container to zero height and clip
+   the content unclickable — size it via core's own --min-height instead. */
 .campaign-record-content.inline-edit prose-mirror {
-  display: block;
-  min-height: 6rem;
-}
-
-.campaign-record-content.inline-edit prose-mirror .editor-content {
-  min-height: 5rem;
+  --min-height: 8rem;
 }
 
 .campaign-record-content.inline-edit .form-group.stacked > label,
