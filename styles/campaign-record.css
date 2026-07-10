@@ -508,3 +508,64 @@
 .campaign-record-content.inline-edit section > h3 {
   margin-top: 0.5rem;
 }
+
+/* ---- Hub record pane ---- */
+.campaign-hub .hub-record {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+/* Outside record view, the pane holds only the slim nav header — let it size
+   to content instead of splitting flex space 50/50 with the active tab. */
+.campaign-hub:not(.viewing-record) .hub-record {
+  flex: 0 0 auto;
+}
+.campaign-hub.viewing-record section.tab { display: none; }
+.record-pane-header {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  border-bottom: 1px solid var(--color-border, #7a7971);
+}
+.record-pane-header h2.record-pane-title {
+  flex: 1;
+  margin: 0;
+  font-size: var(--font-size-18, 1.125rem);
+  border: none;
+}
+.record-pane-header button {
+  width: 2rem;
+  flex: 0 0 auto;
+  line-height: 1.5rem;
+}
+.record-pane-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+.record-rail {
+  flex: 0 0 180px;
+  overflow-y: auto;
+  padding: 0.25rem 0.5rem;
+  border-right: 1px solid var(--color-border, #7a7971);
+}
+.record-rail.collapsed { display: none; }
+.record-rail h4 { margin: 0.5rem 0 0.25rem; }
+.record-rail ol { list-style: none; margin: 0; padding: 0; }
+.record-rail .rail-record {
+  cursor: pointer;
+  padding: 0.125rem 0.25rem;
+  border-radius: 3px;
+}
+.record-rail .rail-record:hover { background: rgba(0, 0, 0, 0.1); }
+.record-rail .rail-record.current {
+  background: rgba(0, 0, 0, 0.15);
+  font-weight: bold;
+}
+.record-pane-mount {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.5rem;
+}

@@ -73,7 +73,13 @@
       "RemoveLink": "Remove this link",
       "ToggleShowPlayers": "Toggle player visibility of this image",
       "ToggleThumbnails": "Toggle thumbnail view",
-      "ToggleInlineEdit": "Toggle inline editing"
+      "ToggleInlineEdit": "Toggle inline editing",
+      "Back": "Back",
+      "Forward": "Forward",
+      "ToggleRail": "Toggle record list",
+      "EditRecord": "Edit record",
+      "DoneEditing": "Done editing",
+      "RecordUnavailable": "That record can no longer be displayed."
     },
     "Settings": {
       "InlineEditing": {
@@ -82,7 +88,6 @@
       }
     },
     "Sheets": {
-      "Group": "Campaign Record Group Sheet",
       "Npc": "Campaign Record NPC Sheet",
       "Place": "Campaign Record Place Sheet",
       "Quest": "Campaign Record Quest Sheet",
@@ -92,7 +97,8 @@
       "Checklist": "Campaign Record Checklist Sheet",
       "Shop": "Campaign Record Shop Sheet",
       "Loot": "Campaign Record Loot Sheet",
-      "Media": "Campaign Record Media Sheet"
+      "Media": "Campaign Record Media Sheet",
+      "GroupHub": "Campaign Hub (Group Sheet)"
     },
     "Warning": {
       "HiddenGMOnly": "Only a Gamemaster can hide or reveal records.",

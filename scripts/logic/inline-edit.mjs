@@ -2,11 +2,11 @@
 
 /**
  * Should a record sheet render its view as inline-editable?
- * `inGroup` — the page lives in a journal pinned to the module's group sheet.
+ * `inGroup` — the page lives in a journal pinned to the module's GroupHubSheet.
  * Record pages are world-registered, so they can be added to any ordinary
- * journal; only the group sheet filters system.* out of implicit form submits
- * and defers re-renders while an inline control has focus, so inline editing
- * must stay off everywhere else.
+ * journal; only the hub sheets suppress implicit form submits and defer
+ * re-renders while an inline control has focus, so inline editing must stay
+ * off everywhere else.
  */
 export function computeInlineEdit({ enabled, canUpdate, isView, inGroup }) {
   return Boolean(enabled && canUpdate && isView && inGroup);

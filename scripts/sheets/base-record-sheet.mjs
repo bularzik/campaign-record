@@ -1,6 +1,6 @@
 import { setRecordHidden } from "../data/groups.mjs";
 import { promptSelectActor } from "../apps/actor-picker.mjs";
-import { MODULE_ID, INLINE_EDIT_SETTING } from "../constants.mjs";
+import { MODULE_ID, INLINE_EDIT_SETTING, GROUP_SHEET_CLASS } from "../constants.mjs";
 import { computeInlineEdit, createDebouncedSaver, hasInlineFocus } from "../logic/inline-edit.mjs";
 
 const { JournalEntryPageHandlebarsSheet } = foundry.applications.sheets.journal;
@@ -32,9 +32,7 @@ export class BaseRecordSheet extends JournalEntryPageHandlebarsSheet {
       enabled: game.settings.get(MODULE_ID, INLINE_EDIT_SETTING),
       canUpdate: this.document.canUserModify(game.user, "update"),
       isView: this.isView,
-      inGroup:
-        this.document.parent?.getFlag("core", "sheetClass") ===
-        `${MODULE_ID}.CampaignGroupSheet`
+      inGroup: this.document.parent?.getFlag("core", "sheetClass") === GROUP_SHEET_CLASS
     });
     context.enriched = {
       description: await TextEditorImpl.enrichHTML(system.description, {

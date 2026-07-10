@@ -1,10 +1,12 @@
 <div class="hub-header">
+  {{#if showGroupPicker}}
   <select name="group-select" aria-label="{{localize "CAMPAIGNRECORD.Hub.GroupPicker"}}">
     <option value="all" {{#if allSelected}}selected{{/if}}>{{localize "CAMPAIGNRECORD.Hub.AllGroups"}}</option>
     {{#each groups}}
     <option value="{{this.id}}" {{#if this.selected}}selected{{/if}}>{{this.name}}</option>
     {{/each}}
   </select>
+  {{/if}}
   <button type="button" class="hub-inline-edit-toggle" data-action="toggleInlineEdit"
           data-tooltip="CAMPAIGNRECORD.Hub.ToggleInlineEdit"
           aria-pressed="{{#if inlineEditing}}true{{else}}false{{/if}}">

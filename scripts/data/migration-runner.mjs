@@ -1,4 +1,4 @@
-import { MODULE_ID, GROUP_FLAG, SCHEMA_VERSION, SCHEMA_SETTING } from "../constants.mjs";
+import { MODULE_ID, GROUP_FLAG, SCHEMA_VERSION, SCHEMA_SETTING, GROUP_SHEET_CLASS } from "../constants.mjs";
 import { pendingMigrations, isDowngrade } from "../logic/migrations.mjs";
 import { getGroups } from "./groups.mjs";
 
@@ -26,12 +26,12 @@ export const MIGRATIONS = [
   },
   {
     version: 2,
-    // Groups predating inline editing point at the focus-guarded group sheet.
-    // Only fill an unset/empty flag — a user-chosen custom sheet stays.
+    // Pre-existing groups open in the core journal sheet; point them at the
+    // hub sheet unless the user manually chose a different sheet.
     async run() {
       for (const group of getGroups()) {
-        if (group.getFlag("core", "sheetClass")) continue;
-        await group.update({ "flags.core.sheetClass": `${MODULE_ID}.CampaignGroupSheet` });
+        if (group.flags?.core?.sheetClass) continue;
+        await group.update({ "flags.core.sheetClass": GROUP_SHEET_CLASS });
       }
     }
   }

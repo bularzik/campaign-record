@@ -23,16 +23,20 @@ test.describe("inline-editable record views", () => {
       { groupId: ids.groupId, pageId: ids.pageId }
     );
 
+  // The group's sheet is the GroupHubSheet: goToPage lands the record in-pane.
   const openView = async (p) => {
     await p.evaluate(
       async ({ groupId, pageId }) => {
         const sheet = game.journal.get(groupId).sheet;
         await sheet.render({ force: true });
-        sheet.goToPage(pageId);
+        await sheet.goToPage(pageId);
       },
       { groupId: ids.groupId, pageId: ids.pageId }
     );
-    await p.locator(".campaign-record-content.inline-edit").first().waitFor({ timeout: 15_000 });
+    await p
+      .locator(".group-hub .record-pane-mount .campaign-record-content.inline-edit")
+      .first()
+      .waitFor({ timeout: 15_000 });
   };
 
   test("view mode is inline-editable by default and plain fields auto-save", async () => {
@@ -42,7 +46,7 @@ test.describe("inline-editable record views", () => {
       )
     ).toBe(true);
     await openView(gmPage);
-    const view = gmPage.locator(".campaign-record-content.inline-edit").first();
+    const view = gmPage.locator(".record-pane-mount .campaign-record-content.inline-edit").first();
     const source = view.locator('input[name="system.source"]');
     await source.fill("Innkeeper rumor");
     await source.dispatchEvent("change");
@@ -51,21 +55,46 @@ test.describe("inline-editable record views", () => {
     const status = view.locator('select[name="system.status"]');
     await status.selectOption("active");
     await expect.poll(async () => (await questSystem(gmPage)).status).toBe("active");
+  });
 
+  test("Enter in an inline control never writes junk to the group document", async () => {
+    await openView(gmPage);
+    const view = gmPage.locator(".record-pane-mount .campaign-record-content.inline-edit").first();
+    const source = view.locator('input[name="system.source"]');
     // Pressing Enter in a single-line text input fires an implicit submit on
-    // the ancestor JournalEntrySheet form. That must not serialize system.*
-    // keys into a JournalEntry update — the change listener's save (or the
-    // group sheet's filtered submit) should be the only thing that persists.
+    // the ancestor GroupHubSheet <form>. That must not serialize system.* or
+    // hub-UI keys into a JournalEntry update — the record sheet's change
+    // listener is the only thing that persists.
     await source.fill("Enter key test");
     await source.press("Enter");
     await expect.poll(async () => (await questSystem(gmPage)).source).toBe("Enter key test");
+    // Force the submit path deterministically too (implicit submission rules
+    // vary with form contents) and confirm the group document stays clean.
+    await gmPage.evaluate(
+      ({ groupId }) => {
+        const form = game.journal.get(groupId).sheet.element;
+        form.requestSubmit();
+      },
+      { groupId: ids.groupId }
+    );
+    await settle(gmPage);
+    const group = await gmPage.evaluate(
+      ({ groupId }) => {
+        const g = game.journal.get(groupId);
+        return { name: g.name, source: g.toObject() };
+      },
+      { groupId: ids.groupId }
+    );
+    expect(group.name).toBe("E2E Inline Group");
+    expect(group.source.system).toBeUndefined();
+    expect(group.source["group-select"]).toBeUndefined();
     expect(await gmPage.locator("#notifications .notification.error").count()).toBe(0);
   });
 
   test("prose fields save as-you-type after the debounce and keep focus", async () => {
     await openView(gmPage);
     const editor = gmPage
-      .locator('.campaign-record-content.inline-edit prose-mirror[name="system.description"] .editor-content')
+      .locator('.record-pane-mount .campaign-record-content.inline-edit prose-mirror[name="system.description"] .editor-content')
       .first();
     await editor.click();
     await gmPage.keyboard.type("The road to Phandalin is dangerous.");
@@ -73,19 +102,51 @@ test.describe("inline-editable record views", () => {
     await expect
       .poll(async () => (await questSystem(gmPage)).description, { timeout: 10_000 })
       .toContain("The road to Phandalin is dangerous.");
-    // the quiet save must not have destroyed the editor or stolen focus
+    // Neither the quiet save nor the hub's document-change re-render (which is
+    // deferred while typing) may destroy the editor or steal focus.
     const focusInEditor = await gmPage.evaluate(() =>
       !!document.activeElement?.closest('prose-mirror[name="system.description"]')
     );
     expect(focusInEditor).toBe(true);
+
+    // Re-mount survival: blur the editor, then change the document so the hub
+    // re-renders and re-parents the pane sheet. Re-parenting disconnects the
+    // always-open editor (core saves + destroys it and it cannot reactivate);
+    // RecordPane must rebuild the sheet so the editor comes back alive.
+    await gmPage.evaluate(() => document.activeElement?.blur?.());
+    // {render: false} keeps the page sheet from re-rendering itself, so the
+    // hub's hook-driven re-render + pane re-mount is the ONLY thing that
+    // touches the editor — the exact sequence that kills it without the fix.
+    await gmPage.evaluate(
+      ({ groupId, pageId }) =>
+        game.journal
+          .get(groupId)
+          .pages.get(pageId)
+          .update({ "system.source": "remount trigger" }, { render: false }),
+      { groupId: ids.groupId, pageId: ids.pageId }
+    );
+    const editorSel =
+      '.record-pane-mount .campaign-record-content.inline-edit ' +
+      'prose-mirror[name="system.description"] .editor-content[contenteditable="true"]';
+    await expect
+      .poll(() => gmPage.evaluate((sel) => !!document.querySelector(sel), editorSel), {
+        timeout: 10_000
+      })
+      .toBe(true);
+    // ...with the typed content intact.
+    await expect(gmPage.locator(editorSel).first()).toContainText(
+      "The road to Phandalin is dangerous."
+    );
   });
 
   test("objective rows can be added and edited from the view", async () => {
     await openView(gmPage);
-    const view = gmPage.locator(".campaign-record-content.inline-edit").first();
+    const view = gmPage.locator(".record-pane-mount .campaign-record-content.inline-edit").first();
     await view.locator('[data-action="addObjective"]').click();
     await expect.poll(async () => (await questSystem(gmPage)).objectives.length).toBe(1);
-    const text = view.locator('input[data-row-field="text"]').first();
+    const text = gmPage
+      .locator('.record-pane-mount .campaign-record-content.inline-edit input[data-row-field="text"]')
+      .first();
     await text.fill("Reach the ruined tower");
     await text.dispatchEvent("change");
     await expect
@@ -93,17 +154,22 @@ test.describe("inline-editable record views", () => {
       .toBe("Reach the ruined tower");
   });
 
-  test("hub toggle flips the setting and views become read-only", async () => {
-    // open the hub from the journal sidebar footer
+  test("hub toggle flips the setting and icon; views become read-only", async () => {
+    // open the standalone hub from the journal sidebar footer
     await gmPage.evaluate(() => ui.sidebar.changeTab("journal", "primary"));
     // DOM click: the sidebar footer button can sit outside the Playwright
     // viewport (same workaround as 05-hub.spec.mjs).
     await gmPage.locator(".campaign-record-open-hub").evaluate((el) => el.click());
     const hub = gmPage.locator("#campaign-hub");
-    await hub.locator('[data-action="toggleInlineEdit"]').click();
+    const toggle = hub.locator('[data-action="toggleInlineEdit"]');
+    await expect(toggle).toHaveAttribute("aria-pressed", "true");
+    await expect(toggle.locator("i")).toHaveClass(/fa-pen(?!-)/);
+    await toggle.click();
     await expect
       .poll(() => gmPage.evaluate(() => game.settings.get("campaign-record", "inlineEditing")))
       .toBe(false);
+    await expect(hub.locator('[data-action="toggleInlineEdit"]')).toHaveAttribute("aria-pressed", "false");
+    await expect(hub.locator('[data-action="toggleInlineEdit"] i')).toHaveClass(/fa-pen-slash/);
     await openViewReadOnly();
     // restore for later tests
     await gmPage.evaluate(() => game.settings.set("campaign-record", "inlineEditing", true));
@@ -113,15 +179,22 @@ test.describe("inline-editable record views", () => {
         async ({ groupId, pageId }) => {
           const sheet = game.journal.get(groupId).sheet;
           await sheet.render({ force: true });
-          sheet.goToPage(pageId);
+          await sheet.goToPage(pageId);
         },
         { groupId: ids.groupId, pageId: ids.pageId }
       );
-      await gmPage.locator(".campaign-record-content.record-view").first().waitFor({ timeout: 15_000 });
+      await gmPage
+        .locator(".record-pane-mount .campaign-record-content.record-view")
+        .first()
+        .waitFor({ timeout: 15_000 });
       await settle(gmPage);
-      expect(await gmPage.locator(".campaign-record-content.inline-edit").count()).toBe(0);
       expect(
-        await gmPage.locator('.campaign-record-content.record-view input[name="system.source"]').count()
+        await gmPage.locator(".record-pane-mount .campaign-record-content.inline-edit").count()
+      ).toBe(0);
+      expect(
+        await gmPage
+          .locator('.record-pane-mount .campaign-record-content.record-view input[name="system.source"]')
+          .count()
       ).toBe(0);
     }
   });
@@ -135,7 +208,7 @@ test.describe("inline-editable record views", () => {
         ownership: { default: CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER },
         flags: {
           "campaign-record": { group: { timepoints: [] } },
-          core: { sheetClass: "campaign-record.CampaignGroupSheet" }
+          core: { sheetClass: "campaign-record.GroupHubSheet" }
         }
       });
       const [page] = await entry.createEmbeddedDocuments("JournalEntryPage", [
@@ -151,13 +224,18 @@ test.describe("inline-editable record views", () => {
       async ({ groupId, pageId }) => {
         const sheet = game.journal.get(groupId).sheet;
         await sheet.render({ force: true });
-        sheet.goToPage(pageId);
+        await sheet.goToPage(pageId);
       },
       observerIds
     );
-    await playerPage.locator(".campaign-record-content.record-view").first().waitFor({ timeout: 15_000 });
+    await playerPage
+      .locator(".record-pane-mount .campaign-record-content.record-view")
+      .first()
+      .waitFor({ timeout: 15_000 });
     await settle(playerPage);
-    expect(await playerPage.locator(".campaign-record-content.inline-edit").count()).toBe(0);
+    expect(
+      await playerPage.locator(".record-pane-mount .campaign-record-content.inline-edit").count()
+    ).toBe(0);
     await ctx.close();
   });
 
