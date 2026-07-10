@@ -99,6 +99,16 @@ describe("splitSections", () => {
     expect(sections[0].wordCount).toBe(0);
   });
 
+  it("detects session headers split across or nested inside bold runs", () => {
+    const { sections } = splitSections(body(`
+      <p><strong>Session</strong> <strong>Zero 10/6/2024</strong></p>
+      <p>We begin.</p>
+      <p><strong><b>Arc 2 Session 3 2/23/25</b></strong></p>
+      <p>We fight.</p>`));
+    expect(sections.map((s) => s.title)).toEqual(
+      ["Session Zero 10/6/2024", "Arc 2 Session 3 2/23/25"]);
+  });
+
   it("keeps tables and lists inside their section html", () => {
     const { sections } = splitSections(body(`
       <h2>Bastion</h2>

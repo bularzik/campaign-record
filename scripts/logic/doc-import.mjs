@@ -64,9 +64,9 @@ function isWhitespaceOnly(el) {
 function isFullyBold(el) {
   const text = (el.textContent ?? "").trim();
   if (!text) return false;
-  const boldText = [...el.querySelectorAll("strong, b")]
-    .map((b) => b.textContent).join("").trim();
-  return boldText === text;
+  const clone = el.cloneNode(true);
+  for (const b of clone.querySelectorAll("strong, b")) b.remove();
+  return !(clone.textContent ?? "").trim();
 }
 
 function sectionBoundary(el) {
