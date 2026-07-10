@@ -96,7 +96,9 @@ test.describe("hub timeline", () => {
     await expect(playerPage.locator("#campaign-hub .record-chip", { hasText: "E2E Timeline NPC" }))
       .toBeVisible({ timeout: 10_000 });
 
-    await gmPage.locator('#campaign-hub .record-chip [data-action="detachRecord"]').click();
+    // Scoped to our group's section: the world's real campaign groups can
+    // have their own attached record chips in the same timeline.
+    await groupSection(gmPage).locator('.record-chip [data-action="detachRecord"]').click();
     await expect(gmPage.locator("#campaign-hub .record-chip", { hasText: "E2E Timeline NPC" }))
       .toHaveCount(0, { timeout: 10_000 });
   });
