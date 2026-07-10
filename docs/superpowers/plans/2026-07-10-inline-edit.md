@@ -380,7 +380,7 @@ export class CampaignGroupSheet extends JournalEntrySheet {
   #deferredRender = null;
 
   async render(options = {}, _options = {}) {
-    if (typeof options === "boolean") options = { force: options };
+    if (typeof options === "boolean") options = { force: options, ..._options };
     if (this.rendered && hasInlineFocus(this.element)) {
       this.#deferredRender = foundry.utils.mergeObject(this.#deferredRender ?? {}, options, {
         inplace: false
@@ -548,7 +548,7 @@ export class BaseRecordSheet extends JournalEntryPageHandlebarsSheet {
    * control isn't destroyed under the cursor. Flushed on focusout.
    */
   async render(options = {}, _options = {}) {
-    if (typeof options === "boolean") options = { force: options };
+    if (typeof options === "boolean") options = { force: options, ..._options };
     if (this.isView && this.rendered && hasInlineFocus(this.element)) {
       this.#deferredRender = foundry.utils.mergeObject(this.#deferredRender ?? {}, options, {
         inplace: false
