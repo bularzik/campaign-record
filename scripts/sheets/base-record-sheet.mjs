@@ -31,7 +31,10 @@ export class BaseRecordSheet extends JournalEntryPageHandlebarsSheet {
     context.inlineEdit = computeInlineEdit({
       enabled: game.settings.get(MODULE_ID, INLINE_EDIT_SETTING),
       canUpdate: this.document.canUserModify(game.user, "update"),
-      isView: this.isView
+      isView: this.isView,
+      inGroup:
+        this.document.parent?.getFlag("core", "sheetClass") ===
+        `${MODULE_ID}.CampaignGroupSheet`
     });
     context.enriched = {
       description: await TextEditorImpl.enrichHTML(system.description, {

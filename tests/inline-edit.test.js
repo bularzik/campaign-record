@@ -2,21 +2,37 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { computeInlineEdit, createDebouncedSaver, hasInlineFocus } from "../scripts/logic/inline-edit.mjs";
 
 describe("computeInlineEdit", () => {
-  it("is true only when enabled, permitted, and in view mode", () => {
+  it("is true only when enabled, permitted, in view mode, and inside a group journal", () => {
     for (const enabled of [true, false]) {
       for (const canUpdate of [true, false]) {
         for (const isView of [true, false]) {
-          expect(computeInlineEdit({ enabled, canUpdate, isView })).toBe(
-            enabled && canUpdate && isView
-          );
+          for (const inGroup of [true, false]) {
+            expect(computeInlineEdit({ enabled, canUpdate, isView, inGroup })).toBe(
+              enabled && canUpdate && isView && inGroup
+            );
+          }
         }
       }
     }
   });
 
+  it("stays off for a record page added to an ordinary journal (no group sheet)", () => {
+    expect(
+      computeInlineEdit({ enabled: true, canUpdate: true, isView: true, inGroup: false })
+    ).toBe(false);
+    // parent?.getFlag() on a mismatch yields undefined at the call site
+    expect(
+      computeInlineEdit({ enabled: true, canUpdate: true, isView: true, inGroup: undefined })
+    ).toBe(false);
+  });
+
   it("returns a boolean even for truthy/falsy non-boolean inputs", () => {
-    expect(computeInlineEdit({ enabled: 1, canUpdate: "yes", isView: {} })).toBe(true);
-    expect(computeInlineEdit({ enabled: undefined, canUpdate: true, isView: true })).toBe(false);
+    expect(computeInlineEdit({ enabled: 1, canUpdate: "yes", isView: {}, inGroup: [] })).toBe(
+      true
+    );
+    expect(
+      computeInlineEdit({ enabled: undefined, canUpdate: true, isView: true, inGroup: true })
+    ).toBe(false);
   });
 });
 
