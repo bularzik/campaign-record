@@ -301,7 +301,8 @@ export function HubMixin(Base) {
       const [page] = await group.createEmbeddedDocuments("JournalEntryPage", [
         { name: result.name, type: result.type }
       ]);
-      page.sheet.render(true);
+      if (this.#inScope(page)) await this.navigateToRecord(page.id, { mode: "edit" });
+      else await page.parent.sheet.render(true, { pageId: page.id });
     }
 
     static #onFilterType(event, target) {
