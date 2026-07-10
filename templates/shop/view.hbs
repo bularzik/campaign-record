@@ -1,4 +1,15 @@
-<section class="campaign-record-content record-view">
+<section class="campaign-record-content record-view{{#if inlineEdit}} inline-edit{{/if}}">
+{{#if inlineEdit}}
+<dl class="record-facts">
+  <dt>{{localize "CAMPAIGNRECORD.Shop.FIELDS.shopType.label"}}</dt>
+  <dd><input type="text" name="system.shopType" value="{{system.shopType}}"></dd>
+  <dt>{{localize "CAMPAIGNRECORD.Shop.FIELDS.location.label"}}</dt>
+  <dd><input type="text" name="system.location" value="{{system.location}}"></dd>
+  <dt>{{localize "CAMPAIGNRECORD.Shop.FIELDS.owner.label"}}</dt>
+  <dd><input type="text" name="system.owner" value="{{system.owner}}"></dd>
+</dl>
+{{> campaign-record.shop-inventory}}
+{{else}}
 <dl class="record-facts">
   {{#if system.shopType}}<dt>{{localize "CAMPAIGNRECORD.Shop.FIELDS.shopType.label"}}</dt><dd>{{system.shopType}}</dd>{{/if}}
   {{#if system.location}}<dt>{{localize "CAMPAIGNRECORD.Shop.FIELDS.location.label"}}</dt><dd>{{system.location}}</dd>{{/if}}
@@ -17,6 +28,7 @@
     {{/each}}
   </tbody>
 </table>
+{{/if}}
 {{/if}}
 {{> campaign-record.common-view}}
 </section>

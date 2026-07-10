@@ -1,0 +1,17 @@
+<fieldset class="loot-items campaign-record-drop">
+  <legend>{{localize "CAMPAIGNRECORD.Loot.FIELDS.items.label"}}</legend>
+  <ol data-rows="items">
+    {{#each system.items}}
+    <li data-row-id="{{this.id}}">
+      <input type="text" data-row-field="name" value="{{this.name}}">
+      <input type="number" data-row-field="quantity" value="{{this.quantity}}" min="0" step="1">
+      <button type="button" data-action="deleteLootItem"
+              aria-label="{{localize "CAMPAIGNRECORD.DeleteRow"}}"><i class="fa-solid fa-trash"></i></button>
+    </li>
+    {{/each}}
+  </ol>
+  <button type="button" data-action="addLootItem">
+    <i class="fa-solid fa-plus"></i> {{localize "CAMPAIGNRECORD.Loot.AddItem"}}
+  </button>
+  <p class="hint">{{localize "CAMPAIGNRECORD.DropItemHint"}}</p>
+</fieldset>
