@@ -19,6 +19,20 @@ function pageSnapshot(page) {
 }
 
 /**
+ * Whether a linked document is visible to a generic player audience.
+ * Deliberately conservative: per-user grants don't count — a player handout
+ * should only name what all players can see.
+ */
+function isPlayerVisibleDoc(doc) {
+  if (!doc) return false;
+  if (doc.system?.hidden === true) return false;
+  const levels = CONST.DOCUMENT_OWNERSHIP_LEVELS;
+  let def = doc.ownership?.default;
+  if (def === levels.INHERIT && doc.parent) def = doc.parent.ownership?.default;
+  return (def ?? levels.NONE) >= levels.LIMITED;
+}
+
+/**
  * Timeline link names for the export snapshot, built from the raw stored
  * links ({src, name, showPlayers} for images; {uuid, name, type} for
  * documents) rather than resolveLinks, so the player view (includeGM=false)
@@ -32,7 +46,7 @@ function snapshotLinkNames(tp, includeGM) {
       continue;
     }
     const doc = fromUuidSync(link.uuid); // document link
-    if (!includeGM && (!doc || doc.system?.hidden === true)) continue;
+    if (!includeGM && !isPlayerVisibleDoc(doc)) continue;
     names.push(doc?.name ?? link.name);
   }
   return names.filter(Boolean);
@@ -65,6 +79,9 @@ export async function exportGroupDialog(group) {
 export async function exportRecordDialog(page) {
   const includeGM = await promptOptions(page.name);
   if (includeGM === null) return;
+  if (page.system?.hidden === true && !includeGM) {
+    return void ui.notifications.warn(game.i18n.localize("CAMPAIGNRECORD.Export.HiddenRecord"));
+  }
   const snapshot = pageSnapshot(page);
   if (!snapshot) return;
   await runExport(
@@ -119,11 +136,13 @@ async function fetchImage(src) {
       width: Math.round(bitmap.width * scale),
       height: Math.round(bitmap.height * scale)
     };
-    const ext = src.split("?")[0].split(".").pop()?.toLowerCase();
+    const ext = src.split(/[?#]/)[0].split(".").pop()?.toLowerCase();
     if (["png", "jpg", "jpeg", "gif", "bmp"].includes(ext)) {
       return { data: buffer, type: ext === "jpeg" ? "jpg" : ext, ...size };
     }
-    // webp/svg/etc.: docx can't embed them natively — transcode to PNG.
+    // webp/etc.: docx can't embed them natively — transcode to PNG. SVG blobs
+    // are rejected by createImageBitmap above, so SVGs never reach this path
+    // and intentionally degrade to the caption fallback (null).
     const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
     canvas.getContext("2d").drawImage(bitmap, 0, 0);
     const png = await canvas.convertToBlob({ type: "image/png" });

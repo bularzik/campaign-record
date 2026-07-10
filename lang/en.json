@@ -113,6 +113,7 @@
       "Timeline": "Timeline",
       "GmNotes": "GM Notes",
       "SelectGroup": "Select a specific group to export.",
+      "HiddenRecord": "This record is hidden — check \"Include GM content\" to export it.",
       "Failed": "Export failed — see the console for details.",
       "Done": "Exported \"{name}\"."
     },
