@@ -93,3 +93,132 @@ export function htmlToNodes(root, flags = {}) {
   }
   return nodes;
 }
+
+const label = (name, value, extraRuns = []) => ({
+  kind: "paragraph", style: "label",
+  runs: [{ text: `${name}: `, bold: true }, { text: String(value) }, ...extraRuns]
+});
+
+const labelIf = (name, value) => (value ? [label(name, value)] : []);
+
+const checkItem = (text, done, prefixRuns = []) =>
+  ({ runs: [...prefixRuns, { text: `[${done ? "x" : " "}] ${text}` }], level: 0 });
+
+/** Per-kind structured-field renderers: (system, ctx) -> Node[]. */
+const FIELD_RENDERERS = {
+  npc: (s, { i18n }) => [
+    ...labelIf("Role", s.role), ...labelIf("Location", s.location),
+    ...labelIf("Race", s.race), ...labelIf("Gender", s.gender),
+    ...labelIf("Profession", s.profession), ...labelIf("Voice", s.voice),
+    ...labelIf("Faction", s.faction),
+    ...labelIf("Status", s.status && i18n(`CAMPAIGNRECORD.Npc.Status.${s.status}`))
+  ],
+  place: (s, { i18n }) => [
+    ...labelIf("Location", s.location), ...labelIf("Government", s.government),
+    ...labelIf("Size", s.size),
+    ...labelIf("Type", s.placeType && i18n(`CAMPAIGNRECORD.Place.Type.${s.placeType}`))
+  ],
+  quest: (s, ctx) => {
+    const objectives = (s.objectives ?? []).filter((o) => ctx.includeGM || !o.gmOnly);
+    return [
+      ...labelIf("Source", s.source),
+      ...labelIf("Status", s.status && ctx.i18n(`CAMPAIGNRECORD.Quest.Status.${s.status}`)),
+      ...(objectives.length ? [{
+        kind: "list", ordered: false,
+        items: objectives.map((o) =>
+          checkItem(o.text, o.done, o.gmOnly ? [{ text: "(GM) ", bold: true }] : []))
+      }] : []),
+      ...(s.rewards ? [label("Rewards", ""), ...htmlBody(s.rewards, ctx)] : [])
+    ];
+  },
+  pc: (s) => [
+    ...labelIf("Player", s.playerName), ...labelIf("Class & Level", s.classLevel),
+    ...labelIf("Faction", s.faction)
+  ],
+  item: (s) => [
+    ...labelIf("Type", s.itemType), ...labelIf("Rarity", s.rarity),
+    ...labelIf("Attunement", s.attunement)
+  ],
+  encounter: (s) => [
+    ...labelIf("Location", s.location), ...labelIf("Difficulty", s.difficulty),
+    ...labelIf("Outcome", s.outcome),
+    ...((s.combatants ?? []).length ? [{
+      kind: "list", ordered: false,
+      items: s.combatants.map((c) => ({ runs: [{ text: `${c.count}× ${c.name}` }], level: 0 }))
+    }] : [])
+  ],
+  checklist: (s) => ((s.items ?? []).length ? [{
+    kind: "list", ordered: false,
+    items: s.items.map((it) =>
+      checkItem(it.assignee ? `${it.text} — ${it.assignee}` : it.text, it.done))
+  }] : []),
+  shop: (s) => [
+    ...labelIf("Type", s.shopType), ...labelIf("Location", s.location),
+    ...labelIf("Owner", s.owner),
+    ...((s.inventory ?? []).length ? [{
+      kind: "table",
+      rows: [
+        [[{ text: "Name", bold: true }], [{ text: "Price", bold: true }], [{ text: "Qty", bold: true }]],
+        ...s.inventory.map((r) => [[{ text: r.name }], [{ text: r.price }], [{ text: String(r.quantity) }]])
+      ]
+    }] : [])
+  ],
+  loot: (s, ctx) => {
+    const coins = ["pp", "gp", "ep", "sp", "cp"]
+      .filter((c) => s.currency?.[c]).map((c) => `${s.currency[c]} ${c}`).join(", ");
+    return [
+      ...labelIf("Currency", coins),
+      ...((s.items ?? []).length ? [{
+        kind: "table",
+        rows: [
+          [[{ text: "Name", bold: true }], [{ text: "Qty", bold: true }]],
+          ...s.items.map((r) => [[{ text: r.name }], [{ text: String(r.quantity) }]])
+        ]
+      }] : []),
+      ...(s.distribution ? htmlBody(s.distribution, ctx) : [])
+    ];
+  },
+  media: (s) => (s.images ?? []).map((img) => ({ kind: "image", src: img.src, caption: img.caption ?? "" }))
+};
+
+function htmlBody(html, { parse }) {
+  if (!html) return [];
+  return htmlToNodes(parse(replaceUuidTags(html)));
+}
+
+/**
+ * Build the full doc model for an export snapshot. GM-only content (hidden
+ * records, gmNotes, gmOnly objectives) is included only with opts.includeGM.
+ */
+export function snapshotToDocModel(snapshot, opts) {
+  const nodes = [{ kind: "heading", level: 1, text: snapshot.name }];
+
+  if (snapshot.timeline?.length) {
+    nodes.push({ kind: "heading", level: 2, text: opts.i18n("CAMPAIGNRECORD.Export.Timeline") });
+    for (const tp of snapshot.timeline) {
+      nodes.push({ kind: "heading", level: 3, text: tp.label });
+      if (tp.items.length) {
+        nodes.push({ kind: "list", ordered: false,
+          items: tp.items.map((name) => ({ runs: [{ text: name }], level: 0 })) });
+      }
+    }
+  }
+
+  for (const record of snapshot.records) {
+    if (record.hidden && !opts.includeGM) continue;
+    nodes.push({ kind: "heading", level: 1, text: record.name });
+    if (record.kind !== "text") {
+      nodes.push({ kind: "paragraph", style: "subtitle",
+        runs: [{ text: `Campaign Record type: ${record.kind}` }] });
+      const tags = [...(record.system?.tags ?? [])];
+      nodes.push(...(FIELD_RENDERERS[record.kind]?.(record.system, opts) ?? []));
+      if (tags.length) nodes.push(label("Tags", tags.join(", ")));
+    }
+    nodes.push(...htmlBody(record.html, opts));
+    if (opts.includeGM && record.system?.gmNotes) {
+      nodes.push({ kind: "heading", level: 3, text: opts.i18n("CAMPAIGNRECORD.Export.GmNotes") });
+      nodes.push(...htmlBody(record.system.gmNotes, opts));
+    }
+  }
+  return nodes;
+}
