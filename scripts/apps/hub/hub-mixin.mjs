@@ -562,13 +562,13 @@ export function HubMixin(Base) {
         if (this.state.view) prunePage(this.#history, this.state.view.pageId);
         this.state.view = null;
       }
+      context.canGoBack = canGoBack(this.#history);
+      context.canGoForward = canGoForward(this.#history);
       context.view = this.state.view && viewedPage
         ? {
             name: viewedPage.name,
             editing: this.state.view.mode === "edit",
             canEdit: viewedPage.canUserModify(game.user, "update"),
-            canGoBack: canGoBack(this.#history),
-            canGoForward: canGoForward(this.#history),
             railCollapsed: game.settings.get(MODULE_ID, RAIL_SETTING),
             railGroups: this.#railGroups(this.state.view.pageId)
           }

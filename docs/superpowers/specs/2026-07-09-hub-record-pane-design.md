@@ -72,6 +72,9 @@ hub**, and opening a group from the sidebar opens the hub directly.
   The index is the root entry. New navigation truncates forward history.
   Loops (a → b → c → a …) are ordinary entries and need no special handling —
   the rail, not the history, is the primary navigation.
+- The back/forward buttons live in a slim nav header visible on all hub views
+  (disabled when traversal is unavailable), so Forward remains reachable from
+  the index root.
 
 ### Editing
 

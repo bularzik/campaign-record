@@ -473,7 +473,17 @@
 }
 
 /* ---- Hub record pane ---- */
-.campaign-hub .hub-record { display: none; }
+.campaign-hub .hub-record {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+/* Outside record view, the pane holds only the slim nav header — let it size
+   to content instead of splitting flex space 50/50 with the active tab. */
+.campaign-hub:not(.viewing-record) .hub-record {
+  flex: 0 0 auto;
+}
 .campaign-hub.viewing-record .hub-record {
   display: flex;
   flex-direction: column;
