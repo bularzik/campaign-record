@@ -1,4 +1,5 @@
 import { MODULE_ID, typeId } from "../constants.mjs";
+import { CampaignGroupSheet } from "./group-sheet.mjs";
 import { NpcSheet } from "./npc-sheet.mjs";
 import { PlaceSheet } from "./place-sheet.mjs";
 import { QuestSheet } from "./quest-sheet.mjs";
@@ -13,6 +14,9 @@ import { MediaSheet } from "./media-sheet.mjs";
 const { DocumentSheetConfig } = foundry.applications.apps;
 
 export function registerSheets() {
+  DocumentSheetConfig.registerSheet(JournalEntry, MODULE_ID, CampaignGroupSheet, {
+    label: "CAMPAIGNRECORD.Sheets.Group"
+  });
   DocumentSheetConfig.registerSheet(JournalEntryPage, MODULE_ID, NpcSheet, {
     types: [typeId("npc")],
     makeDefault: true,

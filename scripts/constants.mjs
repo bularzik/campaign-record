@@ -22,7 +22,7 @@ export const RECORD_TYPES = [
 ];
 
 /** Structural schema version of world data written by this module. */
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 export const SCHEMA_SETTING = "schemaVersion";
 
 /** Client setting: render timeline links as thumbnails instead of icon chips. */

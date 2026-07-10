@@ -39,7 +39,10 @@ export async function createGroup(name) {
     name,
     folder: folderId,
     ownership: { default: CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER },
-    flags: { [MODULE_ID]: { [GROUP_FLAG]: { timepoints: [] } } }
+    flags: {
+      [MODULE_ID]: { [GROUP_FLAG]: { timepoints: [] } },
+      core: { sheetClass: `${MODULE_ID}.CampaignGroupSheet` }
+    }
   });
 }
 

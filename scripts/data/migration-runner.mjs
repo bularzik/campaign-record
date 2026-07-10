@@ -23,6 +23,15 @@ export const MIGRATIONS = [
         }
       }
     }
+  },
+  {
+    version: 2,
+    // Groups predating inline editing point at the focus-guarded group sheet.
+    async run() {
+      for (const group of getGroups()) {
+        await group.update({ "flags.core.sheetClass": `${MODULE_ID}.CampaignGroupSheet` });
+      }
+    }
   }
 ];
 

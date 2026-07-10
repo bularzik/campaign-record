@@ -82,6 +82,7 @@
       }
     },
     "Sheets": {
+      "Group": "Campaign Record Group Sheet",
       "Npc": "Campaign Record NPC Sheet",
       "Place": "Campaign Record Place Sheet",
       "Quest": "Campaign Record Quest Sheet",
