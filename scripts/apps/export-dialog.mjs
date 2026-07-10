@@ -1,4 +1,4 @@
-import { MODULE_ID, RECORD_TYPES, typeId } from "../constants.mjs";
+import { RECORD_TYPES, typeId } from "../constants.mjs";
 import { snapshotToDocModel, replaceUuidTags } from "../logic/doc-export.mjs";
 import { isRecordVisible } from "../logic/visibility.mjs";
 import { loadVendorGlobal } from "../integrations/vendor-loader.mjs";
@@ -18,6 +18,26 @@ function pageSnapshot(page) {
   };
 }
 
+/**
+ * Timeline link names for the export snapshot, built from the raw stored
+ * links ({src, name, showPlayers} for images; {uuid, name, type} for
+ * documents) rather than resolveLinks, so the player view (includeGM=false)
+ * strips GM-only content even when the exporting user is a GM.
+ */
+function snapshotLinkNames(tp, includeGM) {
+  const names = [];
+  for (const link of tp.links ?? []) {
+    if (link.src) { // image link
+      if (includeGM || link.showPlayers === true) names.push(link.name);
+      continue;
+    }
+    const doc = fromUuidSync(link.uuid); // document link
+    if (!includeGM && (!doc || doc.system?.hidden === true)) continue;
+    names.push(doc?.name ?? link.name);
+  }
+  return names.filter(Boolean);
+}
+
 function groupSnapshot(group, includeGM) {
   const pages = group.pages.contents
     .filter((p) => includeGM || isRecordVisible(game.user, p))
@@ -25,8 +45,10 @@ function groupSnapshot(group, includeGM) {
   const timeline = Timepoints.getTimepoints(group).map((tp) => ({
     label: tp.label,
     items: [
-      ...Timepoints.recordsAtTimepoint(group, tp.id, game.user).map((p) => p.name),
-      ...Timepoints.resolveLinks(tp, game.user).map((l) => l.name).filter(Boolean)
+      ...Timepoints.recordsAtTimepoint(group, tp.id, game.user)
+        .filter((p) => includeGM || p.system?.hidden !== true)
+        .map((p) => p.name),
+      ...snapshotLinkNames(tp, includeGM)
     ]
   }));
   return { name: group.name, timeline, records: pages };
@@ -93,13 +115,19 @@ async function fetchImage(src) {
     const buffer = await response.arrayBuffer();
     const bitmap = await createImageBitmap(new Blob([buffer]));
     const scale = Math.min(1, 480 / bitmap.width);
-    const ext = src.split("?")[0].split(".").pop()?.toLowerCase();
-    return {
-      data: buffer,
-      type: ext === "jpeg" ? "jpg" : (["png", "jpg", "gif", "bmp"].includes(ext) ? ext : "png"),
+    const size = {
       width: Math.round(bitmap.width * scale),
       height: Math.round(bitmap.height * scale)
     };
+    const ext = src.split("?")[0].split(".").pop()?.toLowerCase();
+    if (["png", "jpg", "jpeg", "gif", "bmp"].includes(ext)) {
+      return { data: buffer, type: ext === "jpeg" ? "jpg" : ext, ...size };
+    }
+    // webp/svg/etc.: docx can't embed them natively — transcode to PNG.
+    const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
+    canvas.getContext("2d").drawImage(bitmap, 0, 0);
+    const png = await canvas.convertToBlob({ type: "image/png" });
+    return { data: await png.arrayBuffer(), type: "png", ...size };
   } catch {
     return null;
   }
@@ -115,16 +143,19 @@ async function renderDocx(nodes) {
 
   // The doc model represents a <br> as a run whose text contains "\n". Split
   // each run's text on "\n" into one TextRun per segment, with `break: 1`
-  // (a line break before the text) on every segment after the first. A run
-  // whose text is exactly "\n" becomes a single empty-text TextRun with
-  // `break: 1`. Formatting flags apply to every segment; hyperlink wrapping
-  // applies to the whole set of segments for that run.
+  // (a line break before the text) on every segment after the first. An empty
+  // FIRST segment is dropped, so a run whose text is exactly "\n" becomes a
+  // single empty-text TextRun with `break: 1`. Formatting flags apply to
+  // every segment; hyperlink wrapping applies to the whole set of segments
+  // for that run.
   const toRuns = (runs) => runs.map((r) => {
-    const segments = r.text.split("\n").map((text, i) => new TextRun({
+    const make = (text, extra = {}) => new TextRun({
       text, bold: r.bold, italics: r.italics,
-      underline: r.underline ? {} : undefined, strike: r.strike,
-      break: i > 0 ? 1 : undefined
-    }));
+      underline: r.underline ? {} : undefined, strike: r.strike, ...extra
+    });
+    const segments = r.text.split("\n")
+      .map((seg, i) => (i === 0 ? (seg ? make(seg) : null) : make(seg, { break: 1 })))
+      .filter(Boolean);
     return r.link ? new ExternalHyperlink({ children: segments, link: r.link }) : segments;
   }).flat();
 
@@ -133,10 +164,12 @@ async function renderDocx(nodes) {
     if (node.kind === "heading") {
       children.push(new Paragraph({ text: node.text, heading: HEADINGS[node.level - 1] }));
     } else if (node.kind === "paragraph") {
-      children.push(new Paragraph({
-        children: toRuns(node.runs),
-        style: node.style === "subtitle" ? "IntenseQuote" : undefined
-      }));
+      // "IntenseQuote" is absent from the vendored docx build (would silently
+      // render as Normal); render subtitle paragraphs as italics instead.
+      const runs = node.style === "subtitle"
+        ? node.runs.map((r) => ({ ...r, italics: true }))
+        : node.runs;
+      children.push(new Paragraph({ children: toRuns(runs) }));
     } else if (node.kind === "list") {
       for (const item of node.items) {
         children.push(new Paragraph({
