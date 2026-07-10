@@ -1,4 +1,5 @@
 import { setRecordHidden } from "../data/groups.mjs";
+import { promptSelectActor } from "../apps/actor-picker.mjs";
 import { MODULE_ID, INLINE_EDIT_SETTING } from "../constants.mjs";
 import { computeInlineEdit, createDebouncedSaver, hasInlineFocus } from "../logic/inline-edit.mjs";
 
@@ -11,7 +12,8 @@ export class BaseRecordSheet extends JournalEntryPageHandlebarsSheet {
     classes: ["campaign-record", "record-sheet"],
     form: { submitOnChange: true, closeOnSubmit: false },
     actions: {
-      toggleHidden: BaseRecordSheet.#onToggleHidden
+      toggleHidden: BaseRecordSheet.#onToggleHidden,
+      linkActor: BaseRecordSheet.#onLinkActor
     }
   };
 
@@ -118,6 +120,15 @@ export class BaseRecordSheet extends JournalEntryPageHandlebarsSheet {
   static async #onToggleHidden() {
     if (!game.user.isGM) return;
     await setRecordHidden(this.document, !this.document.system.hidden);
+  }
+
+  /**
+   * Drag-free actor linking: players can't drag Actors from the sidebar
+   * (core requires TOKEN_CREATE), so a picker feeds the same drop handler.
+   */
+  static async #onLinkActor() {
+    const uuid = await promptSelectActor();
+    if (uuid) await this._onDropDocument({ type: "Actor", uuid });
   }
 
   /** Read, mutate, and write an array field as one targeted update. */
