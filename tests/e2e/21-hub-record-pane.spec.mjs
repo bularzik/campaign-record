@@ -83,4 +83,37 @@ test.describe("hub record pane", () => {
     await hub.locator(".record-row", { hasText: "E2E Pane One" }).click();
     await expect(hub.locator(".record-rail")).toHaveClass(/collapsed/);
   });
+
+  test("back/forward traverse visits, loops included", async ({ page }) => {
+    await login(page, "Gamemaster");
+    const ids = await createGroupWithPage(page, "E2E Pane Group", "E2E Pane A", "campaign-record.npc");
+    await page.evaluate(async ({ groupId }) => {
+      await game.journal.get(groupId).createEmbeddedDocuments("JournalEntryPage", [
+        { name: "E2E Pane B", type: "campaign-record.place" }
+      ]);
+      const { CampaignHub } = await import("/modules/campaign-record/scripts/apps/hub/campaign-hub.mjs");
+      CampaignHub.open();
+    }, ids);
+    const hub = page.locator("#campaign-hub");
+    const rail = hub.locator(".record-rail");
+    const title = hub.locator(".record-pane-title");
+
+    // Visit A -> B -> A (a loop) via index + rail jumps.
+    await hub.locator(".record-row", { hasText: "E2E Pane A" }).click();
+    await rail.locator(".rail-record", { hasText: "E2E Pane B" }).click();
+    await rail.locator(".rail-record", { hasText: "E2E Pane A" }).click();
+    await expect(title).toHaveText("E2E Pane A");
+
+    await hub.locator('[data-action="paneBack"]').click();
+    await expect(title).toHaveText("E2E Pane B");
+    await hub.locator('[data-action="paneBack"]').click();
+    await expect(title).toHaveText("E2E Pane A");
+    await hub.locator('[data-action="paneBack"]').click();
+    await expect(hub.locator('.hub-index[data-tab="index"]')).toBeVisible(); // root
+
+    await hub.locator('[data-action="paneForward"]').click();
+    await expect(title).toHaveText("E2E Pane A");
+    await hub.locator('[data-action="paneForward"]').click();
+    await expect(title).toHaveText("E2E Pane B");
+  });
 });
