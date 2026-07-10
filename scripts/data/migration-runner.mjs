@@ -27,8 +27,10 @@ export const MIGRATIONS = [
   {
     version: 2,
     // Groups predating inline editing point at the focus-guarded group sheet.
+    // Only fill an unset/empty flag — a user-chosen custom sheet stays.
     async run() {
       for (const group of getGroups()) {
+        if (group.getFlag("core", "sheetClass")) continue;
         await group.update({ "flags.core.sheetClass": `${MODULE_ID}.CampaignGroupSheet` });
       }
     }
