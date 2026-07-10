@@ -214,6 +214,10 @@ export function HubMixin(Base) {
       this.#searchIndex = null;
       this.#teardownHooks();
       this.#pane.close();
+      // A closed hub reopens at the index — the previously viewed record is
+      // session-scoped state, not something to resume mid-view like the
+      // window position or the collapsed-rail client setting.
+      this.state.view = null;
       super._onClose(options);
     }
 
@@ -232,6 +236,26 @@ export function HubMixin(Base) {
         updated: (a, b) => b.sortTime - a.sortTime
       };
       return { records: records.sort(sorters[this.state.sort] ?? sorters.name), total: all.length };
+    }
+
+    /** Rail entries: the filtered index grouped by type, current record flagged. */
+    #railGroups(currentPageId) {
+      const { records } = this.#indexEntries();
+      const byType = new Map();
+      for (const record of records) {
+        if (!byType.has(record.shortType)) {
+          const label = record.shortType === "journal"
+            ? game.i18n.localize("CAMPAIGNRECORD.Hub.JournalPage")
+            : game.i18n.localize(`TYPES.JournalEntryPage.${typeId(record.shortType)}`);
+          byType.set(record.shortType, { label, records: [] });
+        }
+        byType.get(record.shortType).records.push({
+          uuid: record.uuid,
+          name: record.name,
+          current: record.id === currentPageId
+        });
+      }
+      return [...byType.values()];
     }
 
     static async #onOpenRecord(event, target) {
@@ -546,7 +570,7 @@ export function HubMixin(Base) {
             canGoBack: canGoBack(this.#history),
             canGoForward: canGoForward(this.#history),
             railCollapsed: game.settings.get(MODULE_ID, RAIL_SETTING),
-            railGroups: []
+            railGroups: this.#railGroups(this.state.view.pageId)
           }
         : null;
       return context;
