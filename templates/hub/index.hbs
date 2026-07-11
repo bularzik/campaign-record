@@ -1,10 +1,27 @@
 <section class="tab hub-index{{#if tabs.index.active}} active{{/if}}" data-group="primary" data-tab="index">
-  <multi-select name="type-filter" class="type-filter"
-                aria-label="{{localize "CAMPAIGNRECORD.Hub.TypeFilter"}}">
-    {{#each typeFilterOptions}}
-    <option value="{{this.type}}" {{#if this.active}}selected{{/if}}>{{this.label}}</option>
+  <div class="doctype-filter">
+    {{#each doctypeFilter.chips}}
+    <span class="doctype-chip" data-type="{{this.type}}">
+      <i class="{{this.icon}}"></i> {{this.label}}
+      <a data-action="removeType" data-type="{{this.type}}"
+         data-tooltip="CAMPAIGNRECORD.Hub.RemoveType"
+         aria-label="{{localize "CAMPAIGNRECORD.Hub.RemoveType"}}"><i class="fa-solid fa-xmark"></i></a>
+    </span>
     {{/each}}
-  </multi-select>
+    <select class="doctype-add" aria-label="{{localize "CAMPAIGNRECORD.Hub.TypeFilter"}}">
+      <option value="">{{localize "CAMPAIGNRECORD.Hub.AddType"}}</option>
+      {{#each doctypeFilter.available}}
+      <option value="{{this.type}}">{{this.label}}</option>
+      {{/each}}
+    </select>
+    {{#if doctypeFilter.hasSelection}}
+    <button type="button" class="doctype-clear" data-action="clearTypes"
+            data-tooltip="CAMPAIGNRECORD.Hub.ClearTypes"
+            aria-label="{{localize "CAMPAIGNRECORD.Hub.ClearTypes"}}">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
+    {{/if}}
+  </div>
   <div class="index-controls">
     <input type="search" name="index-search" value="{{state.query}}"
            placeholder="{{localize "CAMPAIGNRECORD.Hub.FilterTag"}}" autocomplete="off">
@@ -26,10 +43,6 @@
     {{/if}}
     {{#if hasActiveFilters}}
     <span class="filtered-count">{{localize "CAMPAIGNRECORD.Hub.FilteredCount" shown=filteredCount total=totalCount}}</span>
-    <button type="button" class="clear-filters" data-action="clearFilters"
-            data-tooltip="CAMPAIGNRECORD.Hub.ClearFilters">
-      <i class="fa-solid fa-filter-circle-xmark"></i>
-    </button>
     {{/if}}
     <button type="button" data-action="newRecord">
       <i class="fa-solid fa-plus"></i> {{localize "CAMPAIGNRECORD.Hub.NewRecord"}}
@@ -42,16 +55,14 @@
   {{/if}}
   <ol class="record-list">
     {{#each records}}
-    <li class="record-row" data-uuid="{{this.uuid}}"
+    <li class="record-row{{#if this.current}} current{{/if}}" data-uuid="{{this.uuid}}"
         {{#if this.canAttach}}data-drag-record draggable="true"{{/if}}
         data-action="openRecord">
-      {{#if this.image}}<img src="{{this.image}}" alt="">{{else}}<i class="fa-solid fa-file-lines"></i>{{/if}}
+      <i class="record-type-icon {{this.icon}}" data-tooltip="{{this.typeLabel}}"></i>
       <span class="record-name">{{this.name}}
         {{#if this.hidden}}<i class="fa-solid fa-eye-slash" data-tooltip="CAMPAIGNRECORD.Hidden"></i>{{/if}}
       </span>
       <span class="record-subtitle">{{this.subtitle}}</span>
-      <span class="record-type">{{this.shortType}}</span>
-      <span class="record-group">{{this.groupName}}</span>
       {{#if @root.snippets}}{{#if this.matches.length}}
       <div class="record-snippets">
         {{#each this.matches}}

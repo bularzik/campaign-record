@@ -1,4 +1,4 @@
-import { MODULE_ID } from "../../constants.mjs";
+import { MODULE_ID, recordIcon } from "../../constants.mjs";
 import { getGroups } from "../../data/groups.mjs";
 import { isRecordVisible } from "../../logic/visibility.mjs";
 
@@ -50,6 +50,9 @@ export function recordSubtitle(page) {
 
 function toIndexEntry(group, page) {
   const shortType = page.type.startsWith(TYPE_PREFIX) ? page.type.slice(TYPE_PREFIX.length) : "journal";
+  const typeLabel = page.type === "text"
+    ? game.i18n.localize("CAMPAIGNRECORD.Hub.JournalPage")
+    : game.i18n.localize(`TYPES.JournalEntryPage.${page.type}`);
   return {
     uuid: page.uuid,
     id: page.id,
@@ -58,6 +61,8 @@ function toIndexEntry(group, page) {
     name: page.name,
     type: page.type,
     shortType,
+    icon: recordIcon(shortType),
+    typeLabel,
     // Core text pages have no timepoints SetField, so they can't be dragged onto the timeline.
     canAttach: shortType !== "journal",
     image: page.system?.image || null,

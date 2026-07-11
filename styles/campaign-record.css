@@ -51,12 +51,40 @@
   display: block;
 }
 
-.campaign-hub .type-filter {
-  width: auto;
-  flex: 1 1 10rem;
-  min-width: 10rem;
-  max-width: 18rem;
+.campaign-hub .doctype-filter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem;
   margin-bottom: 0.5rem;
+}
+
+.campaign-hub .doctype-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.05rem 0.4rem;
+  border: 1px solid var(--color-border-light-primary, #7a7971);
+  border-radius: 10px;
+  font-size: var(--font-size-12, 12px);
+}
+
+.campaign-hub .doctype-chip a {
+  cursor: pointer;
+  opacity: 0.7;
+}
+
+.campaign-hub .doctype-chip a:hover { opacity: 1; }
+
+.campaign-hub .doctype-add {
+  width: auto;
+  flex: 0 1 10rem;
+  min-width: 8rem;
+}
+
+.campaign-hub .doctype-clear {
+  flex: 0 0 auto;
+  width: 1.75rem;
 }
 
 .campaign-hub .index-controls {
@@ -116,7 +144,7 @@
 
 .campaign-hub .record-row {
   display: grid;
-  grid-template-columns: 2rem minmax(0, 1fr) minmax(0, 12rem) 4.5rem 8rem;
+  grid-template-columns: 1.5rem minmax(0, 1fr) minmax(0, 12rem);
   gap: 0.5rem;
   align-items: center;
   padding: 0.2rem 0.5rem;
@@ -131,10 +159,13 @@
   background: var(--color-hover-bg, rgba(255, 255, 240, 0.1));
 }
 
+.campaign-hub .record-row .record-type-icon {
+  justify-self: center;
+  opacity: 0.75;
+}
+
 .campaign-hub .record-row .record-name,
-.campaign-hub .record-row .record-subtitle,
-.campaign-hub .record-row .record-type,
-.campaign-hub .record-row .record-group {
+.campaign-hub .record-row .record-subtitle {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -152,12 +183,10 @@
   display: flex;
   flex-direction: column;
   gap: 0.1rem;
-  padding-left: 2.5rem;
+  padding-left: 2rem;
 }
 
-.campaign-hub .record-subtitle,
-.campaign-hub .record-type,
-.campaign-hub .record-group {
+.campaign-hub .record-subtitle {
   font-size: var(--font-size-12, 12px);
   opacity: 0.8;
 }
@@ -497,7 +526,6 @@
 .campaign-hub:not(.viewing-record) .hub-record {
   flex: 0 0 auto;
 }
-.campaign-hub.viewing-record section.tab { display: none; }
 .record-pane-header {
   display: flex;
   align-items: center;
@@ -521,29 +549,51 @@
   flex: 1;
   min-height: 0;
 }
-.record-rail {
-  flex: 0 0 180px;
-  overflow-y: auto;
-  padding: 0.25rem 0.5rem;
-  border-right: 1px solid var(--color-border, #7a7971);
-}
-.record-rail.collapsed { display: none; }
-.record-rail h4 { margin: 0.5rem 0 0.25rem; }
-.record-rail ol { list-style: none; margin: 0; padding: 0; }
-.record-rail .rail-record {
-  cursor: pointer;
-  padding: 0.125rem 0.25rem;
-  border-radius: 3px;
-}
-.record-rail .rail-record:hover { background: rgba(0, 0, 0, 0.1); }
-.record-rail .rail-record.current {
-  background: rgba(0, 0, 0, 0.15);
-  font-weight: bold;
-}
 .record-pane-mount {
   flex: 1;
   overflow-y: auto;
   padding: 0.5rem;
+}
+
+/* Viewing a record: the index PART repositions as the left column (search,
+   doctype filter, sort, rows), the timeline PART hides, and the record PART
+   becomes the right column (header + mount, no rail). The parts (.hub-header,
+   .hub-index, .hub-timeline, .hub-record) are direct children of the app's
+   .window-content. */
+.campaign-hub.viewing-record .window-content {
+  display: grid;
+  grid-template-columns: minmax(0, 260px) minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-areas:
+    "header header"
+    "index  record";
+  gap: 0 0.5rem;
+}
+.campaign-hub.viewing-record .hub-header { grid-area: header; }
+.campaign-hub.viewing-record .hub-index {
+  grid-area: index;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow-y: auto;
+}
+.campaign-hub.viewing-record .hub-timeline { display: none; }
+.campaign-hub.viewing-record .hub-record { grid-area: record; min-width: 0; }
+
+/* Collapsed left index (rail toggle). */
+.campaign-hub.viewing-record.rail-collapsed .window-content {
+  grid-template-columns: 0 minmax(0, 1fr);
+}
+.campaign-hub.viewing-record.rail-collapsed .hub-index { display: none; }
+
+/* Narrow left-index rows: icon + name only. */
+.campaign-hub.viewing-record .hub-index .record-row {
+  grid-template-columns: 1.5rem minmax(0, 1fr);
+}
+.campaign-hub.viewing-record .hub-index .record-subtitle { display: none; }
+.campaign-hub.viewing-record .hub-index .record-row.current {
+  background: rgba(0, 0, 0, 0.15);
+  font-weight: bold;
 }
 
 .campaign-hub .other-group-matches {
@@ -602,6 +652,18 @@
   top: 0;
   z-index: 1;
   background-color: var(--color-bg-option, var(--color-bg, #e8e6dc));
+}
+
+.import-wizard-app .form-footer {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.import-wizard-app .form-footer button {
+  flex: 0 0 auto;
 }
 
 /* Split-section dialog: keep the Cancel/Split buttons reachable when a

@@ -19,11 +19,35 @@ test.describe("hub record pane", () => {
 
     await expect(hub.locator(".record-pane-title")).toHaveText("E2E Pane Npc");
     await expect(hub.locator(".record-pane-mount dl.record-facts")).toBeVisible();
-    await expect(hub.locator('.hub-index[data-tab="index"]')).toBeHidden();
+    // The index stays visible as the searchable left pane while viewing a record.
+    await expect(hub.locator('.hub-index[data-tab="index"]')).toBeVisible();
 
     await hub.locator('[data-action="tab"][data-tab="index"]').click();
     await expect(hub.locator('.hub-index[data-tab="index"]')).toBeVisible();
     await expect(hub.locator(".record-pane-title")).toHaveCount(0);
+  });
+
+  test("record view keeps a searchable index in the left pane", async ({ page }) => {
+    await login(page, "Gamemaster");
+    await createGroupWithPage(page, "E2E Pane Group", "E2E Pane Npc", "campaign-record.npc");
+    await page.evaluate(async () => {
+      const { CampaignHub } = await import("/modules/campaign-record/scripts/apps/hub/campaign-hub.mjs");
+      CampaignHub.open();
+    });
+    const hub = page.locator("#campaign-hub");
+    await hub.waitFor();
+    await hub.locator(".record-row", { hasText: "E2E Pane Npc" }).click();
+
+    await expect(hub).toHaveClass(/viewing-record/);
+    // The left pane exposes the index controls and rows...
+    await expect(hub.locator(".hub-index .doctype-filter")).toBeVisible();
+    await expect(hub.locator(".hub-index input[name='index-search']")).toBeVisible();
+    // ...the current record is flagged...
+    await expect(hub.locator(".hub-index .record-row.current")).toHaveCount(1);
+    // ...and the timeline tab panel is hidden.
+    await expect(hub.locator(".hub-timeline")).toBeHidden();
+    // The old rail markup is gone.
+    await expect(hub.locator(".record-rail")).toHaveCount(0);
   });
 
   test("deleting the viewed record falls back to the index", async ({ page }) => {
@@ -43,7 +67,7 @@ test.describe("hub record pane", () => {
     await expect(hub.locator('.hub-index[data-tab="index"]')).toBeVisible();
   });
 
-  test("rail lists group records, highlights current, and jumps on click", async ({ page }) => {
+  test("left index highlights current record and jumps on click", async ({ page }) => {
     await login(page, "Gamemaster");
     const ids = await createGroupWithPage(page, "E2E Pane Group", "E2E Pane One", "campaign-record.npc");
     await page.evaluate(async ({ groupId }) => {
@@ -56,14 +80,14 @@ test.describe("hub record pane", () => {
     const hub = page.locator("#campaign-hub");
     await hub.locator(".record-row", { hasText: "E2E Pane One" }).click();
 
-    const rail = hub.locator(".record-rail");
-    await expect(rail.locator(".rail-record", { hasText: "E2E Pane One" })).toHaveClass(/current/);
-    await rail.locator(".rail-record", { hasText: "E2E Pane Two" }).click();
+    const index = hub.locator(".hub-index");
+    await expect(index.locator(".record-row", { hasText: "E2E Pane One" })).toHaveClass(/current/);
+    await index.locator(".record-row", { hasText: "E2E Pane Two" }).click();
     await expect(hub.locator(".record-pane-title")).toHaveText("E2E Pane Two");
-    await expect(rail.locator(".rail-record", { hasText: "E2E Pane Two" })).toHaveClass(/current/);
+    await expect(index.locator(".record-row", { hasText: "E2E Pane Two" })).toHaveClass(/current/);
   });
 
-  test("rail collapse persists across a close/reopen", async ({ page }) => {
+  test("left index collapse persists across a close/reopen", async ({ page }) => {
     await login(page, "Gamemaster");
     await createGroupWithPage(page, "E2E Pane Group", "E2E Pane One", "campaign-record.npc");
     await page.evaluate(async () => {
@@ -73,7 +97,8 @@ test.describe("hub record pane", () => {
     const hub = page.locator("#campaign-hub");
     await hub.locator(".record-row", { hasText: "E2E Pane One" }).click();
     await hub.locator('[data-action="toggleRail"]').click();
-    await expect(hub.locator(".record-rail")).toHaveClass(/collapsed/);
+    await expect(hub).toHaveClass(/rail-collapsed/);
+    await expect(hub.locator(".hub-index")).toBeHidden();
 
     await page.evaluate(async () => {
       const { CampaignHub } = await import("/modules/campaign-record/scripts/apps/hub/campaign-hub.mjs");
@@ -81,7 +106,8 @@ test.describe("hub record pane", () => {
       CampaignHub.toggle(); // reopen
     });
     await hub.locator(".record-row", { hasText: "E2E Pane One" }).click();
-    await expect(hub.locator(".record-rail")).toHaveClass(/collapsed/);
+    await expect(hub).toHaveClass(/rail-collapsed/);
+    await expect(hub.locator(".hub-index")).toBeHidden();
   });
 
   test("back/forward traverse visits, loops included", async ({ page }) => {
@@ -95,13 +121,13 @@ test.describe("hub record pane", () => {
       CampaignHub.open();
     }, ids);
     const hub = page.locator("#campaign-hub");
-    const rail = hub.locator(".record-rail");
+    const index = hub.locator(".hub-index");
     const title = hub.locator(".record-pane-title");
 
-    // Visit A -> B -> A (a loop) via index + rail jumps.
+    // Visit A -> B -> A (a loop) via index jumps.
     await hub.locator(".record-row", { hasText: "E2E Pane A" }).click();
-    await rail.locator(".rail-record", { hasText: "E2E Pane B" }).click();
-    await rail.locator(".rail-record", { hasText: "E2E Pane A" }).click();
+    await index.locator(".record-row", { hasText: "E2E Pane B" }).click();
+    await index.locator(".record-row", { hasText: "E2E Pane A" }).click();
     await expect(title).toHaveText("E2E Pane A");
 
     await hub.locator('[data-action="paneBack"]').click();
@@ -206,7 +232,7 @@ test.describe("hub record pane", () => {
     await hub.locator(".record-row", { hasText: "E2E Pane Source" }).click();
     await hub.locator(".record-pane-mount a.content-link", { hasText: "the target" }).click();
     await expect(hub.locator(".record-pane-title")).toHaveText("E2E Pane Target");
-    await expect(hub.locator(".record-rail .rail-record", { hasText: "E2E Pane Target" })).toHaveClass(/current/);
+    await expect(hub.locator(".hub-index .record-row", { hasText: "E2E Pane Target" })).toHaveClass(/current/);
   });
 
   test("player without update permission gets no edit toggle", async ({ page, browser }) => {

@@ -125,11 +125,18 @@ test.describe("hub timeline links", () => {
 
   test("thumbnail toggle switches image chips to thumbnails and persists the setting", async () => {
     const gmHub = gmPage.locator("#campaign-hub");
-    await gmHub.locator('button[data-action="toggleThumbnails"]').click();
+    const toggle = gmHub.locator('button[data-action="toggleThumbnails"]');
+    // Default off: button is not active and links render as icons, not thumbnails.
+    await expect(toggle).not.toHaveClass(/\bactive\b/);
+    await expect(gmHub.locator(".link-chip img.link-thumb")).toHaveCount(0);
+    await toggle.click();
+    // The button itself must reflect the on-state, and links become thumbnails.
+    await expect(toggle).toHaveClass(/\bactive\b/, { timeout: 10_000 });
     await expect(gmHub.locator(".link-chip img.link-thumb").first()).toBeVisible({ timeout: 10_000 });
     const stored = await gmPage.evaluate(() => game.settings.get("campaign-record", "timelineThumbnails"));
     expect(stored).toBe(true);
-    await gmHub.locator('button[data-action="toggleThumbnails"]').click();
+    await toggle.click();
+    await expect(toggle).not.toHaveClass(/\bactive\b/, { timeout: 10_000 });
     await expect(gmHub.locator(".link-chip img.link-thumb")).toHaveCount(0);
   });
 

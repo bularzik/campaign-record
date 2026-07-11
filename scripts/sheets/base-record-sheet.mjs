@@ -1,5 +1,6 @@
 import { setRecordHidden } from "../data/groups.mjs";
 import { promptSelectActor } from "../apps/actor-picker.mjs";
+import { promptSelectScene } from "../apps/scene-picker.mjs";
 import { exportRecordDialog } from "../apps/export-dialog.mjs";
 import { MODULE_ID, INLINE_EDIT_SETTING, GROUP_SHEET_CLASS } from "../constants.mjs";
 import { computeInlineEdit, createDebouncedSaver, hasInlineFocus } from "../logic/inline-edit.mjs";
@@ -22,6 +23,7 @@ export class BaseRecordSheet extends JournalEntryPageHandlebarsSheet {
     actions: {
       toggleHidden: BaseRecordSheet.#onToggleHidden,
       linkActor: BaseRecordSheet.#onLinkActor,
+      linkScene: BaseRecordSheet.#onLinkScene,
       exportRecord: BaseRecordSheet.#onExportRecord
     }
   };
@@ -189,6 +191,16 @@ export class BaseRecordSheet extends JournalEntryPageHandlebarsSheet {
   static async #onLinkActor() {
     const uuid = await promptSelectActor();
     if (uuid) await this._onDropDocument({ type: "Actor", uuid });
+  }
+
+  /**
+   * Drag-free scene linking: players can't drag Scenes from the sidebar
+   * (core gates it to GMs), so a picker feeds the same drop handler. No-op
+   * on sheets whose _onDropDocument ignores Scene data.
+   */
+  static async #onLinkScene() {
+    const uuid = await promptSelectScene();
+    if (uuid) await this._onDropDocument({ type: "Scene", uuid });
   }
 
   static async #onExportRecord() {
