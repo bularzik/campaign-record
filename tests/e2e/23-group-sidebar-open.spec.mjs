@@ -33,6 +33,16 @@ function hubOpenFor(page, groupId) {
   }, { groupId });
 }
 
+/** How many rendered GroupHubSheet windows are bound to this group. */
+function hubCountFor(page, groupId) {
+  return page.evaluate(({ groupId }) => {
+    const g = game.journal.get(groupId);
+    return [...foundry.applications.instances.values()].filter(
+      (a) => a.rendered && a.document === g && a.constructor.name === "GroupHubSheet"
+    ).length;
+  }, { groupId });
+}
+
 test.describe("campaign record sidebar activation", () => {
   test.afterEach(async ({ page }) => {
     await deleteGroupsByPrefix(page, "E2E Sidebar");
@@ -67,5 +77,21 @@ test.describe("campaign record sidebar activation", () => {
 
     await expect(page.locator(".group-hub")).toBeVisible();
     await expect.poll(() => hubOpenFor(page, ids.groupId)).toBe(true);
+  });
+
+  test("re-activating a legacy Campaign Record reuses one hub window", async ({ page }) => {
+    await login(page, "Gamemaster");
+    const ids = await createGroupWithPage(
+      page, "E2E Sidebar Reuse", "E2E Sidebar Npc3", "campaign-record.npc"
+    );
+    await page.evaluate(async ({ groupId }) => {
+      await game.journal.get(groupId).update({ "flags.core.-=sheetClass": null });
+    }, { groupId: ids.groupId });
+
+    await activateEntry(page, ids.groupId);
+    await expect.poll(() => hubOpenFor(page, ids.groupId)).toBe(true);
+    await activateEntry(page, ids.groupId);
+    // The WeakMap cache must reuse the same window, not stack a second one.
+    await expect.poll(() => hubCountFor(page, ids.groupId)).toBe(1);
   });
 });
