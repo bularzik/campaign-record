@@ -593,3 +593,11 @@
   z-index: 1;
   background-color: var(--color-bg-option, var(--color-bg, #e8e6dc));
 }
+
+/* Split-section dialog: keep the Cancel/Split buttons reachable when a
+   section has many blocks — scroll the block list instead of growing the
+   dialog past the viewport. */
+.cr-split-modal {
+  max-height: 70vh;
+  overflow-y: auto;
+}
