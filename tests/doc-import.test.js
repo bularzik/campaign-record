@@ -196,7 +196,7 @@ describe("buildImportPlan", () => {
   });
 });
 
-import { mergeSections } from "../scripts/logic/doc-import.mjs";
+import { mergeSections, splitSectionAt } from "../scripts/logic/doc-import.mjs";
 
 describe("mergeSections", () => {
   const blk = (over = {}) => ({
@@ -222,5 +222,43 @@ describe("mergeSections", () => {
     expect(mergeSections(before, 0)).not.toBe(before);
     expect(mergeSections(before, 0)).toHaveLength(2);
     expect(mergeSections(before, 9)).toHaveLength(2);
+  });
+});
+
+describe("splitSectionAt", () => {
+  const base = {
+    title: "Big", level: 1, date: null, isSession: false,
+    blocks: ["<p>Alpha</p>", "<p>Beta</p>", "<p>Gamma</p>"],
+    html: "<p>Alpha</p>\n<p>Beta</p>\n<p>Gamma</p>", wordCount: 3, empty: false
+  };
+
+  it("splits blocks into contiguous runs at the cut indices", () => {
+    const after = splitSectionAt([base], 0, [2]);
+    expect(after).toHaveLength(2);
+    expect(after[0].blocks).toEqual(["<p>Alpha</p>", "<p>Beta</p>"]);
+    expect(after[0].title).toBe("Big"); // first run keeps the original title
+    expect(after[1].blocks).toEqual(["<p>Gamma</p>"]);
+    expect(after[1].title).toBe("Gamma"); // derived from its first block
+    expect(after[1].html).toBe("<p>Gamma</p>");
+  });
+
+  it("supports multiple cuts producing N+1 sections", () => {
+    const after = splitSectionAt([base], 0, [1, 2]);
+    expect(after.map((s) => s.blocks)).toEqual([
+      ["<p>Alpha</p>"], ["<p>Beta</p>"], ["<p>Gamma</p>"]
+    ]);
+  });
+
+  it("re-detects session/date on new runs and ignores invalid cuts", () => {
+    const sec = {
+      ...base,
+      blocks: ["<p>Intro</p>", "<p>Session Zero 10/6/2024</p>", "<p>We begin.</p>"],
+      html: "x", wordCount: 3
+    };
+    const after = splitSectionAt([sec], 0, [1, 0, 99]); // 0 and 99 are invalid
+    expect(after).toHaveLength(2);
+    expect(after[1].title).toBe("Session Zero 10/6/2024");
+    expect(after[1].isSession).toBe(true);
+    expect(after[1].date).toBe("2024-10-06");
   });
 });
