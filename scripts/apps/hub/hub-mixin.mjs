@@ -282,6 +282,13 @@ export function HubMixin(Base) {
       return { records: withMatches, total: all.length };
     }
 
+    /** Human-readable label for a shortType, used for both filter chips and group headers. */
+    #typeLabel(shortType) {
+      return shortType === "journal"
+        ? game.i18n.localize("CAMPAIGNRECORD.Hub.JournalPage")
+        : game.i18n.localize(`TYPES.JournalEntryPage.${typeId(shortType)}`);
+    }
+
     /** Count query matches hidden by the current clearable filters, 0 when none. */
     #otherGroupMatches(shownRecords) {
       const query = (this.state.query ?? "").trim();
@@ -607,15 +614,25 @@ export function HubMixin(Base) {
         ...r,
         current: this.state.view?.uuid === r.uuid
       }));
+      context.grouped = this.state.sort === "type";
+      if (context.grouped) {
+        const groups = [];
+        let last = null;
+        for (const r of context.records) {
+          if (!last || last.shortType !== r.shortType) {
+            last = { shortType: r.shortType, label: this.#typeLabel(r.shortType), records: [] };
+            groups.push(last);
+          }
+          last.records.push(r);
+        }
+        context.recordGroups = groups;
+      }
       context.filteredCount = records.length;
       context.totalCount = total;
       context.otherGroupMatches = this.#otherGroupMatches(records);
       context.hasActiveFilters = this.state.types.size > 0 || this.state.hiddenOnly
         || (this.showsGroupPicker && this.state.groupId !== "all");
-      const typeLabel = (t) => t === "journal"
-        ? game.i18n.localize("CAMPAIGNRECORD.Hub.JournalPage")
-        : game.i18n.localize(`TYPES.JournalEntryPage.${typeId(t)}`);
-      context.doctypeFilter = buildDoctypeFilter(this.state.types, typeLabel);
+      context.doctypeFilter = buildDoctypeFilter(this.state.types, (t) => this.#typeLabel(t));
       context.sortOptions = ["name", "type", "updated"].map((s) => ({
         value: s,
         label: game.i18n.localize(`CAMPAIGNRECORD.Hub.Sort.${s}`),

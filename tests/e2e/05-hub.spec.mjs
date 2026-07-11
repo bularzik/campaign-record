@@ -76,4 +76,25 @@ test.describe("campaign hub shell", () => {
 
     await deleteGroupsByPrefix(page, "E2E Hub Nav");
   });
+
+  test("the index groups under small type headers only when sorted by type", async ({ page }) => {
+    await login(page, "Gamemaster");
+    await createGroupWithPage(page, "E2E Hub Sort Group", "E2E Hub Sort Npc", "campaign-record.npc");
+    await page.evaluate(async () => {
+      const { CampaignHub } = await import("/modules/campaign-record/scripts/apps/hub/campaign-hub.mjs");
+      CampaignHub.open();
+    });
+    const hub = page.locator("#campaign-hub");
+    await hub.waitFor({ timeout: 15_000 });
+
+    await expect(hub.locator(".record-group-header")).toHaveCount(0); // default sort = name
+
+    await hub.locator('select[name="sort-select"]').selectOption("type");
+    await expect(hub.locator(".record-group-header").first()).toBeVisible();
+
+    await hub.locator('select[name="sort-select"]').selectOption("name");
+    await expect(hub.locator(".record-group-header")).toHaveCount(0);
+
+    await deleteGroupsByPrefix(page, "E2E Hub Sort");
+  });
 });

@@ -144,6 +144,18 @@
   background: var(--color-hover-bg, rgba(255, 255, 240, 0.1));
 }
 
+.campaign-hub .record-group-header {
+  list-style: none;
+  margin: 0.4rem 0 0.1rem;
+  padding: 0 0.5rem;
+  font-size: var(--font-size-11, 11px);
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+.campaign-hub .record-group-header:first-child { margin-top: 0.1rem; }
+
 .campaign-hub .record-row .record-type-icon {
   justify-self: center;
   opacity: 0.75;

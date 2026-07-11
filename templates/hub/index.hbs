@@ -56,25 +56,16 @@
   </button>
   {{/if}}
   <ol class="record-list">
-    {{#each records}}
-    <li class="record-row{{#if this.current}} current{{/if}}" data-uuid="{{this.uuid}}"
-        {{#if this.canAttach}}data-drag-record draggable="true"{{/if}}
-        data-action="openRecord">
-      <i class="record-type-icon {{this.icon}}" data-tooltip="{{this.typeLabel}}"></i>
-      <span class="record-name">{{this.name}}
-        {{#if this.hidden}}<i class="fa-solid fa-eye-slash" data-tooltip="CAMPAIGNRECORD.Hidden"></i>{{/if}}
-      </span>
-      <span class="record-subtitle">{{this.subtitle}}</span>
-      {{#if @root.snippets}}{{#if this.matches.length}}
-      <div class="record-snippets">
-        {{#each this.matches}}
-        <span class="hit-snippet"><strong>{{this.field}}:</strong> {{this.snippet}}</span>
-        {{/each}}
-      </div>
-      {{/if}}{{/if}}
-    </li>
+    {{#if grouped}}
+      {{#each recordGroups}}
+      <li class="record-group-header">{{this.label}}</li>
+      {{#each this.records}}{{> campaign-record.hub-index-row}}{{/each}}
+      {{/each}}
     {{else}}
+      {{#each records}}{{> campaign-record.hub-index-row}}{{/each}}
+    {{/if}}
+    {{#unless records.length}}
     <li class="hint">{{localize "CAMPAIGNRECORD.Hub.NoRecords"}}</li>
-    {{/each}}
+    {{/unless}}
   </ol>
 </section>
