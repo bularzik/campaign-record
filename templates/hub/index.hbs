@@ -55,7 +55,7 @@
   {{/if}}
   <ol class="record-list">
     {{#each records}}
-    <li class="record-row" data-uuid="{{this.uuid}}"
+    <li class="record-row{{#if this.current}} current{{/if}}" data-uuid="{{this.uuid}}"
         {{#if this.canAttach}}data-drag-record draggable="true"{{/if}}
         data-action="openRecord">
       <i class="record-type-icon {{this.icon}}" data-tooltip="{{this.typeLabel}}"></i>

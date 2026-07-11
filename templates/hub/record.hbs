@@ -27,17 +27,6 @@
   </header>
   {{#if view}}
   <div class="record-pane-body">
-    <aside class="record-rail {{#if view.railCollapsed}}collapsed{{/if}}">
-      {{#each view.railGroups}}
-      <h4>{{this.label}}</h4>
-      <ol>
-        {{#each this.records}}
-        <li class="rail-record {{#if this.current}}current{{/if}}" data-action="openRecord"
-            data-uuid="{{this.uuid}}">{{this.name}}</li>
-        {{/each}}
-      </ol>
-      {{/each}}
-    </aside>
     <div class="record-pane-mount journal-entry-page"></div>
   </div>
   {{/if}}

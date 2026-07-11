@@ -313,26 +313,6 @@ export function HubMixin(Base) {
       return count;
     }
 
-    /** Rail entries: the filtered index grouped by type, current record flagged. */
-    #railGroups(currentUuid) {
-      const { records } = this.#indexEntries();
-      const byType = new Map();
-      for (const record of records) {
-        if (!byType.has(record.shortType)) {
-          const label = record.shortType === "journal"
-            ? game.i18n.localize("CAMPAIGNRECORD.Hub.JournalPage")
-            : game.i18n.localize(`TYPES.JournalEntryPage.${typeId(record.shortType)}`);
-          byType.set(record.shortType, { label, records: [] });
-        }
-        byType.get(record.shortType).records.push({
-          uuid: record.uuid,
-          name: record.name,
-          current: record.uuid === currentUuid
-        });
-      }
-      return [...byType.values()];
-    }
-
     static async #onOpenRecord(event, target) {
       const page = await fromUuid(target.closest("[data-uuid]").dataset.uuid);
       if (!page) return;
@@ -634,7 +614,10 @@ export function HubMixin(Base) {
       }));
       context.allSelected = this.state.groupId === "all";
       const { records, total } = this.#indexEntries();
-      context.records = records;
+      context.records = records.map((r) => ({
+        ...r,
+        current: this.state.view?.uuid === r.uuid
+      }));
       context.filteredCount = records.length;
       context.totalCount = total;
       context.otherGroupMatches = this.#otherGroupMatches(records);
@@ -668,9 +651,7 @@ export function HubMixin(Base) {
         ? {
             name: viewedPage.name,
             editing: this.state.view.mode === "edit",
-            canEdit: viewedPage.canUserModify(game.user, "update"),
-            railCollapsed: game.settings.get(MODULE_ID, RAIL_SETTING),
-            railGroups: this.#railGroups(viewedPage.uuid)
+            canEdit: viewedPage.canUserModify(game.user, "update")
           }
         : null;
       return context;
@@ -776,6 +757,7 @@ export function HubMixin(Base) {
       }).bind(this.element);
 
       this.element.classList.toggle("viewing-record", !!this.state.view);
+      this.element.classList.toggle("rail-collapsed", game.settings.get(MODULE_ID, RAIL_SETTING));
       const mount = this.element.querySelector(".record-pane-mount");
       if (mount && this.state.view) {
         const page = this.#resolveViewedPage();

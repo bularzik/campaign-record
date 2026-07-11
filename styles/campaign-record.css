@@ -526,7 +526,6 @@
 .campaign-hub:not(.viewing-record) .hub-record {
   flex: 0 0 auto;
 }
-.campaign-hub.viewing-record section.tab { display: none; }
 .record-pane-header {
   display: flex;
   align-items: center;
@@ -550,29 +549,51 @@
   flex: 1;
   min-height: 0;
 }
-.record-rail {
-  flex: 0 0 180px;
-  overflow-y: auto;
-  padding: 0.25rem 0.5rem;
-  border-right: 1px solid var(--color-border, #7a7971);
-}
-.record-rail.collapsed { display: none; }
-.record-rail h4 { margin: 0.5rem 0 0.25rem; }
-.record-rail ol { list-style: none; margin: 0; padding: 0; }
-.record-rail .rail-record {
-  cursor: pointer;
-  padding: 0.125rem 0.25rem;
-  border-radius: 3px;
-}
-.record-rail .rail-record:hover { background: rgba(0, 0, 0, 0.1); }
-.record-rail .rail-record.current {
-  background: rgba(0, 0, 0, 0.15);
-  font-weight: bold;
-}
 .record-pane-mount {
   flex: 1;
   overflow-y: auto;
   padding: 0.5rem;
+}
+
+/* Viewing a record: the index PART repositions as the left column (search,
+   doctype filter, sort, rows), the timeline PART hides, and the record PART
+   becomes the right column (header + mount, no rail). The parts (.hub-header,
+   .hub-index, .hub-timeline, .hub-record) are direct children of the app's
+   .window-content. */
+.campaign-hub.viewing-record .window-content {
+  display: grid;
+  grid-template-columns: minmax(0, 260px) minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-areas:
+    "header header"
+    "index  record";
+  gap: 0 0.5rem;
+}
+.campaign-hub.viewing-record .hub-header { grid-area: header; }
+.campaign-hub.viewing-record .hub-index {
+  grid-area: index;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow-y: auto;
+}
+.campaign-hub.viewing-record .hub-timeline { display: none; }
+.campaign-hub.viewing-record .hub-record { grid-area: record; min-width: 0; }
+
+/* Collapsed left index (rail toggle). */
+.campaign-hub.viewing-record.rail-collapsed .window-content {
+  grid-template-columns: 0 minmax(0, 1fr);
+}
+.campaign-hub.viewing-record.rail-collapsed .hub-index { display: none; }
+
+/* Narrow left-index rows: icon + name only. */
+.campaign-hub.viewing-record .hub-index .record-row {
+  grid-template-columns: 1.5rem minmax(0, 1fr);
+}
+.campaign-hub.viewing-record .hub-index .record-subtitle { display: none; }
+.campaign-hub.viewing-record .hub-index .record-row.current {
+  background: rgba(0, 0, 0, 0.15);
+  font-weight: bold;
 }
 
 .campaign-hub .other-group-matches {
