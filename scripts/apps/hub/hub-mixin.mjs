@@ -747,6 +747,10 @@ export function HubMixin(Base) {
       }).bind(this.element);
 
       this.element.classList.toggle("rail-collapsed", game.settings.get(MODULE_ID, RAIL_SETTING));
+      // The timeline stays mounted (live) beneath an open record, but the
+      // opaque overlay only blocks the mouse — keep its controls out of the
+      // keyboard/AT reach while a record covers it.
+      this.element.querySelector(".hub-timeline")?.toggleAttribute("inert", !!this.state.view);
       const mount = this.element.querySelector(".record-pane-mount");
       if (mount && this.state.view) {
         const page = this.#resolveViewedPage();
