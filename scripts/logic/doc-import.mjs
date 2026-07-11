@@ -79,6 +79,64 @@ function sectionBoundary(el) {
   return null;
 }
 
+function measureBlocks(blocks) {
+  const html = blocks.join("\n");
+  const text = blocks.join(" ").replace(/<[^>]+>/g, " ");
+  const wordCount = text.split(/\s+/).filter(Boolean).length;
+  return { html, wordCount, empty: blocks.length === 0 };
+}
+
+/** Merge sections[index] into sections[index-1] (blocks concatenated). */
+export function mergeSections(sections, index) {
+  if (index <= 0 || index >= sections.length) return sections.slice();
+  const prev = sections[index - 1];
+  const cur = sections[index];
+  const blocks = [...prev.blocks, ...cur.blocks];
+  const merged = {
+    title: prev.title, level: prev.level, isSession: prev.isSession, date: prev.date,
+    blocks, ...measureBlocks(blocks)
+  };
+  return [...sections.slice(0, index - 1), merged, ...sections.slice(index + 1)];
+}
+
+function firstBlockTitle(blocks) {
+  const text = (blocks[0] ?? "").replace(/<[^>]+>/g, " ");
+  return cleanTitle(text).slice(0, 80) || "Untitled";
+}
+
+// First run after a split keeps the original section's title/metadata.
+function keepRun(blocks, orig) {
+  return {
+    title: orig.title, level: orig.level, isSession: orig.isSession, date: orig.date,
+    blocks, ...measureBlocks(blocks)
+  };
+}
+
+// Later runs derive title + detection from their own first block.
+function newRun(blocks) {
+  const title = firstBlockTitle(blocks);
+  return {
+    title, level: 1, isSession: detectSessionHeader(title), date: parseSectionDate(title),
+    blocks, ...measureBlocks(blocks)
+  };
+}
+
+/** Split sections[index] into contiguous runs at the given block cut indices. */
+export function splitSectionAt(sections, index, cutIndices) {
+  const section = sections[index];
+  if (!section) return sections.slice();
+  const n = section.blocks.length;
+  const cuts = [...new Set(cutIndices)]
+    .filter((i) => Number.isInteger(i) && i > 0 && i < n)
+    .sort((a, b) => a - b);
+  if (!cuts.length) return sections.slice();
+  const bounds = [0, ...cuts, n];
+  const runs = [];
+  for (let i = 0; i < bounds.length - 1; i++) runs.push(section.blocks.slice(bounds[i], bounds[i + 1]));
+  const rebuilt = runs.map((run, i) => (i === 0 ? keepRun(run, section) : newRun(run)));
+  return [...sections.slice(0, index), ...rebuilt, ...sections.slice(index + 1)];
+}
+
 /**
  * Split a docx-derived HTML body into sections at headings (h1-h3) and
  * session-header paragraphs. Returns the document title (leading h1, if any)
@@ -110,12 +168,11 @@ export function splitSections(root) {
 
   return {
     title,
-    sections: sections.map(({ htmlParts, ...s }) => {
-      const html = htmlParts.join("\n");
-      const text = htmlParts.join(" ").replace(/<[^>]+>/g, " ");
-      const wordCount = text.split(/\s+/).filter(Boolean).length;
-      return { ...s, html, wordCount, empty: htmlParts.length === 0 };
-    })
+    sections: sections.map(({ htmlParts, ...s }) => ({
+      ...s,
+      blocks: htmlParts,
+      ...measureBlocks(htmlParts)
+    }))
   };
 }
 

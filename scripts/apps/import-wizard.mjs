@@ -1,6 +1,6 @@
 import { RECORD_TYPES, typeId } from "../constants.mjs";
 import { getGroups, createGroup } from "../data/groups.mjs";
-import { splitSections, suggestType, buildImportPlan } from "../logic/doc-import.mjs";
+import { splitSections, suggestType, buildImportPlan, mergeSections, splitSectionAt } from "../logic/doc-import.mjs";
 import { DOC_SOURCES } from "../integrations/doc-sources.mjs";
 import * as Timepoints from "../data/timepoints.mjs";
 
@@ -17,8 +17,11 @@ export class ImportWizard extends HandlebarsApplicationMixin(ApplicationV2) {
     window: { title: "CAMPAIGNRECORD.Import.Title", icon: "fa-solid fa-file-import" },
     position: { width: 640, height: "auto" },
     actions: {
+      cancel: ImportWizard.#onCancel,
       backToSource: ImportWizard.#onBackToSource,
-      createImport: ImportWizard.#onCreate
+      createImport: ImportWizard.#onCreate,
+      mergeUp: ImportWizard.#onMergeUp,
+      splitSection: ImportWizard.#onSplitSection
     }
   };
 
@@ -26,19 +29,23 @@ export class ImportWizard extends HandlebarsApplicationMixin(ApplicationV2) {
     body: { template: "modules/campaign-record/templates/import/wizard.hbs" }
   };
 
-  state = { step: "source", docTitle: null, sections: [], rows: [] };
+  state = { step: "source", docTitle: null, sections: [], rows: [], groupId: null, groupName: null };
 
   async _prepareContext(options) {
     const context = await super._prepareContext(options);
     context.isSource = this.state.step === "source";
     context.isReview = this.state.step === "review";
     context.sources = DOC_SOURCES;
+    context.groupId = this.state.groupId;
     context.groups = getGroups().filter((g) => g.canUserModify(game.user, "update"))
-      .map((g) => ({ id: g.id, name: g.name }));
-    context.groupName = this.state.docTitle
+      .map((g) => ({ id: g.id, name: g.name, selected: g.id === this.state.groupId }));
+    context.groupName = this.state.groupName
+      ?? this.state.docTitle
       ?? game.i18n.localize("CAMPAIGNRECORD.Import.Title");
     context.rows = this.state.rows.map((row, index) => ({
       ...row, index,
+      canMergeUp: index > 0,
+      canSplit: (this.state.sections[index]?.blocks?.length ?? 0) > 1,
       typeOptions: this.#typeOptions(row.type)
     }));
     return context;
@@ -50,7 +57,6 @@ export class ImportWizard extends HandlebarsApplicationMixin(ApplicationV2) {
       ...RECORD_TYPES.map((t) => ({
         value: t, label: game.i18n.localize(`TYPES.JournalEntryPage.${typeId(t)}`)
       })),
-      { value: "merge", label: game.i18n.localize("CAMPAIGNRECORD.Import.TypeMerge") },
       { value: "skip", label: game.i18n.localize("CAMPAIGNRECORD.Import.TypeSkip") }
     ];
     return options.map((o) => ({ ...o, selected: o.value === selected }));
@@ -80,23 +86,8 @@ export class ImportWizard extends HandlebarsApplicationMixin(ApplicationV2) {
     }
   }
 
-  async #onFileChosen(sourceId, file) {
-    const source = DOC_SOURCES.find((s) => s.id === sourceId);
-    let parsed;
-    try {
-      parsed = await source.parse(file);
-    } catch (error) {
-      console.error("campaign-record | docx parse failed", error);
-      return ui.notifications.error(game.i18n.localize("CAMPAIGNRECORD.Import.ParseError"));
-    }
-    const root = new DOMParser().parseFromString(parsed.html, "text/html").body;
-    const { title, sections } = splitSections(root);
-    if (!sections.length) {
-      return ui.notifications.warn(game.i18n.localize("CAMPAIGNRECORD.Import.NoSections"));
-    }
-    this.state.docTitle = title ?? file.name.replace(/\.docx$/i, "");
-    this.state.sections = sections;
-    this.state.rows = sections.map((section) => ({
+  #rowFromSection(section) {
+    return {
       title: section.title === "Introduction"
         ? game.i18n.localize("CAMPAIGNRECORD.Import.Introduction")
         : section.title,
@@ -104,31 +95,141 @@ export class ImportWizard extends HandlebarsApplicationMixin(ApplicationV2) {
       timepoint: section.isSession,
       date: section.date,
       wordCount: section.wordCount,
-      preview: section.html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 80)
-    }));
+      preview: sectionPreview(section.html)
+    };
+  }
+
+  #setReading(on) {
+    for (const input of this.element.querySelectorAll('.import-source input[type="file"]')) {
+      input.disabled = on;
+    }
+    const status = this.element.querySelector(".cr-reading");
+    if (status) status.hidden = !on;
+  }
+
+  async #onFileChosen(sourceId, file) {
+    this.#setReading(true);
+    const source = DOC_SOURCES.find((s) => s.id === sourceId);
+    let parsed;
+    try {
+      parsed = await source.parse(file);
+    } catch (error) {
+      console.error("campaign-record | docx parse failed", error);
+      this.#setReading(false);
+      return ui.notifications.error(game.i18n.localize("CAMPAIGNRECORD.Import.ParseError"));
+    }
+    const root = new DOMParser().parseFromString(parsed.html, "text/html").body;
+    const { title, sections } = splitSections(root);
+    if (!sections.length) {
+      this.#setReading(false);
+      return ui.notifications.warn(game.i18n.localize("CAMPAIGNRECORD.Import.NoSections"));
+    }
+    this.state.docTitle = title ?? file.name.replace(/\.docx$/i, "");
+    this.state.sections = sections;
+    this.state.rows = sections.map((section) => this.#rowFromSection(section));
     this.state.step = "review";
     this.render();
   }
 
-  /** Read the review form back into rows. */
-  _readForm() {
+  /** Read the per-row fields back out of the review form. */
+  #formRows() {
     const form = this.element.querySelector("form.import-review");
-    const rows = this.state.rows.map((row, i) => ({
+    return this.state.rows.map((row, i) => ({
       ...row,
       title: form.elements[`title-${i}`].value.trim(),
       type: form.elements[`type-${i}`].value,
       timepoint: form.elements[`timepoint-${i}`].checked
     }));
+  }
+
+  #formGroup() {
+    const form = this.element.querySelector("form.import-review");
     return {
-      rows,
       groupId: form.elements["target-group"].value || null,
       groupName: form.elements["group-name"].value.trim()
     };
   }
 
+  /** Read the review form back into rows + group choice. */
+  _readForm() {
+    return { rows: this.#formRows(), ...this.#formGroup() };
+  }
+
+  static #onCancel() {
+    this.close();
+  }
+
   static #onBackToSource() {
-    this.state = { step: "source", docTitle: null, sections: [], rows: [] };
+    this.state = { step: "source", docTitle: null, sections: [], rows: [], groupId: null, groupName: null };
     this.render();
+  }
+
+  static #onMergeUp(event, target) {
+    const index = Number(target.closest("[data-index]").dataset.index);
+    if (index <= 0) return;
+    this.state.rows = this.#formRows();
+    Object.assign(this.state, this.#formGroup());
+    this.state.sections = mergeSections(this.state.sections, index);
+    this.state.rows.splice(index, 1);
+    const merged = this.state.sections[index - 1];
+    this.state.rows[index - 1] = {
+      ...this.state.rows[index - 1],
+      wordCount: merged.wordCount,
+      preview: sectionPreview(merged.html)
+    };
+    this.render();
+  }
+
+  static async #onSplitSection(event, target) {
+    const index = Number(target.closest("[data-index]").dataset.index);
+    this.state.rows = this.#formRows();
+    Object.assign(this.state, this.#formGroup());
+    const cutIndices = await this.#promptSplit(this.state.sections[index]);
+    if (!cutIndices?.length) return;
+    const before = this.state.sections.length;
+    this.state.sections = splitSectionAt(this.state.sections, index, cutIndices);
+    const count = this.state.sections.length - before + 1;
+    const original = this.state.rows[index];
+    const newRows = [];
+    for (let i = 0; i < count; i++) {
+      const section = this.state.sections[index + i];
+      newRows.push(i === 0
+        ? { ...original, wordCount: section.wordCount, preview: sectionPreview(section.html) }
+        : this.#rowFromSection(section));
+    }
+    this.state.rows.splice(index, 1, ...newRows);
+    this.render();
+  }
+
+  async #promptSplit(section) {
+    const blocks = section.blocks;
+    if (blocks.length < 2) return null;
+    const escapeHTML = foundry.utils.escapeHTML;
+    const parts = blocks.map((html, i) => {
+      const text = html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 120);
+      const gap = i > 0
+        ? `<label class="cr-split-gap"><input type="checkbox" name="cut-${i}"> `
+          + `${game.i18n.localize("CAMPAIGNRECORD.Import.SplitHere")}</label>`
+        : "";
+      return `${gap}<p class="cr-split-block">${escapeHTML(text)}</p>`;
+    });
+    const content = `<div class="cr-split-modal">${parts.join("")}</div>`;
+    const result = await foundry.applications.api.DialogV2.wait({
+      window: { title: game.i18n.format("CAMPAIGNRECORD.Import.SplitTitle", { title: section.title }) },
+      modal: true,
+      content,
+      buttons: [
+        { action: "cancel", label: "CAMPAIGNRECORD.Import.Cancel" },
+        {
+          action: "split", label: "CAMPAIGNRECORD.Import.SplitConfirm", default: true,
+          callback: (event, button) => [...button.form.elements]
+            .filter((el) => el.name?.startsWith("cut-") && el.checked)
+            .map((el) => Number(el.name.slice(4)))
+        }
+      ],
+      rejectClose: false
+    });
+    return Array.isArray(result) ? result : null;
   }
 
   // Spec deviation, deliberate: unparseable session dates are surfaced as a
@@ -191,6 +292,10 @@ export class ImportWizard extends HandlebarsApplicationMixin(ApplicationV2) {
       target.disabled = false;
     }
   }
+}
+
+function sectionPreview(html) {
+  return html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 80);
 }
 
 function dataUriToFile(uri, basename) {
