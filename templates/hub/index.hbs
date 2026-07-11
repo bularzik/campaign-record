@@ -1,10 +1,10 @@
 <section class="tab hub-index{{#if tabs.index.active}} active{{/if}}" data-group="primary" data-tab="index">
-  <div class="type-chips">
-    {{#each typeChips}}
-    <button type="button" class="type-chip {{#if this.active}}active{{/if}}"
-            data-action="filterType" data-type="{{this.type}}">{{this.label}}</button>
+  <multi-select name="type-filter" class="type-filter"
+                aria-label="{{localize "CAMPAIGNRECORD.Hub.TypeFilter"}}">
+    {{#each typeFilterOptions}}
+    <option value="{{this.type}}" {{#if this.active}}selected{{/if}}>{{this.label}}</option>
     {{/each}}
-  </div>
+  </multi-select>
   <div class="index-controls">
     <input type="search" name="index-search" value="{{state.query}}"
            placeholder="{{localize "CAMPAIGNRECORD.Hub.FilterTag"}}" autocomplete="off">

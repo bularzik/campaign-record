@@ -47,7 +47,7 @@ test.describe("hub integration for phase 3 types", () => {
     await openHub();
     const hub = page.locator("#campaign-hub");
     await hub.waitFor({ timeout: 15_000 });
-    await expect(hub.locator(".type-chip")).toHaveCount(11);
+    await expect(hub.locator('multi-select[name="type-filter"] option')).toHaveCount(11);
     await expect(hub.locator(".record-list")).toContainText("Blacksmith");     // shop subtitle
     await expect(hub.locator(".record-list")).toContainText("Dan — Rogue 3");  // pc subtitle
     await expect(hub.locator(".record-list")).toContainText("1/2 done");       // checklist subtitle

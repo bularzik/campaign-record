@@ -40,7 +40,6 @@ export function HubMixin(Base) {
         newRecord: HubBase.#onNewRecord,
         importDocument: HubBase.#onImportDocument,
         exportGroup: HubBase.#onExportGroup,
-        filterType: HubBase.#onFilterType,
         toggleHiddenOnly: HubBase.#onToggleHiddenOnly,
         clearFilters: HubBase.#onClearFilters,
         toggleSnippets: HubBase.#onToggleSnippets,
@@ -382,13 +381,6 @@ export function HubMixin(Base) {
       await exportGroupDialog(group);
     }
 
-    static #onFilterType(event, target) {
-      const type = target.dataset.type;
-      if (this.state.types.has(type)) this.state.types.delete(type);
-      else this.state.types.add(type);
-      this.render();
-    }
-
     static #onToggleHiddenOnly() {
       this.state.hiddenOnly = !this.state.hiddenOnly;
       this.render();
@@ -634,7 +626,7 @@ export function HubMixin(Base) {
       context.otherGroupMatches = this.#otherGroupMatches(records);
       context.hasActiveFilters = this.state.types.size > 0 || this.state.hiddenOnly
         || (this.showsGroupPicker && this.state.groupId !== "all");
-      context.typeChips = [...RECORD_TYPES, "journal"].map((t) => ({
+      context.typeFilterOptions = [...RECORD_TYPES, "journal"].map((t) => ({
         type: t,
         label: t === "journal"
           ? game.i18n.localize("CAMPAIGNRECORD.Hub.JournalPage")
@@ -708,6 +700,14 @@ export function HubMixin(Base) {
         sortSelect.dataset.crBound = "1";
         sortSelect.addEventListener("change", (event) => {
           this.state.sort = event.target.value;
+          this.render();
+        });
+      }
+      const typeFilter = this.element.querySelector('multi-select[name="type-filter"]');
+      if (typeFilter && !typeFilter.dataset.crBound) {
+        typeFilter.dataset.crBound = "1";
+        typeFilter.addEventListener("change", (event) => {
+          this.state.types = new Set(event.target.value);
           this.render();
         });
       }

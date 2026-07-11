@@ -51,19 +51,12 @@
   display: block;
 }
 
-.campaign-hub .type-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.25rem;
-  margin-bottom: 0.5rem;
-}
-
-.campaign-hub .type-chip {
+.campaign-hub .type-filter {
   width: auto;
-  line-height: 1.2;
-  padding: 0.15rem 0.6rem;
-  font-size: var(--font-size-12, 12px);
-  border-radius: 1rem;
+  flex: 1 1 10rem;
+  min-width: 10rem;
+  max-width: 18rem;
+  margin-bottom: 0.5rem;
 }
 
 .campaign-hub .index-controls {
@@ -110,7 +103,6 @@
   margin-left: auto;
 }
 
-.campaign-hub .type-chip.active,
 .campaign-hub .hidden-toggle.active {
   background: var(--color-warm-2, #c9593f);
   color: #fff;

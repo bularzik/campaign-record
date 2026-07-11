@@ -47,6 +47,7 @@
       "NoGroups": "Create a campaign group first.",
       "NoRecords": "No records match the current filters.",
       "FilterTag": "Search records…",
+      "TypeFilter": "Filter by type",
       "Snippets": "Snippets",
       "HiddenOnly": "Show hidden records only",
       "ClearFilters": "Clear filters",
