@@ -91,6 +91,15 @@
   flex: 0 0 auto;
 }
 
+.campaign-hub .snippets-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex: 0 0 auto;
+  font-size: var(--font-size-12, 12px);
+  white-space: nowrap;
+}
+
 .campaign-hub .filtered-count {
   font-size: var(--font-size-12, 12px);
   opacity: 0.8;

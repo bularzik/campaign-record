@@ -143,11 +143,8 @@ test.describe("hub index", () => {
     });
     // Off: no snippet element rendered.
     await expect(hub.locator(".record-snippets")).toHaveCount(0);
-    await gmPage.evaluate(async () => {
-      await game.settings.set("campaign-record", "hubSnippets", true);
-      const { CampaignHub } = await import("/modules/campaign-record/scripts/apps/hub/campaign-hub.mjs");
-      await CampaignHub.open().render(true);
-    });
+    // Turn snippets ON by clicking the toggle (exercises data-action="toggleSnippets").
+    await hub.locator(".snippets-toggle input").click();
     // On: snippet element appears for the matched row.
     await expect(hub.locator(".record-snippets .hit-snippet").first()).toBeVisible({ timeout: 10_000 });
   });
