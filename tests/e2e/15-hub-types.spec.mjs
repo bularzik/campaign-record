@@ -43,11 +43,15 @@ test.describe("hub integration for phase 3 types", () => {
       await hub.render(true);
     });
 
-  test("index shows one chip per record type plus journal, and phase-3 subtitles", async () => {
+  test("index type filter offers one option per record type plus journal, and phase-3 subtitles", async () => {
     await openHub();
     const hub = page.locator("#campaign-hub");
     await hub.waitFor({ timeout: 15_000 });
-    await expect(hub.locator('multi-select[name="type-filter"] option')).toHaveCount(11);
+    // 10 record types + journal = 11 selectable options. Foundry's <multi-select>
+    // renders an extra blank prompt option, so assert the 11 real (non-blank) ones.
+    const typeFilter = hub.locator('multi-select[name="type-filter"]');
+    await expect(typeFilter).toBeVisible();
+    await expect(typeFilter.locator('option[value]:not([value=""])')).toHaveCount(11);
     await expect(hub.locator(".record-list")).toContainText("Blacksmith");     // shop subtitle
     await expect(hub.locator(".record-list")).toContainText("Dan — Rogue 3");  // pc subtitle
     await expect(hub.locator(".record-list")).toContainText("1/2 done");       // checklist subtitle
