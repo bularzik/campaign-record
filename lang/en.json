@@ -17,8 +17,8 @@
     "ModuleName": "Campaign Record",
     "AddObjective": "Add Objective",
     "ObjectiveGmOnly": "Toggle GM-only",
-    "CreateGroup": "Create Campaign Group",
-    "GroupName": "Group Name",
+    "CreateGroup": "Create Campaign Record",
+    "GroupName": "Campaign Record Name",
     "Create": "Create",
     "RecordsFolder": "Campaign Records",
     "Hidden": "Hidden",
@@ -33,39 +33,39 @@
     "Hub": {
       "Title": "Campaign Hub",
       "Open": "Open Campaign Hub",
-      "GroupPicker": "Campaign group",
-      "AllGroups": "All groups",
+      "GroupPicker": "Campaign Record",
+      "AllGroups": "All Campaign Records",
       "Empty": "Nothing here yet.",
       "Tabs": {
         "index": "Index",
         "timeline": "Timeline"
       },
-      "NewRecord": "New Record",
+      "NewRecord": "New Entry",
       "RecordName": "Name",
       "RecordType": "Type",
       "JournalPage": "Journal",
-      "NoGroups": "Create a campaign group first.",
-      "NoRecords": "No records match the current filters.",
-      "FilterTag": "Search records…",
+      "NoGroups": "Create a Campaign Record first.",
+      "NoRecords": "No entries match the current filters.",
+      "FilterTag": "Search entries…",
       "TypeFilter": "Filter by type",
       "Snippets": "Snippets",
-      "HiddenOnly": "Show hidden records only",
+      "HiddenOnly": "Show hidden entries only",
       "ClearFilters": "Clear filters",
       "FilteredCount": "{shown} of {total}",
-      "OtherGroupMatches": "{count} more matches in other groups — clear filters",
+      "OtherGroupMatches": "{count} more matches in other Campaign Records — clear filters",
       "Sort": { "name": "Name", "type": "Type", "updated": "Recently updated" },
       "AddTimepoint": "Add Timepoint",
       "InsertBefore": "Insert a timepoint before this one",
       "Rename": "Rename",
       "RenameTimepoint": "Rename Timepoint",
       "DeleteTimepoint": "Delete Timepoint",
-      "DeleteTimepointConfirmNamed": "Delete the timepoint \"{label}\"? Attached records stay; only the timepoint is removed.",
+      "DeleteTimepointConfirmNamed": "Delete the timepoint \"{label}\"? Attached entries stay; only the timepoint is removed.",
       "CannotAttach": "This page type cannot be attached to the timeline.",
       "TimepointLabel": "Label",
       "NoTimepoints": "No timepoints yet.",
       "Detach": "Detach from this timepoint",
-      "WrongGroup": "Records can only attach to timepoints in their own group.",
-      "CannotEditTimeline": "You lack permission to edit this group's timeline.",
+      "WrongGroup": "Entries can only attach to timepoints in their own Campaign Record.",
+      "CannotEditTimeline": "You lack permission to edit this Campaign Record's timeline.",
       "ShowImageToPlayers": "Show Image to Players?",
       "ShowImageToPlayersPrompt": "Should players see \"{name}\" on the timeline? You can change this later with the eye toggle on the chip.",
       "BrokenLink": "The linked document no longer exists.",
@@ -75,10 +75,10 @@
       "ToggleInlineEdit": "Toggle inline editing",
       "Back": "Back",
       "Forward": "Forward",
-      "ToggleRail": "Toggle record list",
-      "EditRecord": "Edit record",
+      "ToggleRail": "Toggle entry list",
+      "EditRecord": "Edit entry",
       "DoneEditing": "Done editing",
-      "RecordUnavailable": "That record can no longer be displayed."
+      "RecordUnavailable": "That entry can no longer be displayed."
     },
     "Import": {
       "Title": "Import Document",
@@ -92,8 +92,8 @@
       "NoSections": "No usable content was found in the document.",
       "ReviewHint": "Review the detected sections. Choose a type for each, or skip/merge them, then create.",
       "TargetGroup": "Import into",
-      "NewGroup": "New group…",
-      "GroupName": "Group name",
+      "NewGroup": "New Campaign Record…",
+      "GroupName": "Campaign Record name",
       "SectionTitle": "Title",
       "SectionType": "Type",
       "Timepoint": "Timepoint",
@@ -110,29 +110,29 @@
       "Introduction": "Introduction",
       "Back": "Back",
       "Create": "Import",
-      "Created": "Imported {pages} pages and {timepoints} timepoints into \"{group}\".",
+      "Created": "Imported {pages} entries and {timepoints} timepoints into \"{group}\".",
       "ImagesDropped": "Images could not be uploaded and were left out.",
       "NothingToImport": "Every section is set to skip — nothing to import.",
       "CreateFailed": "Import failed — see the console for details."
     },
     "Export": {
-      "GroupButton": "Export Group",
+      "GroupButton": "Export Campaign Record",
       "RecordControl": "Export to Word",
       "Title": "Export to Word",
-      "IncludeGM": "Include GM content (hidden records, GM notes)",
+      "IncludeGM": "Include GM content (hidden entries, GM notes)",
       "GoogleHint": "To turn this into a Google Doc, drag the downloaded file into drive.google.com — it converts automatically.",
       "Download": "Download .docx",
       "Timeline": "Timeline",
       "GmNotes": "GM Notes",
-      "SelectGroup": "Select a specific group to export.",
-      "HiddenRecord": "This record is hidden — check \"Include GM content\" to export it.",
+      "SelectGroup": "Select a specific Campaign Record to export.",
+      "HiddenRecord": "This entry is hidden — check \"Include GM content\" to export it.",
       "Failed": "Export failed — see the console for details.",
       "Done": "Exported \"{name}\"."
     },
     "Settings": {
       "InlineEditing": {
         "Name": "Inline editing",
-        "Hint": "Edit campaign records directly while viewing them; changes save automatically. Turn off for read-only views."
+        "Hint": "Edit entries directly while viewing them; changes save automatically. Turn off for read-only views."
       }
     },
     "Sheets": {
@@ -146,13 +146,13 @@
       "Shop": "Campaign Record Shop Sheet",
       "Loot": "Campaign Record Loot Sheet",
       "Media": "Campaign Record Media Sheet",
-      "GroupHub": "Campaign Hub (Group Sheet)"
+      "GroupHub": "Campaign Hub (Campaign Record Sheet)"
     },
     "Warning": {
-      "HiddenGMOnly": "Only a Gamemaster can hide or reveal records.",
+      "HiddenGMOnly": "Only a Gamemaster can hide or reveal entries.",
       "NoActorsToLink": "There are no Actors you have permission to see.",
-      "CreateGroupFailed": "Failed to create the campaign group. See the console for details.",
-      "SchemaNewer": "Campaign Record: this world's data (schema {stored}) was written by a newer module version than the one installed (schema {current}). Records are read-only until you update the module.",
+      "CreateGroupFailed": "Failed to create the Campaign Record. See the console for details.",
+      "SchemaNewer": "Campaign Record: this world's data (schema {stored}) was written by a newer module version than the one installed (schema {current}). Entries are read-only until you update the module.",
       "ReadOnly": "Campaign Record is read-only: the world's data schema is newer than the installed module.",
       "MigrationFailed": "Campaign Record: migrating world data to schema {version} failed — see the console. The migration will retry on next load.",
       "InlineSaveFailed": "Saving your change failed — see the console for details."
@@ -250,7 +250,7 @@
     "Loot": {
       "AddItem": "Add Item",
       "ItemCount": "{count} items",
-      "DropEncounterHint": "Drop an Encounter record here to link it.",
+      "DropEncounterHint": "Drop an Encounter entry here to link it.",
       "FIELDS": {
         "currency": {
           "label": "Currency",
@@ -285,7 +285,7 @@
       "Prev": "Previous image",
       "Next": "Next image",
       "Dismiss": "Dismiss",
-      "NoImages": "This media record has no images to present."
+      "NoImages": "This media entry has no images to present."
     }
   }
 }
