@@ -9,8 +9,8 @@ async function parseDocx(file) {
 
 /**
  * Registered import sources. A future Google OAuth source slots in here
- * (id: "google-oauth") without wizard changes; today the google-docs entry
- * is the guided manual flow: download as .docx, then pick the file.
+ * (id: "google-oauth") without wizard changes; today the single docx-file
+ * entry covers the guided manual flow (export to .docx, then pick the file).
  */
 export const DOC_SOURCES = [
   {
