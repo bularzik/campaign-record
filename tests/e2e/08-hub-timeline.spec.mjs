@@ -227,7 +227,7 @@ test.describe("hub timeline", () => {
 
   test("a link chip to an ordinary journal's page opens in this hub's pane", async () => {
     const pageName = "E2E Timeline Plain Page";
-    await gmPage.evaluate(async ({ groupId }) => {
+    const journalId = await gmPage.evaluate(async ({ groupId }) => {
       const [journal] = await JournalEntry.createDocuments([{ name: "E2E Timeline Plain Journal" }]);
       const [plain] = await journal.createEmbeddedDocuments("JournalEntryPage", [
         { name: "E2E Timeline Plain Page", type: "text", text: { content: "<p>plain</p>" } }
@@ -238,17 +238,21 @@ test.describe("hub timeline", () => {
       await addTimepoint(group, "Plain Link Timepoint", null);
       const tp = getTimepoints(group).find((t) => t.label === "Plain Link Timepoint");
       await addLink(group, tp.id, { uuid: plain.uuid, name: plain.name, type: "JournalEntryPage" });
+      return journal.id;
     }, ids);
 
-    const hub = await openTimeline(gmPage);
-    await groupSection(gmPage).locator(".link-chip", { hasText: pageName }).click();
-    await expect(hub.locator(".record-pane-title")).toHaveText(pageName);
-    // The core journal sheet did NOT open.
-    const coreSheetOpen = await gmPage.evaluate(
-      () => game.journal.getName("E2E Timeline Plain Journal").sheet.rendered
-    );
-    expect(coreSheetOpen).toBe(false);
-
-    await gmPage.evaluate(() => game.journal.getName("E2E Timeline Plain Journal").delete());
+    try {
+      const hub = await openTimeline(gmPage);
+      await groupSection(gmPage).locator(".link-chip", { hasText: pageName }).click();
+      await expect(hub.locator(".record-pane-title")).toHaveText(pageName);
+      // The core journal sheet did NOT open.
+      const coreSheetOpen = await gmPage.evaluate(
+        (id) => game.journal.get(id).sheet.rendered,
+        journalId
+      );
+      expect(coreSheetOpen).toBe(false);
+    } finally {
+      await gmPage.evaluate((id) => game.journal.get(id)?.delete(), journalId);
+    }
   });
 });
