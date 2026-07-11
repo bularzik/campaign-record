@@ -32,6 +32,10 @@ function openGroupHub(entry) {
 function registerGroupActivation(html) {
   if (html.dataset.campaignRecordActivation) return;
   html.dataset.campaignRecordActivation = "1";
+  // Capture phase on `html` runs before Foundry's own bubble-phase activateEntry
+  // dispatch, so stopImmediatePropagation here suppresses the default sheet open.
+  // If a future Foundry release moves action dispatch to a capture listener on an
+  // ancestor of `html`, attach on `html.closest(".application") ?? html` instead.
   html.addEventListener(
     "click",
     (event) => {

@@ -43,6 +43,16 @@ function hubCountFor(page, groupId) {
   }, { groupId });
 }
 
+/** Rendered non-hub sheets bound to this group (e.g. the core journal editor). */
+function otherSheetsFor(page, groupId) {
+  return page.evaluate(({ groupId }) => {
+    const g = game.journal.get(groupId);
+    return [...foundry.applications.instances.values()]
+      .filter((a) => a.rendered && a.document === g && a.constructor.name !== "GroupHubSheet")
+      .map((a) => a.constructor.name);
+  }, { groupId });
+}
+
 test.describe("campaign record sidebar activation", () => {
   test.afterEach(async ({ page }) => {
     await deleteGroupsByPrefix(page, "E2E Sidebar");
@@ -77,6 +87,8 @@ test.describe("campaign record sidebar activation", () => {
 
     await expect(page.locator(".group-hub")).toBeVisible();
     await expect.poll(() => hubOpenFor(page, ids.groupId)).toBe(true);
+    // Determinism (spec B3): the core journal editor must NOT also open.
+    await expect.poll(() => otherSheetsFor(page, ids.groupId)).toEqual([]);
   });
 
   test("re-activating a legacy Campaign Record reuses one hub window", async ({ page }) => {
