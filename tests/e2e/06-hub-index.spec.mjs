@@ -14,6 +14,10 @@ test.describe("hub index", () => {
         { name: "E2E Index Quest", type: "campaign-record.quest" }
       ]);
     }, ids);
+    await gmPage.evaluate(async ({ groupId, pageId }) => {
+      const page = game.journal.get(groupId).pages.get(pageId);
+      await page.update({ "system.description": "<p>Carries a qwertyx amulet.</p>" });
+    }, ids);
     await gmPage.evaluate(async () => {
       const { CampaignHub } = await import("/modules/campaign-record/scripts/apps/hub/campaign-hub.mjs");
       CampaignHub.open();
@@ -119,5 +123,32 @@ test.describe("hub index", () => {
     const filtered = await count("zzzznomatch");
     expect(all).toBeGreaterThan(0);
     expect(filtered).toBe(0);
+  });
+
+  test("snippets toggle reveals where a content match occurred", async () => {
+    const hub = gmPage.locator("#campaign-hub");
+    await gmPage.evaluate(async () => {
+      const { CampaignHub } = await import("/modules/campaign-record/scripts/apps/hub/campaign-hub.mjs");
+      const h = CampaignHub.open();
+      await game.settings.set("campaign-record", "hubSnippets", false);
+      h.state.query = "";
+      await h.render(true);
+    });
+    // Pick any record and give it a distinctive body word, then search it.
+    await gmPage.evaluate(async () => {
+      const { CampaignHub } = await import("/modules/campaign-record/scripts/apps/hub/campaign-hub.mjs");
+      const h = CampaignHub.open();
+      h.state.query = "qwertyx"; // seeded in this file's beforeAll via system.description
+      await h.render(true);
+    });
+    // Off: no snippet element rendered.
+    await expect(hub.locator(".record-snippets")).toHaveCount(0);
+    await gmPage.evaluate(async () => {
+      await game.settings.set("campaign-record", "hubSnippets", true);
+      const { CampaignHub } = await import("/modules/campaign-record/scripts/apps/hub/campaign-hub.mjs");
+      await CampaignHub.open().render(true);
+    });
+    // On: snippet element appears for the matched row.
+    await expect(hub.locator(".record-snippets .hit-snippet").first()).toBeVisible({ timeout: 10_000 });
   });
 });

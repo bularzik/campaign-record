@@ -1,6 +1,6 @@
 import { getGroups } from "../../data/groups.mjs";
 import {
-  MODULE_ID, THUMBNAILS_SETTING, RAIL_SETTING, INLINE_EDIT_SETTING, RECORD_TYPES, typeId
+  MODULE_ID, THUMBNAILS_SETTING, RAIL_SETTING, INLINE_EDIT_SETTING, SNIPPETS_SETTING, RECORD_TYPES, typeId
 } from "../../constants.mjs";
 import { hasInlineFocus } from "../../logic/inline-edit.mjs";
 import { collectRecords, isIndexablePage, getScopedGroups, toSearchRecord } from "./hub-data.mjs";
@@ -43,6 +43,7 @@ export function HubMixin(Base) {
         filterType: HubBase.#onFilterType,
         toggleHiddenOnly: HubBase.#onToggleHiddenOnly,
         clearFilters: HubBase.#onClearFilters,
+        toggleSnippets: HubBase.#onToggleSnippets,
         addTimepoint: HubBase.#onAddTimepoint,
         renameTimepoint: HubBase.#onRenameTimepoint,
         deleteTimepoint: HubBase.#onDeleteTimepoint,
@@ -529,6 +530,12 @@ export function HubMixin(Base) {
       await game.settings.set(MODULE_ID, INLINE_EDIT_SETTING, !current);
     }
 
+    static async #onToggleSnippets() {
+      const current = game.settings.get(MODULE_ID, SNIPPETS_SETTING);
+      await game.settings.set(MODULE_ID, SNIPPETS_SETTING, !current);
+      await this.render({ parts: ["index"] });
+    }
+
     #onTimelineDragStart(event) {
       const tpRow = event.target.closest("[data-drag-timepoint]");
       const recordRow = event.target.closest("[data-drag-record]");
@@ -645,6 +652,7 @@ export function HubMixin(Base) {
       context.timelineGroups = this.#timelineGroups();
       context.thumbnails = game.settings.get(MODULE_ID, THUMBNAILS_SETTING);
       context.inlineEditing = game.settings.get(MODULE_ID, INLINE_EDIT_SETTING);
+      context.snippets = game.settings.get(MODULE_ID, SNIPPETS_SETTING);
       const viewedPage = this.#resolveViewedPage();
       if (this.state.view && (!viewedPage || !isRecordVisible(game.user, viewedPage))) {
         // Deleted or no longer visible: fall back to the index.

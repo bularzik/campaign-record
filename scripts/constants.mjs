@@ -34,5 +34,8 @@ export const INLINE_EDIT_SETTING = "inlineEditing";
 /** Client setting: record-pane navigation rail collapsed. */
 export const RAIL_SETTING = "recordRailCollapsed";
 
+/** Client setting: expand Index rows with search-match snippets. */
+export const SNIPPETS_SETTING = "hubSnippets";
+
 /** Registered sheet id (scope.ClassName) that opens groups in the Campaign Hub. */
 export const GROUP_SHEET_CLASS = `${MODULE_ID}.GroupHubSheet`;

@@ -146,6 +146,14 @@
   border: none;
 }
 
+.campaign-hub .record-row .record-snippets {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding-left: 2.5rem;
+}
+
 .campaign-hub .record-subtitle,
 .campaign-hub .record-type,
 .campaign-hub .record-group {

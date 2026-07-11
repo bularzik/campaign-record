@@ -8,6 +8,11 @@
   <div class="index-controls">
     <input type="search" name="index-search" value="{{state.query}}"
            placeholder="{{localize "CAMPAIGNRECORD.Hub.FilterTag"}}" autocomplete="off">
+    <label class="snippets-toggle">
+      <input type="checkbox" name="snippets-toggle" data-action="toggleSnippets"
+             {{#if snippets}}checked{{/if}}>
+      {{localize "CAMPAIGNRECORD.Hub.Snippets"}}
+    </label>
     <select name="sort-select">
       {{#each sortOptions}}
       <option value="{{this.value}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>
@@ -42,6 +47,13 @@
       <span class="record-subtitle">{{this.subtitle}}</span>
       <span class="record-type">{{this.shortType}}</span>
       <span class="record-group">{{this.groupName}}</span>
+      {{#if @root.snippets}}{{#if this.matches.length}}
+      <div class="record-snippets">
+        {{#each this.matches}}
+        <span class="hit-snippet"><strong>{{this.field}}:</strong> {{this.snippet}}</span>
+        {{/each}}
+      </div>
+      {{/if}}{{/if}}
     </li>
     {{else}}
     <li class="hint">{{localize "CAMPAIGNRECORD.Hub.NoRecords"}}</li>
