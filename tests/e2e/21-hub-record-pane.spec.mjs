@@ -105,7 +105,9 @@ test.describe("hub record pane", () => {
       CampaignHub.toggle(); // close
       CampaignHub.toggle(); // reopen
     });
+    await hub.locator(".record-row", { hasText: "E2E Pane One" }).click();
     await expect(hub).toHaveClass(/rail-collapsed/);
+    await expect(hub.locator(".hub-index")).toBeHidden();
   });
 
   test("back/forward traverse visits, loops included", async ({ page }) => {
