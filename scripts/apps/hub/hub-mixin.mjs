@@ -9,6 +9,8 @@ import { hasGroupFlag, isRecordVisible } from "../../logic/visibility.mjs";
 import { classifyDropData, filenameFromSrc } from "../../logic/timeline-links.mjs";
 import { classifyLinkTarget } from "../../logic/record-links.mjs";
 import * as Timepoints from "../../data/timepoints.mjs";
+import { ImportWizard } from "../import-wizard.mjs";
+import { exportGroupDialog } from "../export-dialog.mjs";
 import { RecordPane } from "./record-pane.mjs";
 import {
   createHistory, pushEntry, canGoBack, canGoForward, goBack, goForward, prunePage
@@ -36,6 +38,8 @@ export function HubMixin(Base) {
       actions: {
         openRecord: HubBase.#onOpenRecord,
         newRecord: HubBase.#onNewRecord,
+        importDocument: HubBase.#onImportDocument,
+        exportGroup: HubBase.#onExportGroup,
         filterType: HubBase.#onFilterType,
         toggleHiddenOnly: HubBase.#onToggleHiddenOnly,
         clearFilters: HubBase.#onClearFilters,
@@ -365,6 +369,16 @@ export function HubMixin(Base) {
       else await page.parent.sheet.render(true, { pageId: page.id });
     }
 
+    static #onImportDocument() {
+      ImportWizard.open();
+    }
+
+    static async #onExportGroup() {
+      const group = game.journal.get(this.groupScopeId);
+      if (!group) return ui.notifications.warn(game.i18n.localize("CAMPAIGNRECORD.Export.SelectGroup"));
+      await exportGroupDialog(group);
+    }
+
     static #onFilterType(event, target) {
       const type = target.dataset.type;
       if (this.state.types.has(type)) this.state.types.delete(type);
@@ -598,6 +612,7 @@ export function HubMixin(Base) {
       const context = await super._prepareContext(options);
       context.state = this.state;
       context.isGM = game.user.isGM;
+      context.canImport = game.user.can("JOURNAL_CREATE");
       context.showGroupPicker = this.showsGroupPicker;
       context.groups = getGroups().map((g) => ({
         id: g.id, name: g.name, selected: g.id === this.state.groupId

@@ -1,5 +1,6 @@
 import { setRecordHidden } from "../data/groups.mjs";
 import { promptSelectActor } from "../apps/actor-picker.mjs";
+import { exportRecordDialog } from "../apps/export-dialog.mjs";
 import { MODULE_ID, INLINE_EDIT_SETTING, GROUP_SHEET_CLASS } from "../constants.mjs";
 import { computeInlineEdit, createDebouncedSaver, hasInlineFocus } from "../logic/inline-edit.mjs";
 
@@ -11,9 +12,17 @@ export class BaseRecordSheet extends JournalEntryPageHandlebarsSheet {
   static DEFAULT_OPTIONS = {
     classes: ["campaign-record", "record-sheet"],
     form: { submitOnChange: true, closeOnSubmit: false },
+    window: {
+      controls: [{
+        icon: "fa-solid fa-file-word",
+        label: "CAMPAIGNRECORD.Export.RecordControl",
+        action: "exportRecord"
+      }]
+    },
     actions: {
       toggleHidden: BaseRecordSheet.#onToggleHidden,
-      linkActor: BaseRecordSheet.#onLinkActor
+      linkActor: BaseRecordSheet.#onLinkActor,
+      exportRecord: BaseRecordSheet.#onExportRecord
     }
   };
 
@@ -180,6 +189,10 @@ export class BaseRecordSheet extends JournalEntryPageHandlebarsSheet {
   static async #onLinkActor() {
     const uuid = await promptSelectActor();
     if (uuid) await this._onDropDocument({ type: "Actor", uuid });
+  }
+
+  static async #onExportRecord() {
+    await exportRecordDialog(this.document);
   }
 
   /** Read, mutate, and write an array field as one targeted update. */

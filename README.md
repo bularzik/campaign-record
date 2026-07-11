@@ -26,6 +26,12 @@ for dnd5e.
 - **dnd5e integration**: dropping a weapon onto a Shop or Item record
   autofills price/rarity, and linked Actors show a live name/AC/HP summary
   on NPC and PC sheets.
+- **Word / Google Docs import & export**: import a `.docx` (or a Google Doc
+  downloaded as one) through a review wizard that splits it into sections,
+  assigns record types, and builds timeline timepoints from dated session
+  headers; export any group or single record to a native `.docx` that
+  converts cleanly when dragged into Google Drive. GM-only content is
+  exported only when a GM opts in.
 
 ## Installation
 
@@ -53,6 +59,13 @@ Then enable **Campaign Record** in your world's module management.
   controls tool, or the **Ctrl+Shift+H** shortcut: browse and filter records
   in the Index, search everything in Search, and organize events on the
   Timeline by dragging records onto a timepoint.
+- To import a document: open the Campaign Hub and click the **Import
+  Document** button (visible with the Create Journal Entries permission).
+  For a Google Doc, first use **File → Download → Microsoft Word (.docx)**
+  in Google Docs. Review the detected sections, pick types, then import.
+- To export: click **Export Group** in the Campaign Hub (with a specific
+  group selected), or **Export to Word** in a record sheet's window menu.
+  Drag the downloaded file into drive.google.com to get a Google Doc.
 - To present a slideshow: open a Media record's sheet as GM, click **Show to
   players** on an image (or **Start slideshow**) — connected players see a
   fullscreen overlay that follows the presenter's prev/next and can

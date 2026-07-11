@@ -7,6 +7,14 @@
     {{/each}}
   </select>
   {{/if}}
+  {{#if canImport}}
+  <button type="button" data-action="importDocument" data-tooltip="CAMPAIGNRECORD.Import.Button">
+    <i class="fa-solid fa-file-import"></i>
+  </button>
+  {{/if}}
+  <button type="button" data-action="exportGroup" data-tooltip="CAMPAIGNRECORD.Export.GroupButton">
+    <i class="fa-solid fa-file-word"></i>
+  </button>
   <button type="button" class="hub-inline-edit-toggle" data-action="toggleInlineEdit"
           data-tooltip="CAMPAIGNRECORD.Hub.ToggleInlineEdit"
           aria-pressed="{{#if inlineEditing}}true{{else}}false{{/if}}">
