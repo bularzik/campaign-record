@@ -104,3 +104,75 @@ test.describe("actor picker (drag-free linking for players)", () => {
     );
   });
 });
+
+// Players cannot drag Scenes out of the sidebar (core gates the drag to
+// GMs), so record sheets offer a "Link Scene" picker as a drag-free path.
+// These tests run the picker as a regular player.
+test.describe("scene picker (drag-free linking for players)", () => {
+  let gmPage, playerCtx, playerPage, sceneUuid;
+
+  test.beforeAll(async ({ browser }) => {
+    gmPage = await browser.newPage();
+    await login(gmPage, "Gamemaster");
+    sceneUuid = await gmPage.evaluate(async () => {
+      const scene = await Scene.create({
+        name: "E2E Picker Scene",
+        ownership: { default: CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER }
+      });
+      return scene.uuid;
+    });
+    playerCtx = await browser.newContext();
+    playerPage = await playerCtx.newPage();
+    await login(playerPage, "User 2");
+  });
+
+  test.afterAll(async () => {
+    await deleteGroupsByPrefix(gmPage, "E2E Picker Scene");
+    await gmPage.evaluate(async (uuid) => {
+      const scene = await fromUuid(uuid);
+      await scene?.delete();
+    }, sceneUuid);
+    await playerCtx.close();
+    await gmPage.close();
+  });
+
+  const pickScene = async (p, sheet) => {
+    await sheet.locator('button[data-action="linkScene"]').first().click();
+    const dialog = p.locator("dialog.application").last();
+    const select = dialog.locator('select[name="scene"]');
+    await select.waitFor({ timeout: 15_000 });
+    await select.selectOption({ label: "E2E Picker Scene" });
+    await dialog.locator('button[data-action="ok"]').click();
+  };
+
+  test("a player can link a scene to a Place record via the picker", async () => {
+    const ids = await createGroupWithPage(
+      gmPage, "E2E Picker Scene Group", "E2E Picker Scene Place", "campaign-record.place"
+    );
+    await playerPage.evaluate(
+      ({ groupId, pageId }) => game.journal.get(groupId).pages.get(pageId).sheet.render(true),
+      ids
+    );
+    const sheet = playerPage.locator(".campaign-record.record-sheet").last();
+    await sheet.locator('[name="system.location"]').waitFor({ timeout: 15_000 });
+
+    await pickScene(playerPage, sheet);
+
+    await expect
+      .poll(() =>
+        playerPage.evaluate(
+          ({ groupId, pageId }) => game.journal.get(groupId).pages.get(pageId).system.scene,
+          ids
+        )
+      )
+      .toBe(sceneUuid);
+    // the re-rendered sheet shows the link instead of the drop hint
+    await expect(sheet.locator("a.content-link")).toContainText("E2E Picker Scene", {
+      timeout: 15_000
+    });
+    await playerPage.evaluate(
+      ({ groupId, pageId }) => game.journal.get(groupId).pages.get(pageId).sheet.close(),
+      ids
+    );
+  });
+});

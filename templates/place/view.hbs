@@ -15,6 +15,9 @@
   {{#if enriched.sceneLink}}{{{enriched.sceneLink}}}{{else}}
     <span class="hint">{{localize "CAMPAIGNRECORD.DropSceneHint"}}</span>
   {{/if}}
+  <button type="button" data-action="linkScene">
+    <i class="fa-solid fa-link"></i> {{localize "CAMPAIGNRECORD.LinkScene"}}
+  </button>
 </div>
 {{else}}
 <dl class="record-facts">
