@@ -77,6 +77,44 @@ test.describe("import and export", () => {
     expect(summary.timepoints).toBeGreaterThanOrEqual(25);
   });
 
+  test("review step keeps the Create button on-screen for a many-section import", async () => {
+    await gmPage.evaluate(async () => {
+      const { ImportWizard } = await import("/modules/campaign-record/scripts/apps/import-wizard.mjs");
+      ImportWizard.open();
+    });
+    const wizard = gmPage.locator("#campaign-record-import");
+    await wizard.waitFor({ timeout: 15_000 });
+
+    await wizard.locator('[data-source-id="docx-file"] input[type="file"]').setInputFiles(FIXTURE);
+
+    // Review step: the fixture produces 30+ rows — enough to overflow the viewport.
+    const rows = wizard.locator("table.import-sections tbody tr");
+    await expect(rows.first()).toBeVisible({ timeout: 30_000 });
+    expect(await rows.count()).toBeGreaterThanOrEqual(30);
+
+    const viewport = gmPage.viewportSize();
+    const win = await wizard.boundingBox();
+
+    // The window must never be taller than the screen.
+    expect(win.y + win.height).toBeLessThanOrEqual(viewport.height + 1);
+
+    // The Create button must be fully visible within the window bounds.
+    const createBtn = wizard.locator('[data-action="createImport"]');
+    await expect(createBtn).toBeInViewport();
+    const btnBox = await createBtn.boundingBox();
+    expect(btnBox.y + btnBox.height).toBeLessThanOrEqual(win.y + win.height + 1);
+
+    // The section list — not the window — must be the scroll region.
+    const listScrolls = await wizard.locator(".import-sections-scroll").evaluate(
+      (el) => el.scrollHeight > el.clientHeight + 1
+    );
+    expect(listScrolls).toBe(true);
+
+    // Close without importing (creates no group; nothing to clean up).
+    await wizard.locator('[data-action="cancel"]').click();
+    await wizard.waitFor({ state: "detached", timeout: 10_000 });
+  });
+
   test("GM exports a group with and without GM content", async () => {
     // Build a small group: one NPC with gmNotes, one hidden NPC.
     await gmPage.evaluate(async () => {

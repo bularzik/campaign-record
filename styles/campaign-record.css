@@ -554,3 +554,42 @@
   opacity: 0.85;
   background: rgba(255, 255, 240, 0.05);
 }
+
+/* Import wizard: keep the review step's actions reachable when a document
+   splits into many sections. Cap the window height, scroll only the section
+   list, and pin the group header and the footer buttons. */
+.import-wizard-app {
+  max-height: 90vh;
+}
+
+.import-wizard-app .window-content {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.import-wizard-app .import-review {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.import-wizard-app .import-review > .form-group,
+.import-wizard-app .import-review > .form-footer {
+  flex: 0 0 auto;
+}
+
+.import-wizard-app .import-sections-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.import-wizard-app .import-sections thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background-color: var(--color-bg-option, var(--color-bg, #e8e6dc));
+}
