@@ -148,4 +148,16 @@ test.describe("hub index", () => {
     // On: snippet element appears for the matched row.
     await expect(hub.locator(".record-snippets .hit-snippet").first()).toBeVisible({ timeout: 10_000 });
   });
+
+  test("shows a hint when a type filter hides matching records", async () => {
+    const count = await gmPage.evaluate(async () => {
+      const { CampaignHub } = await import("/modules/campaign-record/scripts/apps/hub/campaign-hub.mjs");
+      const hub = CampaignHub.open();
+      hub.state.query = "e2e";            // matches multiple seeded records across types
+      hub.state.types = new Set(["quest"]); // filter to a type most matches are NOT
+      await hub.render(true);
+      return hub.element.querySelectorAll(".other-group-matches").length;
+    });
+    expect(count).toBe(1);
+  });
 });

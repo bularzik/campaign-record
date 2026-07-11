@@ -310,6 +310,26 @@ export function HubMixin(Base) {
       return { records: withMatches, total: all.length };
     }
 
+    /** Count query matches hidden by the current clearable filters, 0 when none. */
+    #otherGroupMatches(shownRecords) {
+      const query = (this.state.query ?? "").trim();
+      if (query.length < 2) return 0;
+      const scopingClearable = this.showsGroupPicker && this.state.groupId !== "all";
+      const filtersActive = this.state.types.size > 0 || this.state.hiddenOnly || scopingClearable;
+      if (!filtersActive) return 0;
+      // Records visible once clearable filters are reset: unscoped for the
+      // standalone hub, still this group for a locked single-group sheet.
+      const clearedScope = this.showsGroupPicker ? "all" : this.groupScopeId;
+      const visibleCleared = new Set(
+        collectRecords({ groupId: clearedScope, user: game.user }).map((r) => r.uuid)
+      );
+      const shown = new Set(shownRecords.map((r) => r.uuid));
+      const hits = search(this.#ensureSearchIndex(), query, { gm: game.user.isGM });
+      let count = 0;
+      for (const h of hits) if (visibleCleared.has(h.uuid) && !shown.has(h.uuid)) count++;
+      return count;
+    }
+
     /** Rail entries: the filtered index grouped by type, current record flagged. */
     #railGroups(currentPageId) {
       const { records } = this.#indexEntries();
@@ -402,6 +422,7 @@ export function HubMixin(Base) {
     static #onClearFilters() {
       this.state.types.clear();
       this.state.hiddenOnly = false;
+      if (this.showsGroupPicker) this.state.groupId = "all";
       this.render();
     }
 
@@ -635,7 +656,9 @@ export function HubMixin(Base) {
       context.records = records;
       context.filteredCount = records.length;
       context.totalCount = total;
-      context.hasActiveFilters = this.state.types.size > 0 || this.state.hiddenOnly;
+      context.otherGroupMatches = this.#otherGroupMatches(records);
+      context.hasActiveFilters = this.state.types.size > 0 || this.state.hiddenOnly
+        || (this.showsGroupPicker && this.state.groupId !== "all");
       context.typeChips = [...RECORD_TYPES, "journal"].map((t) => ({
         type: t,
         label: t === "journal"

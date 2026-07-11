@@ -35,6 +35,11 @@
       <i class="fa-solid fa-plus"></i> {{localize "CAMPAIGNRECORD.Hub.NewRecord"}}
     </button>
   </div>
+  {{#if otherGroupMatches}}
+  <button type="button" class="other-group-matches" data-action="clearFilters">
+    {{localize "CAMPAIGNRECORD.Hub.OtherGroupMatches" count=otherGroupMatches}}
+  </button>
+  {{/if}}
   <ol class="record-list">
     {{#each records}}
     <li class="record-row" data-uuid="{{this.uuid}}"
