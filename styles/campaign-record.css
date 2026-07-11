@@ -604,6 +604,18 @@
   background-color: var(--color-bg-option, var(--color-bg, #e8e6dc));
 }
 
+.import-wizard-app .form-footer {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.import-wizard-app .form-footer button {
+  flex: 0 0 auto;
+}
+
 /* Split-section dialog: keep the Cancel/Split buttons reachable when a
    section has many blocks — scroll the block list instead of growing the
    dialog past the viewport. */

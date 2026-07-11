@@ -85,6 +85,13 @@ test.describe("import and export", () => {
     const wizard = gmPage.locator("#campaign-record-import");
     await wizard.waitFor({ timeout: 15_000 });
 
+    // Assert that the footer buttons lay out horizontally.
+    const footerDirection = await wizard.evaluate(() => {
+      const footer = document.querySelector(".import-wizard-app .form-footer");
+      return footer ? getComputedStyle(footer).flexDirection : null;
+    });
+    expect(footerDirection).toBe("row");
+
     await wizard.locator('[data-source-id="docx-file"] input[type="file"]').setInputFiles(FIXTURE);
 
     // Review step: the fixture produces 30+ rows — enough to overflow the viewport.
