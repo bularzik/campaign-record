@@ -22,7 +22,8 @@ export class GroupHubSheet extends HubMixin(DocumentSheetV2) {
 
   /** Core JournalEntrySheet API compat: content links and callers land in-pane. */
   goToPage(pageId) {
-    return this.navigateToRecord(pageId);
+    const page = this.document.pages.get(pageId);
+    return page ? this.navigateToRecord(page.uuid) : undefined;
   }
 
   /**

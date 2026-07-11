@@ -1,15 +1,9 @@
-import { hasGroupFlag } from "./visibility.mjs";
-
 /**
  * Decide how the hub should handle activating a link to a document.
- * - "in-pane": a page of a campaign group within the hub's scope
- * - "other-group": a page of a campaign group outside the scope
+ * - "in-pane": any journal page — every page opens in the current hub's pane
  * - "external": anything else (defer to Foundry's default handling)
  */
-export function classifyLinkTarget(doc, scopedGroupIds) {
+export function classifyLinkTarget(doc) {
   if (doc?.documentName !== "JournalEntryPage") return { kind: "external" };
-  if (!hasGroupFlag(doc.parent?.flags)) return { kind: "external" };
-  const groupId = doc.parent.id;
-  const kind = scopedGroupIds.has(groupId) ? "in-pane" : "other-group";
-  return { kind, groupId, pageId: doc.id };
+  return { kind: "in-pane", uuid: doc.uuid };
 }

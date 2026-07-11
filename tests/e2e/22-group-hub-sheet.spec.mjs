@@ -39,7 +39,7 @@ test.describe("group hub sheet", () => {
     await expect(sheet.locator(".record-pane-mount dl.record-facts")).toBeVisible();
   });
 
-  test("cross-group record links open the other group's hub", async ({ page }) => {
+  test("cross-group record links open in this hub's own pane", async ({ page }) => {
     await login(page, "Gamemaster");
     // Content links only render as clickable anchors in the read-only
     // (enriched) view — inline editing shows a live editor instead.
@@ -56,7 +56,36 @@ test.describe("group hub sheet", () => {
 
     const alpha = page.locator(".group-hub").first();
     await alpha.locator(".record-pane-mount a.content-link", { hasText: "far away" }).click();
-    const beta = page.locator(".group-hub", { hasText: "E2E Sheet Remote" }).last();
-    await expect(beta.locator(".record-pane-title")).toHaveText("E2E Sheet Remote");
+    // The SAME hub window shows the remote page; Beta's own hub never opens.
+    await expect(alpha.locator(".record-pane-title")).toHaveText("E2E Sheet Remote");
+    const betaHubOpen = await page.evaluate(
+      ({ b }) => game.journal.get(b.groupId).sheet.rendered, { b }
+    );
+    expect(betaHubOpen).toBe(false);
+  });
+
+  test("a record created into another group opens in this hub's pane in edit mode", async ({ page }) => {
+    await login(page, "Gamemaster");
+    const a = await createGroupWithPage(page, "E2E Sheet Alpha", "E2E Sheet Src", "campaign-record.npc");
+    const b = await createGroupWithPage(page, "E2E Sheet Beta", "E2E Sheet Other", "campaign-record.place");
+    await page.evaluate(({ a }) => game.journal.get(a.groupId).sheet.render(true), { a });
+    const sheet = page.locator(".group-hub");
+    await sheet.locator('[data-action="newRecord"]').click();
+    const nameInput = page.locator('dialog input[name="name"], .application.dialog input[name="name"]');
+    await nameInput.waitFor({ timeout: 10_000 });
+    await nameInput.fill("E2E Sheet Created Elsewhere");
+    await page.locator('dialog select[name="type"], .application.dialog select[name="type"]')
+      .selectOption("campaign-record.npc");
+    await page.locator('dialog select[name="group"], .application.dialog select[name="group"]')
+      .selectOption(b.groupId);
+    await page.locator('dialog button[data-action="ok"], .application.dialog button[data-action="ok"]').click();
+
+    // Lands in ALPHA's pane, in edit mode, even though the page lives in Beta.
+    await expect(sheet.locator(".record-pane-title")).toHaveText("E2E Sheet Created Elsewhere");
+    await expect(sheet.locator(".record-pane-mount form")).toBeVisible();
+    const inBeta = await page.evaluate(
+      ({ b }) => !!game.journal.get(b.groupId).pages.getName("E2E Sheet Created Elsewhere"), { b }
+    );
+    expect(inBeta).toBe(true);
   });
 });

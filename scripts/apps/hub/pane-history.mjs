@@ -9,7 +9,7 @@ export function currentEntry(history) {
 }
 
 function entriesEqual(a, b) {
-  return a.kind === b.kind && a.pageId === b.pageId;
+  return a.kind === b.kind && a.uuid === b.uuid;
 }
 
 /** Append an entry after the cursor, dropping forward history. No-op if equal to current. */
@@ -41,11 +41,11 @@ export function goForward(history) {
 }
 
 /** Remove all entries for a deleted page; collapse resulting adjacent duplicates. */
-export function prunePage(history, pageId) {
+export function pruneUuid(history, uuid) {
   const kept = [];
   let cursor = 0;
   history.entries.forEach((entry, i) => {
-    const doomed = entry.kind === "record" && entry.pageId === pageId;
+    const doomed = entry.kind === "record" && entry.uuid === uuid;
     const duplicate = kept.length && !doomed && entriesEqual(kept[kept.length - 1], entry);
     if (!doomed && !duplicate) kept.push(entry);
     // The cursor lands on the nearest surviving entry at-or-before its old position.

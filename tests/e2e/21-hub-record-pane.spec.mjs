@@ -234,4 +234,32 @@ test.describe("hub record pane", () => {
       await ctx.close();
     }
   });
+
+  test("a page the player cannot observe falls back to the index silently", async ({ page, browser }) => {
+    await login(page, "Gamemaster");
+    const ids = await createGroupWithPage(
+      page, "E2E Pane Restricted Group", "E2E Pane Restricted Page", "campaign-record.npc"
+    );
+    await page.evaluate(async ({ groupId, pageId }) => {
+      const target = game.journal.get(groupId).pages.get(pageId);
+      await target.update({ ownership: { default: CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE } });
+    }, ids);
+
+    const ctx = await browser.newContext();
+    const playerPage = await ctx.newPage();
+    try {
+      await login(playerPage, "User 1");
+      await playerPage.evaluate(async ({ pageUuid }) => {
+        const { CampaignHub } = await import("/modules/campaign-record/scripts/apps/hub/campaign-hub.mjs");
+        const hub = CampaignHub.open();
+        await hub.navigateToRecord(pageUuid);
+      }, ids);
+
+      const hub = playerPage.locator("#campaign-hub");
+      await expect(hub.locator('.hub-index[data-tab="index"]')).toBeVisible();
+      await expect(hub.locator(".record-pane-title")).toHaveCount(0);
+    } finally {
+      await ctx.close();
+    }
+  });
 });

@@ -13,7 +13,7 @@ import { ImportWizard } from "../import-wizard.mjs";
 import { exportGroupDialog } from "../export-dialog.mjs";
 import { RecordPane } from "./record-pane.mjs";
 import {
-  createHistory, pushEntry, canGoBack, canGoForward, goBack, goForward, prunePage
+  createHistory, pushEntry, canGoBack, canGoForward, goBack, goForward, pruneUuid
 } from "./pane-history.mjs";
 
 const { HandlebarsApplicationMixin } = foundry.applications.api;
@@ -84,23 +84,21 @@ export function HubMixin(Base) {
     #history = createHistory();
     #pane = new RecordPane();
 
-    /** The viewed page resolved within scope, or null. */
+    /** The viewed page resolved from its uuid, or null. */
     #resolveViewedPage() {
       if (!this.state.view) return null;
-      for (const group of getScopedGroups(this.groupScopeId)) {
-        const page = group.pages.get(this.state.view.pageId);
-        if (page) return page;
+      let doc = null;
+      try {
+        doc = fromUuidSync(this.state.view.uuid);
+      } catch {
+        // Not synchronously resolvable (e.g. compendium): treat as gone.
       }
-      return null;
+      return doc?.documentName === "JournalEntryPage" ? doc : null;
     }
 
-    #inScope(page) {
-      return getScopedGroups(this.groupScopeId).some((g) => g.id === page.parent?.id);
-    }
-
-    async navigateToRecord(pageId, { mode = "view", pushHistory = true } = {}) {
-      this.state.view = { pageId, mode };
-      if (pushHistory) pushEntry(this.#history, { kind: "record", pageId });
+    async navigateToRecord(uuid, { mode = "view", pushHistory = true } = {}) {
+      this.state.view = { uuid, mode };
+      if (pushHistory) pushEntry(this.#history, { kind: "record", uuid });
       await this.render();
     }
 
@@ -113,7 +111,7 @@ export function HubMixin(Base) {
     async #applyHistoryEntry(entry) {
       if (!entry) return;
       if (entry.kind === "index") return this.navigateToIndex({ pushHistory: false });
-      return this.navigateToRecord(entry.pageId, { pushHistory: false });
+      return this.navigateToRecord(entry.uuid, { pushHistory: false });
     }
 
     static async #onPaneBack() {
@@ -239,8 +237,8 @@ export function HubMixin(Base) {
       }
       // groups carry many pages; rebuild lazily rather than patching membership incrementally
       if (hook === "deleteJournalEntry" || hook === "createJournalEntry") this.#searchIndex = null;
-      if (hook === "deleteJournalEntryPage" && this.state.view?.pageId === doc.id) {
-        prunePage(this.#history, doc.id);
+      if (hook === "deleteJournalEntryPage" && this.state.view?.uuid === doc.uuid) {
+        pruneUuid(this.#history, doc.uuid);
         this.state.view = null;
       }
       this.#debouncedRender();
@@ -267,8 +265,11 @@ export function HubMixin(Base) {
     _configureRenderOptions(options) {
       super._configureRenderOptions(options);
       if (options.pageId) {
-        this.state.view = { pageId: options.pageId, mode: "view" };
-        pushEntry(this.#history, { kind: "record", pageId: options.pageId });
+        const page = this.document?.pages?.get(options.pageId);
+        if (page) {
+          this.state.view = { uuid: page.uuid, mode: "view" };
+          pushEntry(this.#history, { kind: "record", uuid: page.uuid });
+        }
         delete options.pageId; // consumed; must not re-trigger on later renders
       }
     }
@@ -303,7 +304,7 @@ export function HubMixin(Base) {
     }
 
     /** Rail entries: the filtered index grouped by type, current record flagged. */
-    #railGroups(currentPageId) {
+    #railGroups(currentUuid) {
       const { records } = this.#indexEntries();
       const byType = new Map();
       for (const record of records) {
@@ -316,7 +317,7 @@ export function HubMixin(Base) {
         byType.get(record.shortType).records.push({
           uuid: record.uuid,
           name: record.name,
-          current: record.id === currentPageId
+          current: record.uuid === currentUuid
         });
       }
       return [...byType.values()];
@@ -325,9 +326,7 @@ export function HubMixin(Base) {
     static async #onOpenRecord(event, target) {
       const page = await fromUuid(target.closest("[data-uuid]").dataset.uuid);
       if (!page) return;
-      if (this.#inScope(page)) return this.navigateToRecord(page.id);
-      // Out-of-scope record (e.g. cross-group timeline chip): open its group's sheet.
-      await page.parent.sheet.render(true, { pageId: page.id });
+      await this.navigateToRecord(page.uuid);
     }
 
     static async #onNewRecord() {
@@ -365,8 +364,7 @@ export function HubMixin(Base) {
       const [page] = await group.createEmbeddedDocuments("JournalEntryPage", [
         { name: result.name, type: result.type }
       ]);
-      if (this.#inScope(page)) await this.navigateToRecord(page.id, { mode: "edit" });
-      else await page.parent.sheet.render(true, { pageId: page.id });
+      await this.navigateToRecord(page.uuid, { mode: "edit" });
     }
 
     static #onImportDocument() {
@@ -490,9 +488,7 @@ export function HubMixin(Base) {
       const doc = await fromUuid(uuid);
       if (!doc) return ui.notifications.warn(game.i18n.localize("CAMPAIGNRECORD.Hub.BrokenLink"));
       if (doc.documentName === "JournalEntryPage") {
-        const sheet = doc.parent.sheet;
-        await sheet.render(true);
-        return sheet.goToPage(doc.id);
+        return this.navigateToRecord(doc.uuid);
       }
       doc.sheet.render(true);
     }
@@ -640,9 +636,12 @@ export function HubMixin(Base) {
       context.thumbnails = game.settings.get(MODULE_ID, THUMBNAILS_SETTING);
       context.inlineEditing = game.settings.get(MODULE_ID, INLINE_EDIT_SETTING);
       const viewedPage = this.#resolveViewedPage();
-      if (this.state.view && (!viewedPage || !isRecordVisible(game.user, viewedPage))) {
-        // Deleted or no longer visible: fall back to the index.
-        if (this.state.view) prunePage(this.#history, this.state.view.pageId);
+      const viewable = !!viewedPage
+        && viewedPage.testUserPermission(game.user, "OBSERVER")
+        && isRecordVisible(game.user, viewedPage);
+      if (this.state.view && !viewable) {
+        // Deleted, unresolvable, or not viewable by this user: fall back to the index.
+        pruneUuid(this.#history, this.state.view.uuid);
         this.state.view = null;
       }
       context.canGoBack = canGoBack(this.#history);
@@ -653,7 +652,7 @@ export function HubMixin(Base) {
             editing: this.state.view.mode === "edit",
             canEdit: viewedPage.canUserModify(game.user, "update"),
             railCollapsed: game.settings.get(MODULE_ID, RAIL_SETTING),
-            railGroups: this.#railGroups(this.state.view.pageId)
+            railGroups: this.#railGroups(viewedPage.uuid)
           }
         : null;
       return context;
@@ -742,13 +741,11 @@ export function HubMixin(Base) {
             } catch {
               return; // unresolvable synchronously: leave the click to Foundry's default handling
             }
-            const scoped = new Set(getScopedGroups(this.groupScopeId).map((g) => g.id));
-            const target = classifyLinkTarget(doc, scoped);
+            const target = classifyLinkTarget(doc);
             if (target.kind === "external") return; // Foundry's default handling
             event.preventDefault();
             event.stopPropagation();
-            if (target.kind === "in-pane") this.navigateToRecord(target.pageId);
-            else doc.parent.sheet.render(true, { pageId: target.pageId });
+            this.navigateToRecord(target.uuid);
           },
           true
         );
