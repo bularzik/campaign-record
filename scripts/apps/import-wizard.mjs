@@ -29,16 +29,18 @@ export class ImportWizard extends HandlebarsApplicationMixin(ApplicationV2) {
     body: { template: "modules/campaign-record/templates/import/wizard.hbs" }
   };
 
-  state = { step: "source", docTitle: null, sections: [], rows: [] };
+  state = { step: "source", docTitle: null, sections: [], rows: [], groupId: null, groupName: null };
 
   async _prepareContext(options) {
     const context = await super._prepareContext(options);
     context.isSource = this.state.step === "source";
     context.isReview = this.state.step === "review";
     context.sources = DOC_SOURCES;
+    context.groupId = this.state.groupId;
     context.groups = getGroups().filter((g) => g.canUserModify(game.user, "update"))
-      .map((g) => ({ id: g.id, name: g.name }));
-    context.groupName = this.state.docTitle
+      .map((g) => ({ id: g.id, name: g.name, selected: g.id === this.state.groupId }));
+    context.groupName = this.state.groupName
+      ?? this.state.docTitle
       ?? game.i18n.localize("CAMPAIGNRECORD.Import.Title");
     context.rows = this.state.rows.map((row, index) => ({
       ...row, index,
@@ -140,14 +142,17 @@ export class ImportWizard extends HandlebarsApplicationMixin(ApplicationV2) {
     }));
   }
 
-  /** Read the review form back into rows + group choice. */
-  _readForm() {
+  #formGroup() {
     const form = this.element.querySelector("form.import-review");
     return {
-      rows: this.#formRows(),
       groupId: form.elements["target-group"].value || null,
       groupName: form.elements["group-name"].value.trim()
     };
+  }
+
+  /** Read the review form back into rows + group choice. */
+  _readForm() {
+    return { rows: this.#formRows(), ...this.#formGroup() };
   }
 
   static #onCancel() {
@@ -155,7 +160,7 @@ export class ImportWizard extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   static #onBackToSource() {
-    this.state = { step: "source", docTitle: null, sections: [], rows: [] };
+    this.state = { step: "source", docTitle: null, sections: [], rows: [], groupId: null, groupName: null };
     this.render();
   }
 
@@ -163,14 +168,22 @@ export class ImportWizard extends HandlebarsApplicationMixin(ApplicationV2) {
     const index = Number(target.closest("[data-index]").dataset.index);
     if (index <= 0) return;
     this.state.rows = this.#formRows();
+    Object.assign(this.state, this.#formGroup());
     this.state.sections = mergeSections(this.state.sections, index);
     this.state.rows.splice(index, 1);
+    const merged = this.state.sections[index - 1];
+    this.state.rows[index - 1] = {
+      ...this.state.rows[index - 1],
+      wordCount: merged.wordCount,
+      preview: sectionPreview(merged.html)
+    };
     this.render();
   }
 
   static async #onSplitSection(event, target) {
     const index = Number(target.closest("[data-index]").dataset.index);
     this.state.rows = this.#formRows();
+    Object.assign(this.state, this.#formGroup());
     const cutIndices = await this.#promptSplit(this.state.sections[index]);
     if (!cutIndices?.length) return;
     const before = this.state.sections.length;

@@ -20,8 +20,8 @@
     <div class="form-group">
       <label>{{localize "CAMPAIGNRECORD.Import.TargetGroup"}}</label>
       <select name="target-group">
-        <option value="">{{localize "CAMPAIGNRECORD.Import.NewGroup"}}</option>
-        {{#each groups}}<option value="{{this.id}}">{{this.name}}</option>{{/each}}
+        <option value="" {{#unless groupId}}selected{{/unless}}>{{localize "CAMPAIGNRECORD.Import.NewGroup"}}</option>
+        {{#each groups}}<option value="{{this.id}}" {{#if this.selected}}selected{{/if}}>{{this.name}}</option>{{/each}}
       </select>
       <input type="text" name="group-name" value="{{groupName}}"
              aria-label="{{localize "CAMPAIGNRECORD.Import.GroupName"}}">
