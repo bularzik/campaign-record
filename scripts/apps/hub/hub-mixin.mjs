@@ -621,8 +621,11 @@ export function HubMixin(Base) {
       context.thumbnails = game.settings.get(MODULE_ID, THUMBNAILS_SETTING);
       context.inlineEditing = game.settings.get(MODULE_ID, INLINE_EDIT_SETTING);
       const viewedPage = this.#resolveViewedPage();
-      if (this.state.view && (!viewedPage || !isRecordVisible(game.user, viewedPage))) {
-        // Deleted or no longer visible: fall back to the index.
+      const viewable = !!viewedPage
+        && viewedPage.testUserPermission(game.user, "OBSERVER")
+        && isRecordVisible(game.user, viewedPage);
+      if (this.state.view && !viewable) {
+        // Deleted, unresolvable, or not viewable by this user: fall back to the index.
         pruneUuid(this.#history, this.state.view.uuid);
         this.state.view = null;
       }
