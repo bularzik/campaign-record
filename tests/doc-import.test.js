@@ -195,3 +195,32 @@ describe("buildImportPlan", () => {
       .toThrow(/unknown/i);
   });
 });
+
+import { mergeSections } from "../scripts/logic/doc-import.mjs";
+
+describe("mergeSections", () => {
+  const blk = (over = {}) => ({
+    title: "S", level: 1, date: null, isSession: false,
+    blocks: ["<p>x</p>"], html: "<p>x</p>", wordCount: 1, empty: false, ...over
+  });
+
+  it("merges a section into the previous one, keeping the upper title", () => {
+    const before = [
+      blk({ title: "One", blocks: ["<p>a</p>"], html: "<p>a</p>", wordCount: 1 }),
+      blk({ title: "Two", blocks: ["<p>b</p>", "<p>c</p>"], html: "<p>b</p>\n<p>c</p>", wordCount: 2 })
+    ];
+    const after = mergeSections(before, 1);
+    expect(after).toHaveLength(1);
+    expect(after[0].title).toBe("One");
+    expect(after[0].blocks).toEqual(["<p>a</p>", "<p>b</p>", "<p>c</p>"]);
+    expect(after[0].html).toBe("<p>a</p>\n<p>b</p>\n<p>c</p>");
+    expect(after[0].wordCount).toBe(3);
+  });
+
+  it("returns a copy and ignores index 0 or out of range", () => {
+    const before = [blk(), blk()];
+    expect(mergeSections(before, 0)).not.toBe(before);
+    expect(mergeSections(before, 0)).toHaveLength(2);
+    expect(mergeSections(before, 9)).toHaveLength(2);
+  });
+});

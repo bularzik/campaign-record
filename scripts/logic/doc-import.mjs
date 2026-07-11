@@ -86,6 +86,19 @@ function measureBlocks(blocks) {
   return { html, wordCount, empty: blocks.length === 0 };
 }
 
+/** Merge sections[index] into sections[index-1] (blocks concatenated). */
+export function mergeSections(sections, index) {
+  if (index <= 0 || index >= sections.length) return sections.slice();
+  const prev = sections[index - 1];
+  const cur = sections[index];
+  const blocks = [...prev.blocks, ...cur.blocks];
+  const merged = {
+    title: prev.title, level: prev.level, isSession: prev.isSession, date: prev.date,
+    blocks, ...measureBlocks(blocks)
+  };
+  return [...sections.slice(0, index - 1), merged, ...sections.slice(index + 1)];
+}
+
 /**
  * Split a docx-derived HTML body into sections at headings (h1-h3) and
  * session-header paragraphs. Returns the document title (leading h1, if any)
