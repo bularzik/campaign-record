@@ -14,12 +14,9 @@ test.describe("campaign hub shell", () => {
     await expect(hub.locator('select[name="group-select"]')).toBeVisible();
     await expect(hub.locator('.hub-index[data-tab="index"]')).toHaveClass(/active/);
 
-    await hub.locator('[data-action="tab"][data-tab="search"]').click();
-    await expect(hub.locator('.hub-search[data-tab="search"]')).toHaveClass(/active/);
-    await expect(hub.locator('.hub-index[data-tab="index"]')).not.toHaveClass(/active/);
-
     await hub.locator('[data-action="tab"][data-tab="timeline"]').click();
     await expect(hub.locator('.hub-timeline[data-tab="timeline"]')).toHaveClass(/active/);
+    await expect(hub.locator('.hub-index[data-tab="index"]')).not.toHaveClass(/active/);
   });
 
   test("player also gets the hub button", async ({ browser }) => {

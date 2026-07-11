@@ -30,7 +30,7 @@ export class GroupHubSheet extends HubMixin(DocumentSheetV2) {
    * This sheet's root <form> wraps the record pane and the hub's own UI
    * inputs. Pressing Enter in any of them fires an implicit form submission,
    * which DocumentSheetV2 would serialize (junk keys like `system.*` from
-   * pane-mounted record views, `tag-filter`, `sort-select`, ...) and write to
+   * pane-mounted record views, `index-search`, `sort-select`, ...) and write to
    * the group JournalEntry. Per DEFAULT_OPTIONS.form above: the hub's inputs
    * are UI state, not document fields — never submit them. Record-view edits
    * persist through the record sheets' own change listeners.

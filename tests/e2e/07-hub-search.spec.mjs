@@ -5,16 +5,15 @@ test.describe("hub search", () => {
   let gmPage, ids;
 
   const openHubAndSearch = async (p, query) => {
-    await p.evaluate(async () => {
+    await p.evaluate(async (query) => {
       const { CampaignHub } = await import("/modules/campaign-record/scripts/apps/hub/campaign-hub.mjs");
-      CampaignHub.open();
-    });
+      await game.settings.set("campaign-record", "hubSnippets", true);
+      const hub = CampaignHub.open();
+      hub.state.query = query;
+      await hub.render(true);
+    }, query);
     const hub = p.locator("#campaign-hub");
     await hub.waitFor({ timeout: 15_000 });
-    await hub.locator('[data-action="tab"][data-tab="search"]').click();
-    const input = hub.locator('input[name="search-query"]');
-    await input.fill(query);
-    await input.dispatchEvent("input");
     return hub;
   };
 
@@ -38,42 +37,37 @@ test.describe("hub search", () => {
 
   test("GM finds records by structured field with prefix matching and snippet", async () => {
     const hub = await openHubAndSearch(gmPage, "lighthou");
-    const hit = hub.locator(".search-hit", { hasText: "E2E Search NPC" });
+    const hit = hub.locator(".record-row", { hasText: "E2E Search NPC" });
     await expect(hit).toBeVisible({ timeout: 10_000 });
     await expect(hit.locator(".hit-snippet").first()).toContainText(/lighthouse/i);
   });
 
   test("GM-only content is searchable by the GM but never by players", async ({ browser }) => {
     const hub = await openHubAndSearch(gmPage, "xanathian");
-    await expect(hub.locator(".search-hit", { hasText: "E2E Search NPC" }))
+    await expect(hub.locator(".record-row", { hasText: "E2E Search NPC" }))
       .toBeVisible({ timeout: 10_000 });
 
     const ctx = await browser.newContext();
     const playerPage = await ctx.newPage();
     await login(playerPage, "User 1");
-    const playerHub = await openHubAndSearch(playerPage, "xanathian");
-    await expect(playerHub.locator(".search-results .hint")).toBeVisible({ timeout: 10_000 });
-    await expect(playerHub.locator(".search-hit")).toHaveCount(0);
+    let playerHub = await openHubAndSearch(playerPage, "xanathian");
+    await expect(playerHub.locator(".record-row", { hasText: "E2E Search NPC" })).toHaveCount(0);
 
     // but public fields are searchable for players
-    const input = playerHub.locator('input[name="search-query"]');
-    await input.fill("lighthouse");
-    await input.dispatchEvent("input");
-    await expect(playerHub.locator(".search-hit", { hasText: "E2E Search NPC" }))
+    playerHub = await openHubAndSearch(playerPage, "lighthouse");
+    await expect(playerHub.locator(".record-row", { hasText: "E2E Search NPC" }))
       .toBeVisible({ timeout: 10_000 });
     await ctx.close();
   });
 
   test("search index patches incrementally when a record changes", async () => {
-    const hub = await openHubAndSearch(gmPage, "chimera");
-    await expect(hub.locator(".search-hit")).toHaveCount(0);
+    let hub = await openHubAndSearch(gmPage, "chimera");
+    await expect(hub.locator(".record-row")).toHaveCount(0);
     await gmPage.evaluate(async ({ groupId, pageId }) => {
       await game.journal.get(groupId).pages.get(pageId).update({ "system.faction": "Chimera Cult" });
     }, ids);
-    const input = hub.locator('input[name="search-query"]');
-    await input.fill("chimera");
-    await input.dispatchEvent("input");
-    await expect(hub.locator(".search-hit", { hasText: "E2E Search NPC" }))
+    hub = await openHubAndSearch(gmPage, "chimera");
+    await expect(hub.locator(".record-row", { hasText: "E2E Search NPC" }))
       .toBeVisible({ timeout: 10_000 });
   });
 
@@ -99,7 +93,7 @@ test.describe("hub search", () => {
         const hub = CampaignHub.open();
         hub.state.query = q;
         await hub.render(true);
-        return hub.element.querySelectorAll(".search-hit").length;
+        return hub.element.querySelectorAll(".record-row").length;
       }, q);
     try {
       expect(await search("abcdef0123456789")).toBe(0);

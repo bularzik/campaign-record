@@ -40,7 +40,7 @@ describe("i18n coverage", () => {
     const missing = [];
     for (const key of extractKeys()) {
       if (key === "CAMPAIGNRECORD.Hub.Tabs") {
-        for (const tab of ["index", "timeline", "search"]) {
+        for (const tab of ["index", "timeline"]) {
           if (typeof resolve(`${key}.${tab}`) !== "string") missing.push(`${key}.${tab}`);
         }
         continue;

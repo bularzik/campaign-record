@@ -14,6 +14,10 @@ test.describe("hub index", () => {
         { name: "E2E Index Quest", type: "campaign-record.quest" }
       ]);
     }, ids);
+    await gmPage.evaluate(async ({ groupId, pageId }) => {
+      const page = game.journal.get(groupId).pages.get(pageId);
+      await page.update({ "system.description": "<p>Carries a qwertyx amulet.</p>" });
+    }, ids);
     await gmPage.evaluate(async () => {
       const { CampaignHub } = await import("/modules/campaign-record/scripts/apps/hub/campaign-hub.mjs");
       CampaignHub.open();
@@ -26,26 +30,26 @@ test.describe("hub index", () => {
     await gmPage.close();
   });
 
-  test("lists records and filters by type chip", async () => {
+  test("lists records and filters by type", async () => {
     const hub = gmPage.locator("#campaign-hub");
     await expect(hub.locator('.record-row', { hasText: "E2E Index NPC" })).toBeVisible();
     await expect(hub.locator('.record-row', { hasText: "E2E Index Quest" })).toBeVisible();
 
-    await hub.locator('.type-chip[data-type="quest"]').click();
+    await gmPage.evaluate(async () => {
+      const { CampaignHub } = await import("/modules/campaign-record/scripts/apps/hub/campaign-hub.mjs");
+      const h = CampaignHub.open();
+      h.state.types = new Set(["quest"]);
+      await h.render(true);
+    });
     await expect(hub.locator('.record-row', { hasText: "E2E Index Quest" })).toBeVisible();
     await expect(hub.locator('.record-row', { hasText: "E2E Index NPC" })).toHaveCount(0);
-    await hub.locator('.type-chip[data-type="quest"]').click(); // reset
-  });
 
-  test("type chips render as compact pills on shared rows", async () => {
-    const chips = gmPage.locator("#campaign-hub .type-chip");
-    const first = await chips.nth(0).boundingBox();
-    const second = await chips.nth(1).boundingBox();
-    // Same row: full-width buttons would stack each chip on its own line.
-    expect(second.y).toBe(first.y);
-    expect(second.x).toBeGreaterThan(first.x);
-    // Compact: a pill, not a 760px-wide bar.
-    expect(first.width).toBeLessThan(150);
+    await gmPage.evaluate(async () => {
+      const { CampaignHub } = await import("/modules/campaign-record/scripts/apps/hub/campaign-hub.mjs");
+      const h = CampaignHub.open();
+      h.state.types = new Set(); // reset
+      await h.render(true);
+    });
   });
 
   test("re-renders live when a record is created elsewhere", async () => {
@@ -86,23 +90,75 @@ test.describe("hub index", () => {
     await ctx.close();
   });
 
-  test("clear filters resets type, tag, and hidden-only in one click", async () => {
+  test("clear filters resets type and hidden-only, keeps the query", async () => {
     const hub = gmPage.locator("#campaign-hub");
-    // No filters active: control is absent.
-    await expect(hub.locator(".clear-filters")).toHaveCount(0);
-    await expect(hub.locator(".filtered-count")).toHaveCount(0);
+    await gmPage.evaluate(async () => {
+      const { CampaignHub } = await import("/modules/campaign-record/scripts/apps/hub/campaign-hub.mjs");
+      const h = CampaignHub.open();
+      h.state.query = "e2e";
+      h.state.types = new Set(["quest"]);
+      h.state.hiddenOnly = true;
+      await h.render(true);
+    });
+    await hub.locator('[data-action="clearFilters"]').first().click();
+    const state = await gmPage.evaluate(async () => {
+      const { CampaignHub } = await import("/modules/campaign-record/scripts/apps/hub/campaign-hub.mjs");
+      const h = CampaignHub.open();
+      return { types: h.state.types.size, hidden: h.state.hiddenOnly, query: h.state.query };
+    });
+    expect(state.types).toBe(0);
+    expect(state.hidden).toBe(false);
+    expect(state.query).toBe("e2e");
+  });
 
-    await hub.locator('.type-chip[data-type="quest"]').click();
-    await hub.locator('input[name="tag-filter"]').fill("no-such-tag");
-    await expect(hub.locator(".record-row")).toHaveCount(0);
-    await expect(hub.locator(".filtered-count")).toBeVisible();
-    // Count reflects the filtered list: "0 of N" while nothing matches.
-    await expect(hub.locator(".filtered-count")).toHaveText(/^0 of \d+$/);
+  test("index search box filters the record list by content", async () => {
+    const count = (q) =>
+      gmPage.evaluate(async (q) => {
+        const { CampaignHub } = await import("/modules/campaign-record/scripts/apps/hub/campaign-hub.mjs");
+        const hub = CampaignHub.open();
+        hub.state.query = q;
+        await hub.render(true);
+        return hub.element.querySelectorAll(".record-list .record-row").length;
+      }, q);
+    const all = await count("");
+    const filtered = await count("zzzznomatch");
+    expect(all).toBeGreaterThan(0);
+    expect(filtered).toBe(0);
+  });
 
-    await hub.locator(".clear-filters").click();
-    await expect(hub.locator(".clear-filters")).toHaveCount(0);
-    await expect(hub.locator('input[name="tag-filter"]')).toHaveValue("");
-    await expect(hub.locator('.type-chip[data-type="quest"]')).not.toHaveClass(/active/);
-    await expect(hub.locator(".record-row", { hasText: "E2E Index NPC" })).toBeVisible();
+  test("snippets toggle reveals where a content match occurred", async () => {
+    const hub = gmPage.locator("#campaign-hub");
+    await gmPage.evaluate(async () => {
+      const { CampaignHub } = await import("/modules/campaign-record/scripts/apps/hub/campaign-hub.mjs");
+      const h = CampaignHub.open();
+      await game.settings.set("campaign-record", "hubSnippets", false);
+      h.state.query = "";
+      await h.render(true);
+    });
+    // Pick any record and give it a distinctive body word, then search it.
+    await gmPage.evaluate(async () => {
+      const { CampaignHub } = await import("/modules/campaign-record/scripts/apps/hub/campaign-hub.mjs");
+      const h = CampaignHub.open();
+      h.state.query = "qwertyx"; // seeded in this file's beforeAll via system.description
+      await h.render(true);
+    });
+    // Off: no snippet element rendered.
+    await expect(hub.locator(".record-snippets")).toHaveCount(0);
+    // Turn snippets ON by clicking the toggle (exercises data-action="toggleSnippets").
+    await hub.locator(".snippets-toggle input").click();
+    // On: snippet element appears for the matched row.
+    await expect(hub.locator(".record-snippets .hit-snippet").first()).toBeVisible({ timeout: 10_000 });
+  });
+
+  test("shows a hint when a type filter hides matching records", async () => {
+    const count = await gmPage.evaluate(async () => {
+      const { CampaignHub } = await import("/modules/campaign-record/scripts/apps/hub/campaign-hub.mjs");
+      const hub = CampaignHub.open();
+      hub.state.query = "e2e";            // matches multiple seeded records across types
+      hub.state.types = new Set(["quest"]); // filter to a type most matches are NOT
+      await hub.render(true);
+      return hub.element.querySelectorAll(".other-group-matches").length;
+    });
+    expect(count).toBe(1);
   });
 });

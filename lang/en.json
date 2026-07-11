@@ -38,8 +38,7 @@
       "Empty": "Nothing here yet.",
       "Tabs": {
         "index": "Index",
-        "timeline": "Timeline",
-        "search": "Search"
+        "timeline": "Timeline"
       },
       "NewRecord": "New Record",
       "RecordName": "Name",
@@ -47,14 +46,14 @@
       "JournalPage": "Journal",
       "NoGroups": "Create a campaign group first.",
       "NoRecords": "No records match the current filters.",
-      "FilterTag": "Filter by tag…",
+      "FilterTag": "Search records…",
+      "TypeFilter": "Filter by type",
+      "Snippets": "Snippets",
       "HiddenOnly": "Show hidden records only",
       "ClearFilters": "Clear filters",
       "FilteredCount": "{shown} of {total}",
+      "OtherGroupMatches": "{count} more matches in other groups — clear filters",
       "Sort": { "name": "Name", "type": "Type", "updated": "Recently updated" },
-      "SearchPlaceholder": "Search all records…",
-      "SearchHint": "Type at least two characters to search.",
-      "NoResults": "No records match.",
       "AddTimepoint": "Add Timepoint",
       "InsertBefore": "Insert a timepoint before this one",
       "Rename": "Rename",
