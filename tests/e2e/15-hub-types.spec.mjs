@@ -60,7 +60,7 @@ test.describe("hub integration for phase 3 types", () => {
         const hub = CampaignHub.open();
         hub.state.query = q;
         await hub.render(true);
-        return hub.element.querySelector(".hub-search").textContent;
+        return hub.element.querySelector(".hub-index").textContent;
       }, q);
     expect(await hits("vorpal")).toContain("E2E HubTypes Shop");
     expect(await hits("lighthouse")).toContain("E2E HubTypes Checklist");

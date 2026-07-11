@@ -64,7 +64,6 @@ export function HubMixin(Base) {
       header: { template: "modules/campaign-record/templates/hub/header.hbs" },
       index: { template: "modules/campaign-record/templates/hub/index.hbs" },
       timeline: { template: "modules/campaign-record/templates/hub/timeline.hbs" },
-      search: { template: "modules/campaign-record/templates/hub/search.hbs" },
       record: { template: "modules/campaign-record/templates/hub/record.hbs" }
     };
 
@@ -72,8 +71,7 @@ export function HubMixin(Base) {
       primary: {
         tabs: [
           { id: "index", icon: "fa-solid fa-list" },
-          { id: "timeline", icon: "fa-solid fa-timeline" },
-          { id: "search", icon: "fa-solid fa-magnifying-glass" }
+          { id: "timeline", icon: "fa-solid fa-timeline" }
         ],
         initial: "index",
         labelPrefix: "CAMPAIGNRECORD.Hub.Tabs"
@@ -203,29 +201,6 @@ export function HubMixin(Base) {
         }
       }
       return this.#searchIndex;
-    }
-
-    #searchResults() {
-      if (!this.state.query || this.state.query.length < 2) return [];
-      const index = this.#ensureSearchIndex();
-      const visible = new Map(
-        collectRecords({ groupId: this.groupScopeId, user: game.user }).map((r) => [r.uuid, r])
-      );
-      const hits = search(index, this.state.query, { gm: game.user.isGM })
-        .filter((h) => visible.has(h.uuid))
-        .map((h) => ({ ...h, entry: visible.get(h.uuid) }));
-      const byType = new Map();
-      for (const hit of hits) {
-        const key = hit.entry.shortType;
-        if (!byType.has(key)) {
-          const label = key === "journal"
-            ? game.i18n.localize("CAMPAIGNRECORD.Hub.JournalPage")
-            : game.i18n.localize(`TYPES.JournalEntryPage.${typeId(key)}`);
-          byType.set(key, { type: key, label, hits: [] });
-        }
-        byType.get(key).hits.push(hit);
-      }
-      return [...byType.values()];
     }
 
     _onDocumentChanged(hook, doc) {
@@ -671,7 +646,6 @@ export function HubMixin(Base) {
         label: game.i18n.localize(`CAMPAIGNRECORD.Hub.Sort.${s}`),
         selected: this.state.sort === s
       }));
-      context.searchGroups = this.#searchResults();
       context.timelineGroups = this.#timelineGroups();
       context.thumbnails = game.settings.get(MODULE_ID, THUMBNAILS_SETTING);
       context.inlineEditing = game.settings.get(MODULE_ID, INLINE_EDIT_SETTING);
@@ -737,19 +711,6 @@ export function HubMixin(Base) {
           this.render();
         });
       }
-      const searchInput = this.element.querySelector('input[name="search-query"]');
-      if (searchInput && !searchInput.dataset.crBound) {
-        searchInput.dataset.crBound = "1";
-        searchInput.addEventListener("input", foundry.utils.debounce(async (event) => {
-          this.state.query = event.target.value;
-          await this.render({ parts: ["search"] });
-          // render({parts}) replaces this part's DOM — restore focus to keep typing.
-          const restored = this.element.querySelector('input[name="search-query"]');
-          restored?.focus();
-          restored?.setSelectionRange(restored.value.length, restored.value.length);
-        }, 250));
-      }
-
       // Dragging a record from the Index tab needs a way to reach a Timeline
       // drop target while the tabs are mutually exclusive: hovering a tab's
       // nav link mid-drag switches to it.

@@ -38,8 +38,7 @@
       "Empty": "Nothing here yet.",
       "Tabs": {
         "index": "Index",
-        "timeline": "Timeline",
-        "search": "Search"
+        "timeline": "Timeline"
       },
       "NewRecord": "New Record",
       "RecordName": "Name",
