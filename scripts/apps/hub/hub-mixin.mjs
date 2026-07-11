@@ -35,7 +35,7 @@ export function HubMixin(Base) {
     static DEFAULT_OPTIONS = {
       classes: ["campaign-record", "campaign-hub"],
       window: { title: "CAMPAIGNRECORD.Hub.Title", resizable: true, icon: "fa-solid fa-book-atlas" },
-      position: { width: 760, height: 640 },
+      position: { width: 960, height: 640 },
       actions: {
         openRecord: HubBase.#onOpenRecord,
         newRecord: HubBase.#onNewRecord,
@@ -746,7 +746,6 @@ export function HubMixin(Base) {
         }
       }).bind(this.element);
 
-      this.element.classList.toggle("viewing-record", !!this.state.view);
       this.element.classList.toggle("rail-collapsed", game.settings.get(MODULE_ID, RAIL_SETTING));
       const mount = this.element.querySelector(".record-pane-mount");
       if (mount && this.state.view) {

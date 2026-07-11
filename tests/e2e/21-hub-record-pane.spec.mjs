@@ -34,7 +34,6 @@ test.describe("hub record pane", () => {
     await hub.waitFor();
     await hub.locator(".record-row", { hasText: "E2E Pane Npc" }).click();
 
-    await expect(hub).toHaveClass(/viewing-record/);
     // The left pane exposes the index controls and rows...
     await expect(hub.locator(".hub-index .doctype-filter")).toBeVisible();
     await expect(hub.locator(".hub-index input[name='index-search']")).toBeVisible();
