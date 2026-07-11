@@ -1,36 +1,36 @@
 # Campaign Record
 
 A Foundry VTT (v13+) module for collaborative campaign journaling. Every
-connected player can create and edit typed campaign records — NPCs, places,
-quests, and more — organized into shared campaign groups, and surfaced
+connected player can create and edit typed campaign entries — NPCs, places,
+quests, and more — organized into shared Campaign Records, and surfaced
 through a Campaign Hub with a filterable index, a free-form timeline, and
 cross-document search. The core is system-agnostic, with deeper integration
 for dnd5e.
 
 ## Features
 
-- **Ten record types**: NPC, Place, Quest, PC, Item, Encounter, Checklist,
+- **Ten entry types**: NPC, Place, Quest, PC, Item, Encounter, Checklist,
   Shop, Loot, and Media — each a custom journal page type with its own
   collaborative sheet.
-- **Groups**: multiple named campaign groups per world; every player can
-  create and edit records in a group by default, with a GM option to make a
-  group read-only.
-- **Campaign Hub**: a dedicated window with a filterable record index, a
+- **Campaign Records**: multiple named Campaign Records per world; every
+  player can create and edit entries in a Campaign Record by default, with a
+  GM option to make a Campaign Record read-only.
+- **Campaign Hub**: a dedicated window with a filterable entry index, a
   free-form drag-reorderable timeline, and cross-document search that
   matches structured fields with prefixes and snippets.
-- **GM-only media presenter**: push images from a Media record's gallery to
+- **GM-only media presenter**: push images from a Media entry's gallery to
   all connected players as a fullscreen overlay, with a synced slideshow
   (prev/next and optional auto-advance) and per-viewer dismiss.
-- **Hidden records & GM notes**: GMs can hide any record from players and
-  keep private GM Notes on any record; both are stripped at render time.
-- **dnd5e integration**: dropping a weapon onto a Shop or Item record
+- **Hidden entries & GM notes**: GMs can hide any entry from players and
+  keep private GM Notes on any entry; both are stripped at render time.
+- **dnd5e integration**: dropping a weapon onto a Shop or Item entry
   autofills price/rarity, and linked Actors show a live name/AC/HP summary
   on NPC and PC sheets.
 - **Word / Google Docs import & export**: import a `.docx` (or a Google Doc
   downloaded as one) through a review wizard that splits it into sections,
-  assigns record types, and builds timeline timepoints from dated session
-  headers; export any group or single record to a native `.docx` that
-  converts cleanly when dragged into Google Drive. GM-only content is
+  assigns entry types, and builds timeline timepoints from dated session
+  headers; export any Campaign Record or single entry to a native `.docx`
+  that converts cleanly when dragged into Google Drive. GM-only content is
   exported only when a GM opts in.
 
 ## Installation
@@ -48,33 +48,35 @@ Then enable **Campaign Record** in your world's module management.
 
 ## Usage
 
-- Click **Create Campaign Group** at the bottom of the Journal sidebar to
-  start a new group. The button appears for any user with Foundry's
-  **Create Journal Entries** permission — by default that is Trusted
-  Players and up, so regular Players won't see it (see
+- Click **Create Campaign Record** at the bottom of the Journal sidebar to
+  start a new Campaign Record. The button appears for any user with
+  Foundry's **Create Journal Entries** permission — by default that is
+  Trusted Players and up, so regular Players won't see it (see
   [Permissions model](#permissions-model)).
-- Open the group and add pages: the ten record types appear alongside
-  Foundry's standard page types.
+- Open the Campaign Record and add pages: the ten entry types appear
+  alongside Foundry's standard page types.
 - Open the **Campaign Hub** from the Journal sidebar button, the scene
-  controls tool, or the **Ctrl+Shift+H** shortcut: browse and filter records
+  controls tool, or the **Ctrl+Shift+H** shortcut: browse and filter entries
   in the Index, search everything in Search, and organize events on the
-  Timeline by dragging records onto a timepoint.
+  Timeline by dragging entries onto a timepoint.
 - To import a document: open the Campaign Hub and click the **Import
   Document** button (visible with the Create Journal Entries permission).
   For a Google Doc, first use **File → Download → Microsoft Word (.docx)**
   in Google Docs. Review the detected sections, pick types, then import.
-- To export: click **Export Group** in the Campaign Hub (with a specific
-  group selected), or **Export to Word** in a record sheet's window menu.
-  Drag the downloaded file into drive.google.com to get a Google Doc.
-- To present a slideshow: open a Media record's sheet as GM, click **Show to
+- To export: click **Export Campaign Record** in the Campaign Hub (with a
+  specific Campaign Record selected), or **Export to Word** in an entry
+  sheet's window menu. Drag the downloaded file into drive.google.com to get
+  a Google Doc.
+- To present a slideshow: open a Media entry's sheet as GM, click **Show to
   players** on an image (or **Start slideshow**) — connected players see a
   fullscreen overlay that follows the presenter's prev/next and can
   auto-advance.
 
 ## Permissions model
 
-Every record is editable by all players by default (new groups get `OWNER`
-ownership for everyone); the GM can flip a group to read-only.
+Every entry is editable by all players by default (new Campaign Records get
+`OWNER` ownership for everyone); the GM can flip a Campaign Record to
+read-only.
 
 Players also cannot *drag* Actors out of the sidebar — core Foundry gates
 that drag on the **Create Token** permission (Assistant GM by default). The
@@ -82,19 +84,20 @@ NPC, PC, and Encounter sheets therefore offer a **Link Actor** button that
 opens a picker of the actors the user can see, as a drag-free alternative
 with the same result.
 
-Creating a *new group* is different: a group is a `JournalEntry` document,
-so it requires Foundry's **Create Journal Entries** permission, which
-defaults to the Trusted Player role. Regular Players can add and edit
-records inside existing groups but cannot create groups — and won't see the
-**Create Campaign Group** button. To allow it, either promote those users
-to Trusted Player or grant **Create Journal Entries** to the Player role
-(**Configure Settings → Open Permission Configuration**). On top of
-that, GMs can hide individual records (blocked from all player-facing views
-and sheets) and keep GM-only fields (`gmNotes`, hidden objectives) on any
-record — both are stripped at render time.
+Creating a *new Campaign Record* is different: a Campaign Record is a
+`JournalEntry` document, so it requires Foundry's **Create Journal
+Entries** permission, which defaults to the Trusted Player role. Regular
+Players can add and edit entries inside existing Campaign Records but
+cannot create Campaign Records — and won't see the **Create Campaign
+Record** button. To allow it, either promote those users to Trusted Player
+or grant **Create Journal Entries** to the Player role (**Configure
+Settings → Open Permission Configuration**). On top of that, GMs can hide
+individual entries (blocked from all player-facing views and sheets) and
+keep GM-only fields (`gmNotes`, hidden objectives) on any entry — both are
+stripped at render time.
 
 Explicit per-user ownership overrides (including the auto-assigned creator
-OWNER entry) are not swept and can leak hidden records to those users;
+OWNER entry) are not swept and can leak hidden entries to those users;
 accepted limitation, on the manual checklist.
 
 ## Development

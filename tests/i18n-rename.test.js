@@ -95,3 +95,25 @@ describe("i18n rename: Campaign Group -> Campaign Record", () => {
     );
   });
 });
+
+describe("rename: docs and manifest", () => {
+  const manifest = JSON.parse(fs.readFileSync(path.join(ROOT, "module.json"), "utf8"));
+  const readme = fs.readFileSync(path.join(ROOT, "README.md"), "utf8");
+
+  it("module.json title and id are unchanged", () => {
+    expect(manifest.title).toBe("Campaign Record");
+    expect(manifest.id).toBe("campaign-record");
+  });
+
+  it("module.json description uses the new terms", () => {
+    expect(manifest.description).toContain("typed entries");
+    expect(manifest.description).toContain("organized into Campaign Records");
+    expect(manifest.description).not.toContain("typed records");
+    expect(manifest.description).not.toContain("into groups");
+  });
+
+  it("README no longer says 'Campaign Group'", () => {
+    expect(/campaign group/i.test(readme)).toBe(false);
+    expect(readme).toContain("Campaign Record");
+  });
+});
