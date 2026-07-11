@@ -161,6 +161,7 @@ export class ImportWizard extends HandlebarsApplicationMixin(ApplicationV2) {
 
   static #onMergeUp(event, target) {
     const index = Number(target.closest("[data-index]").dataset.index);
+    if (index <= 0) return;
     this.state.rows = this.#formRows();
     this.state.sections = mergeSections(this.state.sections, index);
     this.state.rows.splice(index, 1);
@@ -202,6 +203,7 @@ export class ImportWizard extends HandlebarsApplicationMixin(ApplicationV2) {
     const content = `<div class="cr-split-modal">${parts.join("")}</div>`;
     const result = await foundry.applications.api.DialogV2.wait({
       window: { title: game.i18n.format("CAMPAIGNRECORD.Import.SplitTitle", { title: section.title }) },
+      modal: true,
       content,
       buttons: [
         { action: "cancel", label: "CAMPAIGNRECORD.Import.Cancel" },
