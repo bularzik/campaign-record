@@ -79,7 +79,7 @@ export function HubMixin(Base) {
       }
     };
 
-    state = { groupId: "all", types: new Set(), tag: "", hiddenOnly: false, sort: "name", query: "" };
+    state = { groupId: "all", types: new Set(), hiddenOnly: false, sort: "name", query: "" };
 
     #history = createHistory();
     #pane = new RecordPane();
@@ -288,18 +288,25 @@ export function HubMixin(Base) {
     #indexEntries() {
       const all = collectRecords({ groupId: this.groupScopeId, user: game.user });
       let records = all;
-      if (this.state.types.size) records = records.filter((r) => this.state.types.has(r.shortType));
-      if (this.state.tag) {
-        const tag = this.state.tag.toLowerCase();
-        records = records.filter((r) => r.tags.some((t) => t.toLowerCase().includes(tag)));
+      let matchesByUuid = null;
+      const query = (this.state.query ?? "").trim();
+      if (query.length >= 2) {
+        const hits = search(this.#ensureSearchIndex(), query, { gm: game.user.isGM });
+        matchesByUuid = new Map(hits.map((h) => [h.uuid, h.matches]));
+        records = records.filter((r) => matchesByUuid.has(r.uuid));
       }
+      if (this.state.types.size) records = records.filter((r) => this.state.types.has(r.shortType));
       if (this.state.hiddenOnly) records = records.filter((r) => r.hidden);
       const sorters = {
         name: (a, b) => a.name.localeCompare(b.name),
         type: (a, b) => a.shortType.localeCompare(b.shortType) || a.name.localeCompare(b.name),
         updated: (a, b) => b.sortTime - a.sortTime
       };
-      return { records: records.sort(sorters[this.state.sort] ?? sorters.name), total: all.length };
+      const sorted = records.sort(sorters[this.state.sort] ?? sorters.name);
+      const withMatches = matchesByUuid
+        ? sorted.map((r) => ({ ...r, matches: matchesByUuid.get(r.uuid) ?? [] }))
+        : sorted;
+      return { records: withMatches, total: all.length };
     }
 
     /** Rail entries: the filtered index grouped by type, current record flagged. */
@@ -393,7 +400,6 @@ export function HubMixin(Base) {
 
     static #onClearFilters() {
       this.state.types.clear();
-      this.state.tag = "";
       this.state.hiddenOnly = false;
       this.render();
     }
@@ -622,7 +628,7 @@ export function HubMixin(Base) {
       context.records = records;
       context.filteredCount = records.length;
       context.totalCount = total;
-      context.hasActiveFilters = this.state.types.size > 0 || !!this.state.tag || this.state.hiddenOnly;
+      context.hasActiveFilters = this.state.types.size > 0 || this.state.hiddenOnly;
       context.typeChips = [...RECORD_TYPES, "journal"].map((t) => ({
         type: t,
         label: t === "journal"
@@ -677,17 +683,17 @@ export function HubMixin(Base) {
           this.render();
         });
       }
-      const tagFilter = this.element.querySelector('input[name="tag-filter"]');
-      if (tagFilter && !tagFilter.dataset.crBound) {
-        tagFilter.dataset.crBound = "1";
-        tagFilter.addEventListener("input", foundry.utils.debounce(async (event) => {
+      const indexSearch = this.element.querySelector('input[name="index-search"]');
+      if (indexSearch && !indexSearch.dataset.crBound) {
+        indexSearch.dataset.crBound = "1";
+        indexSearch.addEventListener("input", foundry.utils.debounce(async (event) => {
           // A re-render (e.g. clear-filters) may have replaced this input while
           // the debounce was pending; its stale value must not win.
           if (!event.target.isConnected) return;
-          this.state.tag = event.target.value.trim();
+          this.state.query = event.target.value;
           await this.render({ parts: ["index"] });
           // render({parts}) replaces this part's DOM — restore focus to keep typing.
-          const restored = this.element.querySelector('input[name="tag-filter"]');
+          const restored = this.element.querySelector('input[name="index-search"]');
           restored?.focus();
           restored?.setSelectionRange(restored.value.length, restored.value.length);
         }, 250));

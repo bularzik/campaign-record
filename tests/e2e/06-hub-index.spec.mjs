@@ -105,4 +105,19 @@ test.describe("hub index", () => {
     await expect(hub.locator('.type-chip[data-type="quest"]')).not.toHaveClass(/active/);
     await expect(hub.locator(".record-row", { hasText: "E2E Index NPC" })).toBeVisible();
   });
+
+  test("index search box filters the record list by content", async () => {
+    const count = (q) =>
+      gmPage.evaluate(async (q) => {
+        const { CampaignHub } = await import("/modules/campaign-record/scripts/apps/hub/campaign-hub.mjs");
+        const hub = CampaignHub.open();
+        hub.state.query = q;
+        await hub.render(true);
+        return hub.element.querySelectorAll(".record-list .record-row").length;
+      }, q);
+    const all = await count("");
+    const filtered = await count("zzzznomatch");
+    expect(all).toBeGreaterThan(0);
+    expect(filtered).toBe(0);
+  });
 });

@@ -6,8 +6,8 @@
     {{/each}}
   </div>
   <div class="index-controls">
-    <input type="text" name="tag-filter" value="{{state.tag}}"
-           placeholder="{{localize "CAMPAIGNRECORD.Hub.FilterTag"}}">
+    <input type="search" name="index-search" value="{{state.query}}"
+           placeholder="{{localize "CAMPAIGNRECORD.Hub.FilterTag"}}" autocomplete="off">
     <select name="sort-select">
       {{#each sortOptions}}
       <option value="{{this.value}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>
