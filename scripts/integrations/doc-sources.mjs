@@ -19,12 +19,5 @@ export const DOC_SOURCES = [
     hintKey: "CAMPAIGNRECORD.Import.SourceLocalHint",
     accept: ".docx",
     parse: parseDocx
-  },
-  {
-    id: "google-docs",
-    labelKey: "CAMPAIGNRECORD.Import.SourceGoogle",
-    hintKey: "CAMPAIGNRECORD.Import.SourceGoogleHint",
-    accept: ".docx",
-    parse: parseDocx
   }
 ];

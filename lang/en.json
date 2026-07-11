@@ -84,10 +84,8 @@
     "Import": {
       "Title": "Import Document",
       "Button": "Import Document",
-      "SourceLocal": "Local Word file",
-      "SourceLocalHint": "Import a .docx file from your computer.",
-      "SourceGoogle": "Google Docs",
-      "SourceGoogleHint": "In Google Docs choose File → Download → Microsoft Word (.docx), then select that file here.",
+      "SourceLocal": "Word document (.docx)",
+      "SourceLocalHint": "Choose a .docx file. In Google Docs use File → Download → Microsoft Word (.docx); from Word, any .docx works.",
       "ChooseFile": "Choose .docx file",
       "ParseError": "Could not read that file as a Word document.",
       "NoSections": "No usable content was found in the document.",
