@@ -63,4 +63,29 @@ test.describe("group hub sheet", () => {
     );
     expect(betaHubOpen).toBe(false);
   });
+
+  test("a record created into another group opens in this hub's pane in edit mode", async ({ page }) => {
+    await login(page, "Gamemaster");
+    const a = await createGroupWithPage(page, "E2E Sheet Alpha", "E2E Sheet Src", "campaign-record.npc");
+    const b = await createGroupWithPage(page, "E2E Sheet Beta", "E2E Sheet Other", "campaign-record.place");
+    await page.evaluate(({ a }) => game.journal.get(a.groupId).sheet.render(true), { a });
+    const sheet = page.locator(".group-hub");
+    await sheet.locator('[data-action="newRecord"]').click();
+    const nameInput = page.locator('dialog input[name="name"], .application.dialog input[name="name"]');
+    await nameInput.waitFor({ timeout: 10_000 });
+    await nameInput.fill("E2E Sheet Created Elsewhere");
+    await page.locator('dialog select[name="type"], .application.dialog select[name="type"]')
+      .selectOption("campaign-record.npc");
+    await page.locator('dialog select[name="group"], .application.dialog select[name="group"]')
+      .selectOption(b.groupId);
+    await page.locator('dialog button[data-action="ok"], .application.dialog button[data-action="ok"]').click();
+
+    // Lands in ALPHA's pane, in edit mode, even though the page lives in Beta.
+    await expect(sheet.locator(".record-pane-title")).toHaveText("E2E Sheet Created Elsewhere");
+    await expect(sheet.locator(".record-pane-mount form")).toBeVisible();
+    const inBeta = await page.evaluate(
+      ({ b }) => !!game.journal.get(b.groupId).pages.getName("E2E Sheet Created Elsewhere"), { b }
+    );
+    expect(inBeta).toBe(true);
+  });
 });
