@@ -118,6 +118,15 @@ describe("splitSections", () => {
     expect(sections[0].html).toContain("<li>one</li>");
     expect(sections[0].empty).toBe(false);
   });
+
+  it("exposes blocks whose join reconstructs the section html", () => {
+    const { sections } = splitSections(body(`
+      <h2>Bastion</h2>
+      <p>Room one.</p>
+      <p>Room two.</p>`));
+    expect(sections[0].blocks).toEqual(["<p>Room one.</p>", "<p>Room two.</p>"]);
+    expect(sections[0].blocks.join("\n")).toBe(sections[0].html);
+  });
 });
 
 import { suggestType, stripTypeMarker, buildImportPlan } from "../scripts/logic/doc-import.mjs";

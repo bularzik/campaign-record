@@ -79,6 +79,13 @@ function sectionBoundary(el) {
   return null;
 }
 
+function measureBlocks(blocks) {
+  const html = blocks.join("\n");
+  const text = blocks.join(" ").replace(/<[^>]+>/g, " ");
+  const wordCount = text.split(/\s+/).filter(Boolean).length;
+  return { html, wordCount, empty: blocks.length === 0 };
+}
+
 /**
  * Split a docx-derived HTML body into sections at headings (h1-h3) and
  * session-header paragraphs. Returns the document title (leading h1, if any)
@@ -110,12 +117,11 @@ export function splitSections(root) {
 
   return {
     title,
-    sections: sections.map(({ htmlParts, ...s }) => {
-      const html = htmlParts.join("\n");
-      const text = htmlParts.join(" ").replace(/<[^>]+>/g, " ");
-      const wordCount = text.split(/\s+/).filter(Boolean).length;
-      return { ...s, html, wordCount, empty: htmlParts.length === 0 };
-    })
+    sections: sections.map(({ htmlParts, ...s }) => ({
+      ...s,
+      blocks: htmlParts,
+      ...measureBlocks(htmlParts)
+    }))
   };
 }
 
