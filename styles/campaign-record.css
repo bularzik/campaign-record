@@ -569,6 +569,16 @@
   overflow: hidden;
 }
 
+/* The template root wraps the review form; it must carry the flex height
+   chain through to the scroll region, or the list never gets a bounded
+   height and the footer is clipped by .window-content's overflow. */
+.import-wizard-app .import-wizard {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
 .import-wizard-app .import-review {
   display: flex;
   flex-direction: column;
