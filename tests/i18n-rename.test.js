@@ -78,4 +78,20 @@ describe("i18n rename: Campaign Group -> Campaign Record", () => {
     expect(resolve("CAMPAIGNRECORD.Sheets.Npc")).toBe("Campaign Record NPC Sheet");
     expect(resolve("CAMPAIGNRECORD.ModuleName")).toBe("Campaign Record");
   });
+
+  it("no user-facing value uses the page term 'record'", () => {
+    // Strip the intended module/container name first, then any remaining
+    // standalone "record"/"records" is an un-renamed page-sense string.
+    const offenders = allStringValues(lang).filter((s) =>
+      /\brecords?\b/i.test(s.replace(/campaign record/gi, ""))
+    );
+    expect(offenders).toEqual([]);
+  });
+
+  it("ToggleRail and DropEncounterHint use the entry term", () => {
+    expect(resolve("CAMPAIGNRECORD.Hub.ToggleRail")).toBe("Toggle entry list");
+    expect(resolve("CAMPAIGNRECORD.Loot.DropEncounterHint")).toBe(
+      "Drop an Encounter entry here to link it."
+    );
+  });
 });
