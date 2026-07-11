@@ -33,7 +33,9 @@ describe("i18n rename: Campaign Group -> Campaign Record", () => {
     "CAMPAIGNRECORD.Export.SelectGroup": "Select a specific Campaign Record to export.",
     "CAMPAIGNRECORD.Sheets.GroupHub": "Campaign Hub (Campaign Record Sheet)",
     "CAMPAIGNRECORD.Warning.CreateGroupFailed":
-      "Failed to create the Campaign Record. See the console for details."
+      "Failed to create the Campaign Record. See the console for details.",
+    "CAMPAIGNRECORD.Hub.OtherGroupMatches":
+      "{count} more matches in other Campaign Records — clear filters"
   };
 
   // Page term renamed to entry/entries.
@@ -41,8 +43,7 @@ describe("i18n rename: Campaign Group -> Campaign Record", () => {
     "CAMPAIGNRECORD.Hub.NewRecord": "New Entry",
     "CAMPAIGNRECORD.Hub.NoRecords": "No entries match the current filters.",
     "CAMPAIGNRECORD.Hub.HiddenOnly": "Show hidden entries only",
-    "CAMPAIGNRECORD.Hub.SearchPlaceholder": "Search all entries…",
-    "CAMPAIGNRECORD.Hub.NoResults": "No entries match.",
+    "CAMPAIGNRECORD.Hub.FilterTag": "Search entries…",
     "CAMPAIGNRECORD.Hub.EditRecord": "Edit entry",
     "CAMPAIGNRECORD.Hub.RecordUnavailable": "That entry can no longer be displayed.",
     "CAMPAIGNRECORD.Hub.DeleteTimepointConfirmNamed":

@@ -1,13 +1,18 @@
 <section class="tab hub-index{{#if tabs.index.active}} active{{/if}}" data-group="primary" data-tab="index">
-  <div class="type-chips">
-    {{#each typeChips}}
-    <button type="button" class="type-chip {{#if this.active}}active{{/if}}"
-            data-action="filterType" data-type="{{this.type}}">{{this.label}}</button>
+  <multi-select name="type-filter" class="type-filter"
+                aria-label="{{localize "CAMPAIGNRECORD.Hub.TypeFilter"}}">
+    {{#each typeFilterOptions}}
+    <option value="{{this.type}}" {{#if this.active}}selected{{/if}}>{{this.label}}</option>
     {{/each}}
-  </div>
+  </multi-select>
   <div class="index-controls">
-    <input type="text" name="tag-filter" value="{{state.tag}}"
-           placeholder="{{localize "CAMPAIGNRECORD.Hub.FilterTag"}}">
+    <input type="search" name="index-search" value="{{state.query}}"
+           placeholder="{{localize "CAMPAIGNRECORD.Hub.FilterTag"}}" autocomplete="off">
+    <label class="snippets-toggle">
+      <input type="checkbox" name="snippets-toggle" data-action="toggleSnippets"
+             {{#if snippets}}checked{{/if}}>
+      {{localize "CAMPAIGNRECORD.Hub.Snippets"}}
+    </label>
     <select name="sort-select">
       {{#each sortOptions}}
       <option value="{{this.value}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>
@@ -30,6 +35,11 @@
       <i class="fa-solid fa-plus"></i> {{localize "CAMPAIGNRECORD.Hub.NewRecord"}}
     </button>
   </div>
+  {{#if otherGroupMatches}}
+  <button type="button" class="other-group-matches" data-action="clearFilters">
+    {{localize "CAMPAIGNRECORD.Hub.OtherGroupMatches" count=otherGroupMatches}}
+  </button>
+  {{/if}}
   <ol class="record-list">
     {{#each records}}
     <li class="record-row" data-uuid="{{this.uuid}}"
@@ -42,6 +52,13 @@
       <span class="record-subtitle">{{this.subtitle}}</span>
       <span class="record-type">{{this.shortType}}</span>
       <span class="record-group">{{this.groupName}}</span>
+      {{#if @root.snippets}}{{#if this.matches.length}}
+      <div class="record-snippets">
+        {{#each this.matches}}
+        <span class="hit-snippet"><strong>{{this.field}}:</strong> {{this.snippet}}</span>
+        {{/each}}
+      </div>
+      {{/if}}{{/if}}
     </li>
     {{else}}
     <li class="hint">{{localize "CAMPAIGNRECORD.Hub.NoRecords"}}</li>

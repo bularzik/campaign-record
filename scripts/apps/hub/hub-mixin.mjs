@@ -1,6 +1,6 @@
 import { getGroups } from "../../data/groups.mjs";
 import {
-  MODULE_ID, THUMBNAILS_SETTING, RAIL_SETTING, INLINE_EDIT_SETTING, RECORD_TYPES, typeId
+  MODULE_ID, THUMBNAILS_SETTING, RAIL_SETTING, INLINE_EDIT_SETTING, SNIPPETS_SETTING, RECORD_TYPES, typeId
 } from "../../constants.mjs";
 import { hasInlineFocus } from "../../logic/inline-edit.mjs";
 import { collectRecords, isIndexablePage, getScopedGroups, toSearchRecord } from "./hub-data.mjs";
@@ -40,9 +40,9 @@ export function HubMixin(Base) {
         newRecord: HubBase.#onNewRecord,
         importDocument: HubBase.#onImportDocument,
         exportGroup: HubBase.#onExportGroup,
-        filterType: HubBase.#onFilterType,
         toggleHiddenOnly: HubBase.#onToggleHiddenOnly,
         clearFilters: HubBase.#onClearFilters,
+        toggleSnippets: HubBase.#onToggleSnippets,
         addTimepoint: HubBase.#onAddTimepoint,
         renameTimepoint: HubBase.#onRenameTimepoint,
         deleteTimepoint: HubBase.#onDeleteTimepoint,
@@ -63,7 +63,6 @@ export function HubMixin(Base) {
       header: { template: "modules/campaign-record/templates/hub/header.hbs" },
       index: { template: "modules/campaign-record/templates/hub/index.hbs" },
       timeline: { template: "modules/campaign-record/templates/hub/timeline.hbs" },
-      search: { template: "modules/campaign-record/templates/hub/search.hbs" },
       record: { template: "modules/campaign-record/templates/hub/record.hbs" }
     };
 
@@ -71,15 +70,14 @@ export function HubMixin(Base) {
       primary: {
         tabs: [
           { id: "index", icon: "fa-solid fa-list" },
-          { id: "timeline", icon: "fa-solid fa-timeline" },
-          { id: "search", icon: "fa-solid fa-magnifying-glass" }
+          { id: "timeline", icon: "fa-solid fa-timeline" }
         ],
         initial: "index",
         labelPrefix: "CAMPAIGNRECORD.Hub.Tabs"
       }
     };
 
-    state = { groupId: "all", types: new Set(), tag: "", hiddenOnly: false, sort: "name", query: "" };
+    state = { groupId: "all", types: new Set(), hiddenOnly: false, sort: "name", query: "" };
 
     #history = createHistory();
     #pane = new RecordPane();
@@ -165,8 +163,8 @@ export function HubMixin(Base) {
      * disconnectedCallback saves + destroys the editor) and steals focus
      * mid-typing. Defer re-renders while the user is typing in an
      * inline-editable control INSIDE the pane mount; flushed on focusout.
-     * The hub's own tag-filter/search inputs manage their own partial
-     * re-render + refocus, so they must not defer.
+     * The hub's own index-search input manages its own partial
+     * re-render + refocus, so it must not defer.
      */
     async render(options = {}, _options = {}) {
       if (typeof options === "boolean") options = { force: options, ..._options };
@@ -200,29 +198,6 @@ export function HubMixin(Base) {
         }
       }
       return this.#searchIndex;
-    }
-
-    #searchResults() {
-      if (!this.state.query || this.state.query.length < 2) return [];
-      const index = this.#ensureSearchIndex();
-      const visible = new Map(
-        collectRecords({ groupId: this.groupScopeId, user: game.user }).map((r) => [r.uuid, r])
-      );
-      const hits = search(index, this.state.query, { gm: game.user.isGM })
-        .filter((h) => visible.has(h.uuid))
-        .map((h) => ({ ...h, entry: visible.get(h.uuid) }));
-      const byType = new Map();
-      for (const hit of hits) {
-        const key = hit.entry.shortType;
-        if (!byType.has(key)) {
-          const label = key === "journal"
-            ? game.i18n.localize("CAMPAIGNRECORD.Hub.JournalPage")
-            : game.i18n.localize(`TYPES.JournalEntryPage.${typeId(key)}`);
-          byType.set(key, { type: key, label, hits: [] });
-        }
-        byType.get(key).hits.push(hit);
-      }
-      return [...byType.values()];
     }
 
     _onDocumentChanged(hook, doc) {
@@ -289,18 +264,45 @@ export function HubMixin(Base) {
     #indexEntries() {
       const all = collectRecords({ groupId: this.groupScopeId, user: game.user });
       let records = all;
-      if (this.state.types.size) records = records.filter((r) => this.state.types.has(r.shortType));
-      if (this.state.tag) {
-        const tag = this.state.tag.toLowerCase();
-        records = records.filter((r) => r.tags.some((t) => t.toLowerCase().includes(tag)));
+      let matchesByUuid = null;
+      const query = (this.state.query ?? "").trim();
+      if (query.length >= 2) {
+        const hits = search(this.#ensureSearchIndex(), query, { gm: game.user.isGM });
+        matchesByUuid = new Map(hits.map((h) => [h.uuid, h.matches]));
+        records = records.filter((r) => matchesByUuid.has(r.uuid));
       }
+      if (this.state.types.size) records = records.filter((r) => this.state.types.has(r.shortType));
       if (this.state.hiddenOnly) records = records.filter((r) => r.hidden);
       const sorters = {
         name: (a, b) => a.name.localeCompare(b.name),
         type: (a, b) => a.shortType.localeCompare(b.shortType) || a.name.localeCompare(b.name),
         updated: (a, b) => b.sortTime - a.sortTime
       };
-      return { records: records.sort(sorters[this.state.sort] ?? sorters.name), total: all.length };
+      const sorted = records.sort(sorters[this.state.sort] ?? sorters.name);
+      const withMatches = matchesByUuid
+        ? sorted.map((r) => ({ ...r, matches: matchesByUuid.get(r.uuid) ?? [] }))
+        : sorted;
+      return { records: withMatches, total: all.length };
+    }
+
+    /** Count query matches hidden by the current clearable filters, 0 when none. */
+    #otherGroupMatches(shownRecords) {
+      const query = (this.state.query ?? "").trim();
+      if (query.length < 2) return 0;
+      const scopingClearable = this.showsGroupPicker && this.state.groupId !== "all";
+      const filtersActive = this.state.types.size > 0 || this.state.hiddenOnly || scopingClearable;
+      if (!filtersActive) return 0;
+      // Records visible once clearable filters are reset: unscoped for the
+      // standalone hub, still this group for a locked single-group sheet.
+      const clearedScope = this.showsGroupPicker ? "all" : this.groupScopeId;
+      const visibleCleared = new Set(
+        collectRecords({ groupId: clearedScope, user: game.user }).map((r) => r.uuid)
+      );
+      const shown = new Set(shownRecords.map((r) => r.uuid));
+      const hits = search(this.#ensureSearchIndex(), query, { gm: game.user.isGM });
+      let count = 0;
+      for (const h of hits) if (visibleCleared.has(h.uuid) && !shown.has(h.uuid)) count++;
+      return count;
     }
 
     /** Rail entries: the filtered index grouped by type, current record flagged. */
@@ -377,13 +379,6 @@ export function HubMixin(Base) {
       await exportGroupDialog(group);
     }
 
-    static #onFilterType(event, target) {
-      const type = target.dataset.type;
-      if (this.state.types.has(type)) this.state.types.delete(type);
-      else this.state.types.add(type);
-      this.render();
-    }
-
     static #onToggleHiddenOnly() {
       this.state.hiddenOnly = !this.state.hiddenOnly;
       this.render();
@@ -391,8 +386,8 @@ export function HubMixin(Base) {
 
     static #onClearFilters() {
       this.state.types.clear();
-      this.state.tag = "";
       this.state.hiddenOnly = false;
+      if (this.showsGroupPicker) this.state.groupId = "all";
       this.render();
     }
 
@@ -519,6 +514,12 @@ export function HubMixin(Base) {
       await game.settings.set(MODULE_ID, INLINE_EDIT_SETTING, !current);
     }
 
+    static async #onToggleSnippets() {
+      const current = game.settings.get(MODULE_ID, SNIPPETS_SETTING);
+      await game.settings.set(MODULE_ID, SNIPPETS_SETTING, !current);
+      await this.render({ parts: ["index"] });
+    }
+
     #onTimelineDragStart(event) {
       const tpRow = event.target.closest("[data-drag-timepoint]");
       const recordRow = event.target.closest("[data-drag-record]");
@@ -618,8 +619,10 @@ export function HubMixin(Base) {
       context.records = records;
       context.filteredCount = records.length;
       context.totalCount = total;
-      context.hasActiveFilters = this.state.types.size > 0 || !!this.state.tag || this.state.hiddenOnly;
-      context.typeChips = [...RECORD_TYPES, "journal"].map((t) => ({
+      context.otherGroupMatches = this.#otherGroupMatches(records);
+      context.hasActiveFilters = this.state.types.size > 0 || this.state.hiddenOnly
+        || (this.showsGroupPicker && this.state.groupId !== "all");
+      context.typeFilterOptions = [...RECORD_TYPES, "journal"].map((t) => ({
         type: t,
         label: t === "journal"
           ? game.i18n.localize("CAMPAIGNRECORD.Hub.JournalPage")
@@ -631,10 +634,10 @@ export function HubMixin(Base) {
         label: game.i18n.localize(`CAMPAIGNRECORD.Hub.Sort.${s}`),
         selected: this.state.sort === s
       }));
-      context.searchGroups = this.#searchResults();
       context.timelineGroups = this.#timelineGroups();
       context.thumbnails = game.settings.get(MODULE_ID, THUMBNAILS_SETTING);
       context.inlineEditing = game.settings.get(MODULE_ID, INLINE_EDIT_SETTING);
+      context.snippets = game.settings.get(MODULE_ID, SNIPPETS_SETTING);
       const viewedPage = this.#resolveViewedPage();
       const viewable = !!viewedPage
         && viewedPage.testUserPermission(game.user, "OBSERVER")
@@ -676,17 +679,17 @@ export function HubMixin(Base) {
           this.render();
         });
       }
-      const tagFilter = this.element.querySelector('input[name="tag-filter"]');
-      if (tagFilter && !tagFilter.dataset.crBound) {
-        tagFilter.dataset.crBound = "1";
-        tagFilter.addEventListener("input", foundry.utils.debounce(async (event) => {
+      const indexSearch = this.element.querySelector('input[name="index-search"]');
+      if (indexSearch && !indexSearch.dataset.crBound) {
+        indexSearch.dataset.crBound = "1";
+        indexSearch.addEventListener("input", foundry.utils.debounce(async (event) => {
           // A re-render (e.g. clear-filters) may have replaced this input while
           // the debounce was pending; its stale value must not win.
           if (!event.target.isConnected) return;
-          this.state.tag = event.target.value.trim();
+          this.state.query = event.target.value;
           await this.render({ parts: ["index"] });
           // render({parts}) replaces this part's DOM — restore focus to keep typing.
-          const restored = this.element.querySelector('input[name="tag-filter"]');
+          const restored = this.element.querySelector('input[name="index-search"]');
           restored?.focus();
           restored?.setSelectionRange(restored.value.length, restored.value.length);
         }, 250));
@@ -699,19 +702,14 @@ export function HubMixin(Base) {
           this.render();
         });
       }
-      const searchInput = this.element.querySelector('input[name="search-query"]');
-      if (searchInput && !searchInput.dataset.crBound) {
-        searchInput.dataset.crBound = "1";
-        searchInput.addEventListener("input", foundry.utils.debounce(async (event) => {
-          this.state.query = event.target.value;
-          await this.render({ parts: ["search"] });
-          // render({parts}) replaces this part's DOM — restore focus to keep typing.
-          const restored = this.element.querySelector('input[name="search-query"]');
-          restored?.focus();
-          restored?.setSelectionRange(restored.value.length, restored.value.length);
-        }, 250));
+      const typeFilter = this.element.querySelector('multi-select[name="type-filter"]');
+      if (typeFilter && !typeFilter.dataset.crBound) {
+        typeFilter.dataset.crBound = "1";
+        typeFilter.addEventListener("change", (event) => {
+          this.state.types = new Set(event.target.value);
+          this.render();
+        });
       }
-
       // Dragging a record from the Index tab needs a way to reach a Timeline
       // drop target while the tabs are mutually exclusive: hovering a tab's
       // nav link mid-drag switches to it.

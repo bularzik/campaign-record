@@ -1,4 +1,4 @@
-import { MODULE_ID, THUMBNAILS_SETTING, RAIL_SETTING, INLINE_EDIT_SETTING } from "../constants.mjs";
+import { MODULE_ID, THUMBNAILS_SETTING, RAIL_SETTING, INLINE_EDIT_SETTING, SNIPPETS_SETTING } from "../constants.mjs";
 import { CampaignHub } from "../apps/hub/campaign-hub.mjs";
 import { GroupHubSheet } from "../apps/hub/group-hub-sheet.mjs";
 import { BaseRecordSheet } from "../sheets/base-record-sheet.mjs";
@@ -40,6 +40,13 @@ export function registerHubSettings() {
   });
 
   game.settings.register(MODULE_ID, RAIL_SETTING, {
+    scope: "client",
+    config: false,
+    type: Boolean,
+    default: false
+  });
+
+  game.settings.register(MODULE_ID, SNIPPETS_SETTING, {
     scope: "client",
     config: false,
     type: Boolean,
