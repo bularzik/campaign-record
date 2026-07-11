@@ -9,6 +9,10 @@
            aria-label="{{localize "CAMPAIGNRECORD.Import.ChooseFile"}}">
   </fieldset>
   {{/each}}
+  <p class="cr-reading" hidden>{{localize "CAMPAIGNRECORD.Import.ReadingDocument"}}</p>
+  <footer class="form-footer">
+    <button type="button" data-action="cancel">{{localize "CAMPAIGNRECORD.Import.Cancel"}}</button>
+  </footer>
   {{/if}}
 
   {{#if isReview}}
@@ -51,6 +55,7 @@
       </tbody>
     </table>
     <footer class="form-footer">
+      <button type="button" data-action="cancel">{{localize "CAMPAIGNRECORD.Import.Cancel"}}</button>
       <button type="button" data-action="backToSource">{{localize "CAMPAIGNRECORD.Import.Back"}}</button>
       <button type="button" data-action="createImport" class="bright">
         {{localize "CAMPAIGNRECORD.Import.Create"}}

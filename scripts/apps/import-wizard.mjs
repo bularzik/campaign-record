@@ -17,6 +17,7 @@ export class ImportWizard extends HandlebarsApplicationMixin(ApplicationV2) {
     window: { title: "CAMPAIGNRECORD.Import.Title", icon: "fa-solid fa-file-import" },
     position: { width: 640, height: "auto" },
     actions: {
+      cancel: ImportWizard.#onCancel,
       backToSource: ImportWizard.#onBackToSource,
       createImport: ImportWizard.#onCreate
     }
@@ -80,23 +81,8 @@ export class ImportWizard extends HandlebarsApplicationMixin(ApplicationV2) {
     }
   }
 
-  async #onFileChosen(sourceId, file) {
-    const source = DOC_SOURCES.find((s) => s.id === sourceId);
-    let parsed;
-    try {
-      parsed = await source.parse(file);
-    } catch (error) {
-      console.error("campaign-record | docx parse failed", error);
-      return ui.notifications.error(game.i18n.localize("CAMPAIGNRECORD.Import.ParseError"));
-    }
-    const root = new DOMParser().parseFromString(parsed.html, "text/html").body;
-    const { title, sections } = splitSections(root);
-    if (!sections.length) {
-      return ui.notifications.warn(game.i18n.localize("CAMPAIGNRECORD.Import.NoSections"));
-    }
-    this.state.docTitle = title ?? file.name.replace(/\.docx$/i, "");
-    this.state.sections = sections;
-    this.state.rows = sections.map((section) => ({
+  #rowFromSection(section) {
+    return {
       title: section.title === "Introduction"
         ? game.i18n.localize("CAMPAIGNRECORD.Import.Introduction")
         : section.title,
@@ -104,8 +90,38 @@ export class ImportWizard extends HandlebarsApplicationMixin(ApplicationV2) {
       timepoint: section.isSession,
       date: section.date,
       wordCount: section.wordCount,
-      preview: section.html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 80)
-    }));
+      preview: sectionPreview(section.html)
+    };
+  }
+
+  #setReading(on) {
+    for (const input of this.element.querySelectorAll('.import-source input[type="file"]')) {
+      input.disabled = on;
+    }
+    const status = this.element.querySelector(".cr-reading");
+    if (status) status.hidden = !on;
+  }
+
+  async #onFileChosen(sourceId, file) {
+    this.#setReading(true);
+    const source = DOC_SOURCES.find((s) => s.id === sourceId);
+    let parsed;
+    try {
+      parsed = await source.parse(file);
+    } catch (error) {
+      console.error("campaign-record | docx parse failed", error);
+      this.#setReading(false);
+      return ui.notifications.error(game.i18n.localize("CAMPAIGNRECORD.Import.ParseError"));
+    }
+    const root = new DOMParser().parseFromString(parsed.html, "text/html").body;
+    const { title, sections } = splitSections(root);
+    if (!sections.length) {
+      this.#setReading(false);
+      return ui.notifications.warn(game.i18n.localize("CAMPAIGNRECORD.Import.NoSections"));
+    }
+    this.state.docTitle = title ?? file.name.replace(/\.docx$/i, "");
+    this.state.sections = sections;
+    this.state.rows = sections.map((section) => this.#rowFromSection(section));
     this.state.step = "review";
     this.render();
   }
@@ -124,6 +140,10 @@ export class ImportWizard extends HandlebarsApplicationMixin(ApplicationV2) {
       groupId: form.elements["target-group"].value || null,
       groupName: form.elements["group-name"].value.trim()
     };
+  }
+
+  static #onCancel() {
+    this.close();
   }
 
   static #onBackToSource() {
@@ -191,6 +211,10 @@ export class ImportWizard extends HandlebarsApplicationMixin(ApplicationV2) {
       target.disabled = false;
     }
   }
+}
+
+function sectionPreview(html) {
+  return html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 80);
 }
 
 function dataUriToFile(uri, basename) {

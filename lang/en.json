@@ -87,6 +87,8 @@
       "SourceLocal": "Word document (.docx)",
       "SourceLocalHint": "Choose a .docx file. In Google Docs use File → Download → Microsoft Word (.docx); from Word, any .docx works.",
       "ChooseFile": "Choose .docx file",
+      "ReadingDocument": "Reading document…",
+      "Cancel": "Cancel",
       "ParseError": "Could not read that file as a Word document.",
       "NoSections": "No usable content was found in the document.",
       "ReviewHint": "Review the detected sections. Choose a type for each, or skip/merge them, then create.",
