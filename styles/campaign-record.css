@@ -40,17 +40,6 @@
   max-width: 14rem;
 }
 
-.campaign-hub .tab {
-  display: none;
-  flex: 1;
-  overflow-y: auto;
-  padding-top: 0.5rem;
-}
-
-.campaign-hub .tab.active {
-  display: block;
-}
-
 .campaign-hub .doctype-filter {
   display: flex;
   flex-wrap: wrap;
@@ -514,18 +503,53 @@
   margin-top: 0.5rem;
 }
 
-/* ---- Hub record pane ---- */
-.campaign-hub .hub-record {
+/* ---- Hub two-pane layout (index | main), always on ---- */
+.campaign-hub .window-content {
+  display: grid;
+  grid-template-columns: minmax(0, 260px) minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-areas:
+    "header header"
+    "index  main";
+  gap: 0 0.5rem;
+}
+.campaign-hub .hub-header { grid-area: header; }
+.campaign-hub .hub-index {
+  grid-area: index;
   display: flex;
   flex-direction: column;
-  flex: 1;
   min-height: 0;
+  overflow-y: auto;
 }
-/* Outside record view, the pane holds only the slim nav header — let it size
-   to content instead of splitting flex space 50/50 with the active tab. */
-.campaign-hub:not(.viewing-record) .hub-record {
-  flex: 0 0 auto;
+/* Timeline and record occupy the same right cell; the record overlays. */
+.campaign-hub .hub-timeline,
+.campaign-hub .hub-record {
+  grid-area: main;
+  min-width: 0;
 }
+.campaign-hub .hub-timeline {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow-y: auto;
+}
+/* Record overlay: hidden until an entry is open, then covers the timeline. */
+.campaign-hub .hub-record { display: none; }
+.campaign-hub .hub-record.active {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--color-bg, var(--dnd5e-color-parchment, #ededed));
+  z-index: 1; /* record part follows timeline in DOM; this keeps it on top */
+}
+
+/* Collapsed left index (rail toggle), only meaningful while viewing a record
+   — the toggle control itself only renders in that state (record.hbs). */
+.campaign-hub.viewing-record.rail-collapsed .window-content {
+  grid-template-columns: 0 minmax(0, 1fr);
+}
+.campaign-hub.viewing-record.rail-collapsed .hub-index { display: none; }
+
 .record-pane-header {
   display: flex;
   align-items: center;
@@ -555,43 +579,12 @@
   padding: 0.5rem;
 }
 
-/* Viewing a record: the index PART repositions as the left column (search,
-   doctype filter, sort, rows), the timeline PART hides, and the record PART
-   becomes the right column (header + mount, no rail). The parts (.hub-header,
-   .hub-index, .hub-timeline, .hub-record) are direct children of the app's
-   .window-content. */
-.campaign-hub.viewing-record .window-content {
-  display: grid;
-  grid-template-columns: minmax(0, 260px) minmax(0, 1fr);
-  grid-template-rows: auto minmax(0, 1fr);
-  grid-template-areas:
-    "header header"
-    "index  record";
-  gap: 0 0.5rem;
-}
-.campaign-hub.viewing-record .hub-header { grid-area: header; }
-.campaign-hub.viewing-record .hub-index {
-  grid-area: index;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  overflow-y: auto;
-}
-.campaign-hub.viewing-record .hub-timeline { display: none; }
-.campaign-hub.viewing-record .hub-record { grid-area: record; min-width: 0; }
-
-/* Collapsed left index (rail toggle). */
-.campaign-hub.viewing-record.rail-collapsed .window-content {
-  grid-template-columns: 0 minmax(0, 1fr);
-}
-.campaign-hub.viewing-record.rail-collapsed .hub-index { display: none; }
-
 /* Narrow left-index rows: icon + name only. */
-.campaign-hub.viewing-record .hub-index .record-row {
+.campaign-hub .hub-index .record-row {
   grid-template-columns: 1.5rem minmax(0, 1fr);
 }
-.campaign-hub.viewing-record .hub-index .record-subtitle { display: none; }
-.campaign-hub.viewing-record .hub-index .record-row.current {
+.campaign-hub .hub-index .record-subtitle { display: none; }
+.campaign-hub .hub-index .record-row.current {
   background: rgba(0, 0, 0, 0.15);
   font-weight: bold;
 }

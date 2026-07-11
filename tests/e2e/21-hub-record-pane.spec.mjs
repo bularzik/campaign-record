@@ -6,7 +6,7 @@ test.describe("hub record pane", () => {
     await deleteGroupsByPrefix(page, "E2E Pane");
   });
 
-  test("index click opens the record in-pane; tabs return to the index", async ({ page }) => {
+  test("index click opens the record in-pane", async ({ page }) => {
     await login(page, "Gamemaster");
     await createGroupWithPage(page, "E2E Pane Group", "E2E Pane Npc", "campaign-record.npc");
     await page.evaluate(async () => {
@@ -20,11 +20,7 @@ test.describe("hub record pane", () => {
     await expect(hub.locator(".record-pane-title")).toHaveText("E2E Pane Npc");
     await expect(hub.locator(".record-pane-mount dl.record-facts")).toBeVisible();
     // The index stays visible as the searchable left pane while viewing a record.
-    await expect(hub.locator('.hub-index[data-tab="index"]')).toBeVisible();
-
-    await hub.locator('[data-action="tab"][data-tab="index"]').click();
-    await expect(hub.locator('.hub-index[data-tab="index"]')).toBeVisible();
-    await expect(hub.locator(".record-pane-title")).toHaveCount(0);
+    await expect(hub.locator(".hub-index")).toBeVisible();
   });
 
   test("record view keeps a searchable index in the left pane", async ({ page }) => {
@@ -44,8 +40,8 @@ test.describe("hub record pane", () => {
     await expect(hub.locator(".hub-index input[name='index-search']")).toBeVisible();
     // ...the current record is flagged...
     await expect(hub.locator(".hub-index .record-row.current")).toHaveCount(1);
-    // ...and the timeline tab panel is hidden.
-    await expect(hub.locator(".hub-timeline")).toBeHidden();
+    // ...and the record pane overlays the (still-mounted) timeline.
+    await expect(hub.locator(".hub-record.active")).toBeVisible();
     // The old rail markup is gone.
     await expect(hub.locator(".record-rail")).toHaveCount(0);
   });
@@ -64,7 +60,7 @@ test.describe("hub record pane", () => {
       ({ groupId, pageId }) => game.journal.get(groupId).pages.get(pageId).delete(),
       ids
     );
-    await expect(hub.locator('.hub-index[data-tab="index"]')).toBeVisible();
+    await expect(hub.locator(".hub-index")).toBeVisible();
   });
 
   test("left index highlights current record and jumps on click", async ({ page }) => {
@@ -132,15 +128,19 @@ test.describe("hub record pane", () => {
 
     await hub.locator('[data-action="paneBack"]').click();
     await expect(title).toHaveText("E2E Pane B");
-    await hub.locator('[data-action="paneBack"]').click();
-    await expect(title).toHaveText("E2E Pane A");
-    await hub.locator('[data-action="paneBack"]').click();
-    await expect(hub.locator('.hub-index[data-tab="index"]')).toBeVisible(); // root
-
+    // Forward works while a record is still showing (the pane, including its
+    // Back/Forward header, is part of the record overlay).
     await hub.locator('[data-action="paneForward"]').click();
     await expect(title).toHaveText("E2E Pane A");
-    await hub.locator('[data-action="paneForward"]').click();
+    await hub.locator('[data-action="paneBack"]').click();
     await expect(title).toHaveText("E2E Pane B");
+    await hub.locator('[data-action="paneBack"]').click();
+    await expect(title).toHaveText("E2E Pane A");
+    await hub.locator('[data-action="paneBack"]').click();
+    // Root: the record pane (including its Back/Forward header) overlays
+    // nothing here and is hidden entirely — only the index is visible.
+    await expect(hub.locator(".hub-index")).toBeVisible();
+    await expect(hub.locator(".hub-record.active")).toHaveCount(0);
   });
 
   test("edit toggle flips to the edit form and persists a change", async ({ page }) => {
@@ -282,7 +282,7 @@ test.describe("hub record pane", () => {
       }, ids);
 
       const hub = playerPage.locator("#campaign-hub");
-      await expect(hub.locator('.hub-index[data-tab="index"]')).toBeVisible();
+      await expect(hub.locator(".hub-index")).toBeVisible();
       await expect(hub.locator(".record-pane-title")).toHaveCount(0);
     } finally {
       await ctx.close();

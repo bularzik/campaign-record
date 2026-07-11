@@ -13,7 +13,7 @@ test.describe("group hub sheet", () => {
 
     const sheet = page.locator(".group-hub");
     await sheet.waitFor();
-    await expect(sheet.locator('.hub-index[data-tab="index"]')).toBeVisible();
+    await expect(sheet.locator(".hub-index")).toBeVisible();
     await expect(sheet.locator('select[name="group-select"]')).toHaveCount(0);
     await expect(sheet.locator(".record-row", { hasText: "E2E Sheet Npc" })).toBeVisible();
 

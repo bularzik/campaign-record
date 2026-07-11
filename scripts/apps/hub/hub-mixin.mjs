@@ -69,17 +69,6 @@ export function HubMixin(Base) {
       record: { template: "modules/campaign-record/templates/hub/record.hbs" }
     };
 
-    static TABS = {
-      primary: {
-        tabs: [
-          { id: "index", icon: "fa-solid fa-list" },
-          { id: "timeline", icon: "fa-solid fa-timeline" }
-        ],
-        initial: "index",
-        labelPrefix: "CAMPAIGNRECORD.Hub.Tabs"
-      }
-    };
-
     state = { groupId: "all", types: new Set(), hiddenOnly: false, sort: "name", query: "" };
 
     #history = createHistory();
@@ -708,22 +697,6 @@ export function HubMixin(Base) {
           this.#renderList();
         });
       }
-      // Dragging a record from the Index tab needs a way to reach a Timeline
-      // drop target while the tabs are mutually exclusive: hovering a tab's
-      // nav link mid-drag switches to it.
-      const tabNav = this.element.querySelector(".hub-header nav.tabs");
-      if (tabNav && !tabNav.dataset.crBound) {
-        tabNav.dataset.crBound = "1";
-        for (const link of tabNav.querySelectorAll('a[data-action="tab"]')) {
-          link.addEventListener("dragenter", () => {
-            if (link.dataset.tab !== this.tabGroups.primary) this.changeTab(link.dataset.tab, "primary");
-          });
-          link.addEventListener("click", () => {
-            if (this.state.view) this.navigateToIndex();
-          });
-        }
-      }
-
       if (!this.element.dataset.crLinkBound) {
         this.element.dataset.crLinkBound = "1";
         this.element.addEventListener(
