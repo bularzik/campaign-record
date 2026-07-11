@@ -161,4 +161,11 @@ test.describe("hub index", () => {
     });
     expect(count).toBe(1);
   });
+
+  test("index rows show a doctype icon and drop the group/type columns", async () => {
+    const row = gmPage.locator(".campaign-hub .record-row").first();
+    await expect(row.locator(".record-type-icon")).toBeVisible();
+    await expect(row.locator(".record-group")).toHaveCount(0);
+    await expect(row.locator(".record-type")).toHaveCount(0);
+  });
 });

@@ -45,13 +45,11 @@
     <li class="record-row" data-uuid="{{this.uuid}}"
         {{#if this.canAttach}}data-drag-record draggable="true"{{/if}}
         data-action="openRecord">
-      {{#if this.image}}<img src="{{this.image}}" alt="">{{else}}<i class="fa-solid fa-file-lines"></i>{{/if}}
+      <i class="record-type-icon {{this.icon}}" data-tooltip="{{this.typeLabel}}"></i>
       <span class="record-name">{{this.name}}
         {{#if this.hidden}}<i class="fa-solid fa-eye-slash" data-tooltip="CAMPAIGNRECORD.Hidden"></i>{{/if}}
       </span>
       <span class="record-subtitle">{{this.subtitle}}</span>
-      <span class="record-type">{{this.shortType}}</span>
-      <span class="record-group">{{this.groupName}}</span>
       {{#if @root.snippets}}{{#if this.matches.length}}
       <div class="record-snippets">
         {{#each this.matches}}
