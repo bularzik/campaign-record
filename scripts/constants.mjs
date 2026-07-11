@@ -21,6 +21,26 @@ export const RECORD_TYPES = [
   "media"
 ];
 
+/** Font Awesome icon per record kind; "journal" covers core text pages. */
+export const RECORD_ICONS = {
+  npc: "fa-solid fa-user",
+  place: "fa-solid fa-map-location-dot",
+  quest: "fa-solid fa-scroll",
+  pc: "fa-solid fa-shield-halved",
+  item: "fa-solid fa-gem",
+  encounter: "fa-solid fa-skull",
+  checklist: "fa-solid fa-list-check",
+  shop: "fa-solid fa-shop",
+  loot: "fa-solid fa-sack-dollar",
+  media: "fa-solid fa-image",
+  journal: "fa-solid fa-file-lines"
+};
+
+/** Icon class for a short record type, falling back to the journal icon. */
+export function recordIcon(shortType) {
+  return RECORD_ICONS[shortType] ?? RECORD_ICONS.journal;
+}
+
 /** Structural schema version of world data written by this module. */
 export const SCHEMA_VERSION = 2;
 export const SCHEMA_SETTING = "schemaVersion";
