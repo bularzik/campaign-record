@@ -31,6 +31,7 @@
         <th>{{localize "CAMPAIGNRECORD.Import.SectionTitle"}}</th>
         <th>{{localize "CAMPAIGNRECORD.Import.SectionType"}}</th>
         <th>{{localize "CAMPAIGNRECORD.Import.Timepoint"}}</th>
+        <th>{{localize "CAMPAIGNRECORD.Import.Adjust"}}</th>
       </tr></thead>
       <tbody>
         {{#each rows}}
@@ -49,6 +50,18 @@
           <td>
             <input type="checkbox" name="timepoint-{{this.index}}" {{#if this.timepoint}}checked{{/if}}>
             {{#if this.date}}<span class="hint">{{this.date}}</span>{{/if}}
+          </td>
+          <td class="cr-adjust">
+            <button type="button" data-action="mergeUp" data-tooltip="CAMPAIGNRECORD.Import.MergeUp"
+                    aria-label="{{localize "CAMPAIGNRECORD.Import.MergeUp"}}"
+                    {{#unless this.canMergeUp}}disabled{{/unless}}>
+              <i class="fa-solid fa-arrow-up-to-line"></i>
+            </button>
+            <button type="button" data-action="splitSection" data-tooltip="CAMPAIGNRECORD.Import.Split"
+                    aria-label="{{localize "CAMPAIGNRECORD.Import.Split"}}"
+                    {{#unless this.canSplit}}disabled{{/unless}}>
+              <i class="fa-solid fa-scissors"></i>
+            </button>
           </td>
         </tr>
         {{/each}}

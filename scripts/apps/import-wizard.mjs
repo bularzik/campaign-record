@@ -1,6 +1,6 @@
 import { RECORD_TYPES, typeId } from "../constants.mjs";
 import { getGroups, createGroup } from "../data/groups.mjs";
-import { splitSections, suggestType, buildImportPlan } from "../logic/doc-import.mjs";
+import { splitSections, suggestType, buildImportPlan, mergeSections, splitSectionAt } from "../logic/doc-import.mjs";
 import { DOC_SOURCES } from "../integrations/doc-sources.mjs";
 import * as Timepoints from "../data/timepoints.mjs";
 
@@ -19,7 +19,9 @@ export class ImportWizard extends HandlebarsApplicationMixin(ApplicationV2) {
     actions: {
       cancel: ImportWizard.#onCancel,
       backToSource: ImportWizard.#onBackToSource,
-      createImport: ImportWizard.#onCreate
+      createImport: ImportWizard.#onCreate,
+      mergeUp: ImportWizard.#onMergeUp,
+      splitSection: ImportWizard.#onSplitSection
     }
   };
 
@@ -40,6 +42,8 @@ export class ImportWizard extends HandlebarsApplicationMixin(ApplicationV2) {
       ?? game.i18n.localize("CAMPAIGNRECORD.Import.Title");
     context.rows = this.state.rows.map((row, index) => ({
       ...row, index,
+      canMergeUp: index > 0,
+      canSplit: (this.state.sections[index]?.blocks?.length ?? 0) > 1,
       typeOptions: this.#typeOptions(row.type)
     }));
     return context;
@@ -51,7 +55,6 @@ export class ImportWizard extends HandlebarsApplicationMixin(ApplicationV2) {
       ...RECORD_TYPES.map((t) => ({
         value: t, label: game.i18n.localize(`TYPES.JournalEntryPage.${typeId(t)}`)
       })),
-      { value: "merge", label: game.i18n.localize("CAMPAIGNRECORD.Import.TypeMerge") },
       { value: "skip", label: game.i18n.localize("CAMPAIGNRECORD.Import.TypeSkip") }
     ];
     return options.map((o) => ({ ...o, selected: o.value === selected }));
@@ -126,17 +129,22 @@ export class ImportWizard extends HandlebarsApplicationMixin(ApplicationV2) {
     this.render();
   }
 
-  /** Read the review form back into rows. */
-  _readForm() {
+  /** Read the per-row fields back out of the review form. */
+  #formRows() {
     const form = this.element.querySelector("form.import-review");
-    const rows = this.state.rows.map((row, i) => ({
+    return this.state.rows.map((row, i) => ({
       ...row,
       title: form.elements[`title-${i}`].value.trim(),
       type: form.elements[`type-${i}`].value,
       timepoint: form.elements[`timepoint-${i}`].checked
     }));
+  }
+
+  /** Read the review form back into rows + group choice. */
+  _readForm() {
+    const form = this.element.querySelector("form.import-review");
     return {
-      rows,
+      rows: this.#formRows(),
       groupId: form.elements["target-group"].value || null,
       groupName: form.elements["group-name"].value.trim()
     };
@@ -149,6 +157,64 @@ export class ImportWizard extends HandlebarsApplicationMixin(ApplicationV2) {
   static #onBackToSource() {
     this.state = { step: "source", docTitle: null, sections: [], rows: [] };
     this.render();
+  }
+
+  static #onMergeUp(event, target) {
+    const index = Number(target.closest("[data-index]").dataset.index);
+    this.state.rows = this.#formRows();
+    this.state.sections = mergeSections(this.state.sections, index);
+    this.state.rows.splice(index, 1);
+    this.render();
+  }
+
+  static async #onSplitSection(event, target) {
+    const index = Number(target.closest("[data-index]").dataset.index);
+    this.state.rows = this.#formRows();
+    const cutIndices = await this.#promptSplit(this.state.sections[index]);
+    if (!cutIndices?.length) return;
+    const before = this.state.sections.length;
+    this.state.sections = splitSectionAt(this.state.sections, index, cutIndices);
+    const count = this.state.sections.length - before + 1;
+    const original = this.state.rows[index];
+    const newRows = [];
+    for (let i = 0; i < count; i++) {
+      const section = this.state.sections[index + i];
+      newRows.push(i === 0
+        ? { ...original, wordCount: section.wordCount, preview: sectionPreview(section.html) }
+        : this.#rowFromSection(section));
+    }
+    this.state.rows.splice(index, 1, ...newRows);
+    this.render();
+  }
+
+  async #promptSplit(section) {
+    const blocks = section.blocks;
+    if (blocks.length < 2) return null;
+    const escapeHTML = foundry.utils.escapeHTML;
+    const parts = blocks.map((html, i) => {
+      const text = html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 120);
+      const gap = i > 0
+        ? `<label class="cr-split-gap"><input type="checkbox" name="cut-${i}"> `
+          + `${game.i18n.localize("CAMPAIGNRECORD.Import.SplitHere")}</label>`
+        : "";
+      return `${gap}<p class="cr-split-block">${escapeHTML(text)}</p>`;
+    });
+    const content = `<div class="cr-split-modal">${parts.join("")}</div>`;
+    const result = await foundry.applications.api.DialogV2.wait({
+      window: { title: game.i18n.format("CAMPAIGNRECORD.Import.SplitTitle", { title: section.title }) },
+      content,
+      buttons: [
+        { action: "cancel", label: "CAMPAIGNRECORD.Import.Cancel" },
+        {
+          action: "split", label: "CAMPAIGNRECORD.Import.SplitConfirm", default: true,
+          callback: (event, button) => [...button.form.elements]
+            .filter((el) => el.name?.startsWith("cut-") && el.checked)
+            .map((el) => Number(el.name.slice(4)))
+        }
+      ],
+      rejectClose: false
+    });
+    return Array.isArray(result) ? result : null;
   }
 
   // Spec deviation, deliberate: unparseable session dates are surfaced as a
