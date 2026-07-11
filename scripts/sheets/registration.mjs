@@ -66,6 +66,7 @@ export function registerPartials() {
     "campaign-record.checklist-items": "modules/campaign-record/templates/partials/checklist-items.hbs",
     "campaign-record.shop-inventory": "modules/campaign-record/templates/partials/shop-inventory.hbs",
     "campaign-record.loot-items": "modules/campaign-record/templates/partials/loot-items.hbs",
-    "campaign-record.media-images": "modules/campaign-record/templates/partials/media-images.hbs"
+    "campaign-record.media-images": "modules/campaign-record/templates/partials/media-images.hbs",
+    "campaign-record.hub-right-nav": "modules/campaign-record/templates/hub/right-pane-nav.hbs"
   });
 }

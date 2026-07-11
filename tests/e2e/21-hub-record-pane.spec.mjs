@@ -136,6 +136,9 @@ test.describe("hub record pane", () => {
     const hub = page.locator("#campaign-hub");
     const index = hub.locator(".hub-index");
     const title = hub.locator(".record-pane-title");
+    // The shared right-pane nav also renders in the timeline tools, so scope
+    // Back/Forward to the record header while a record is being viewed.
+    const recordNav = hub.locator(".hub-record.active .record-pane-header");
 
     // Visit A -> B -> A (a loop) via index jumps.
     await hub.locator(".record-row", { hasText: "E2E Pane A" }).click();
@@ -143,17 +146,17 @@ test.describe("hub record pane", () => {
     await index.locator(".record-row", { hasText: "E2E Pane A" }).click();
     await expect(title).toHaveText("E2E Pane A");
 
-    await hub.locator('[data-action="paneBack"]').click();
+    await recordNav.locator('[data-action="paneBack"]').click();
     await expect(title).toHaveText("E2E Pane B");
     // Forward works while a record is still showing (the pane, including its
     // Back/Forward header, is part of the record overlay).
-    await hub.locator('[data-action="paneForward"]').click();
+    await recordNav.locator('[data-action="paneForward"]').click();
     await expect(title).toHaveText("E2E Pane A");
-    await hub.locator('[data-action="paneBack"]').click();
+    await recordNav.locator('[data-action="paneBack"]').click();
     await expect(title).toHaveText("E2E Pane B");
-    await hub.locator('[data-action="paneBack"]').click();
+    await recordNav.locator('[data-action="paneBack"]').click();
     await expect(title).toHaveText("E2E Pane A");
-    await hub.locator('[data-action="paneBack"]').click();
+    await recordNav.locator('[data-action="paneBack"]').click();
     // Root: the record pane (including its Back/Forward header) overlays
     // nothing here and is hidden entirely — only the index is visible.
     await expect(hub.locator(".hub-index")).toBeVisible();
@@ -215,7 +218,9 @@ test.describe("hub record pane", () => {
       CampaignHub.open();
     });
     const hub = page.locator("#campaign-hub");
-    await hub.locator('[data-action="newRecord"]').click();
+    // The shared right-pane nav also renders in the (inactive) record
+    // header, so scope New Entry to the timeline tools shown by default.
+    await hub.locator('.hub-timeline [data-action="newRecord"]').click();
     const nameInput = page.locator('dialog input[name="name"], .application.dialog input[name="name"]');
     await nameInput.waitFor({ timeout: 10_000 });
     await nameInput.fill("E2E Pane Fresh");

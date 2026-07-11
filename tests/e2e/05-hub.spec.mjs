@@ -40,10 +40,33 @@ test.describe("campaign hub shell", () => {
     await hub.locator(".record-row", { hasText: "E2E Hub Shell Npc" }).click();
     await expect(hub.locator(".hub-record.active")).toBeVisible();
 
-    await hub.locator('[data-action="paneBack"]').click();
+    // The shared right-pane nav now renders in both the record header and
+    // the timeline tools, so scope to the record header's Back button.
+    await hub.locator(".hub-record.active .record-pane-header [data-action=\"paneBack\"]").click();
     await expect(hub.locator(".hub-record.active")).toHaveCount(0);
     await expect(hub.locator(".hub-timeline")).toBeVisible();
 
     await deleteGroupsByPrefix(page, "E2E Hub Shell");
+  });
+
+  test("New Entry sits in the timeline tools by default and beside Edit when viewing", async ({ page }) => {
+    await login(page, "Gamemaster");
+    await createGroupWithPage(page, "E2E Hub Nav Group", "E2E Hub Nav Npc", "campaign-record.npc");
+    await page.evaluate(async () => {
+      const { CampaignHub } = await import("/modules/campaign-record/scripts/apps/hub/campaign-hub.mjs");
+      CampaignHub.open();
+    });
+    const hub = page.locator("#campaign-hub");
+    await hub.waitFor({ timeout: 15_000 });
+
+    await expect(hub.locator(".hub-index .index-controls [data-action=\"newRecord\"]")).toHaveCount(0);
+    await expect(hub.locator(".hub-timeline [data-action=\"newRecord\"]")).toBeVisible();
+
+    await hub.locator(".record-row", { hasText: "E2E Hub Nav Npc" }).click();
+    const header = hub.locator(".record-pane-header");
+    await expect(header.locator('[data-action="newRecord"]')).toBeVisible();
+    await expect(header.locator('[data-action="toggleEditMode"]')).toBeVisible();
+
+    await deleteGroupsByPrefix(page, "E2E Hub Nav");
   });
 });
