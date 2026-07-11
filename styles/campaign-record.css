@@ -51,12 +51,40 @@
   display: block;
 }
 
-.campaign-hub .type-filter {
-  width: auto;
-  flex: 1 1 10rem;
-  min-width: 10rem;
-  max-width: 18rem;
+.campaign-hub .doctype-filter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem;
   margin-bottom: 0.5rem;
+}
+
+.campaign-hub .doctype-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.05rem 0.4rem;
+  border: 1px solid var(--color-border-light-primary, #7a7971);
+  border-radius: 10px;
+  font-size: var(--font-size-12, 12px);
+}
+
+.campaign-hub .doctype-chip a {
+  cursor: pointer;
+  opacity: 0.7;
+}
+
+.campaign-hub .doctype-chip a:hover { opacity: 1; }
+
+.campaign-hub .doctype-add {
+  width: auto;
+  flex: 0 1 10rem;
+  min-width: 8rem;
+}
+
+.campaign-hub .doctype-clear {
+  flex: 0 0 auto;
+  width: 1.75rem;
 }
 
 .campaign-hub .index-controls {

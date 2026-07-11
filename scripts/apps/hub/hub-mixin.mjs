@@ -3,6 +3,7 @@ import {
   MODULE_ID, THUMBNAILS_SETTING, RAIL_SETTING, INLINE_EDIT_SETTING, SNIPPETS_SETTING, RECORD_TYPES, typeId
 } from "../../constants.mjs";
 import { hasInlineFocus } from "../../logic/inline-edit.mjs";
+import { buildDoctypeFilter } from "../../logic/doctype-filter.mjs";
 import { collectRecords, isIndexablePage, getScopedGroups, toSearchRecord } from "./hub-data.mjs";
 import { createIndex, indexRecord, removeRecord, search } from "../../logic/search-index.mjs";
 import { hasGroupFlag, isRecordVisible } from "../../logic/visibility.mjs";
@@ -42,6 +43,8 @@ export function HubMixin(Base) {
         exportGroup: HubBase.#onExportGroup,
         toggleHiddenOnly: HubBase.#onToggleHiddenOnly,
         clearFilters: HubBase.#onClearFilters,
+        removeType: HubBase.#onRemoveType,
+        clearTypes: HubBase.#onClearTypes,
         toggleSnippets: HubBase.#onToggleSnippets,
         addTimepoint: HubBase.#onAddTimepoint,
         renameTimepoint: HubBase.#onRenameTimepoint,
@@ -261,6 +264,11 @@ export function HubMixin(Base) {
       super._onClose(options);
     }
 
+    /** Re-render just the index part — never disturbs a mounted record pane. */
+    #renderList() {
+      return this.render({ parts: ["index"] });
+    }
+
     #indexEntries() {
       const all = collectRecords({ groupId: this.groupScopeId, user: game.user });
       let records = all;
@@ -389,6 +397,16 @@ export function HubMixin(Base) {
       this.state.hiddenOnly = false;
       if (this.showsGroupPicker) this.state.groupId = "all";
       this.render();
+    }
+
+    static #onRemoveType(event, target) {
+      this.state.types.delete(target.dataset.type);
+      this.#renderList();
+    }
+
+    static #onClearTypes() {
+      this.state.types.clear();
+      this.#renderList();
     }
 
     #timelineGroups() {
@@ -622,13 +640,10 @@ export function HubMixin(Base) {
       context.otherGroupMatches = this.#otherGroupMatches(records);
       context.hasActiveFilters = this.state.types.size > 0 || this.state.hiddenOnly
         || (this.showsGroupPicker && this.state.groupId !== "all");
-      context.typeFilterOptions = [...RECORD_TYPES, "journal"].map((t) => ({
-        type: t,
-        label: t === "journal"
-          ? game.i18n.localize("CAMPAIGNRECORD.Hub.JournalPage")
-          : game.i18n.localize(`TYPES.JournalEntryPage.${typeId(t)}`),
-        active: this.state.types.has(t)
-      }));
+      const typeLabel = (t) => t === "journal"
+        ? game.i18n.localize("CAMPAIGNRECORD.Hub.JournalPage")
+        : game.i18n.localize(`TYPES.JournalEntryPage.${typeId(t)}`);
+      context.doctypeFilter = buildDoctypeFilter(this.state.types, typeLabel);
       context.sortOptions = ["name", "type", "updated"].map((s) => ({
         value: s,
         label: game.i18n.localize(`CAMPAIGNRECORD.Hub.Sort.${s}`),
@@ -699,15 +714,17 @@ export function HubMixin(Base) {
         sortSelect.dataset.crBound = "1";
         sortSelect.addEventListener("change", (event) => {
           this.state.sort = event.target.value;
-          this.render();
+          this.#renderList();
         });
       }
-      const typeFilter = this.element.querySelector('multi-select[name="type-filter"]');
-      if (typeFilter && !typeFilter.dataset.crBound) {
-        typeFilter.dataset.crBound = "1";
-        typeFilter.addEventListener("change", (event) => {
-          this.state.types = new Set(event.target.value);
-          this.render();
+      const typeAdd = this.element.querySelector("select.doctype-add");
+      if (typeAdd && !typeAdd.dataset.crBound) {
+        typeAdd.dataset.crBound = "1";
+        typeAdd.addEventListener("change", (event) => {
+          const type = event.target.value;
+          if (!type) return;
+          this.state.types.add(type);
+          this.#renderList();
         });
       }
       // Dragging a record from the Index tab needs a way to reach a Timeline
