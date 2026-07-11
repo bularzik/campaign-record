@@ -543,12 +543,18 @@
   z-index: 1; /* record part follows timeline in DOM; this keeps it on top */
 }
 
-/* Collapsed left index (rail toggle), only meaningful while viewing a record
-   — the toggle control itself only renders in that state (record.hbs). */
-.campaign-hub.viewing-record.rail-collapsed .window-content {
-  grid-template-columns: 0 minmax(0, 1fr);
+/* Collapsed left index: thin strip that keeps only the toggle reachable. */
+.campaign-hub.rail-collapsed .window-content {
+  grid-template-columns: 2.25rem minmax(0, 1fr);
 }
-.campaign-hub.viewing-record.rail-collapsed .hub-index { display: none; }
+/* Collapsed: keep only the toggle; hide filters and the list. */
+.campaign-hub.rail-collapsed .hub-index > *:not(.index-controls),
+.campaign-hub.rail-collapsed .hub-index .index-controls > *:not(.rail-toggle) {
+  display: none;
+}
+.campaign-hub.rail-collapsed .hub-index .rail-toggle i {
+  transform: scaleX(-1); /* point the chevrons the other way when collapsed */
+}
 
 .record-pane-header {
   display: flex;

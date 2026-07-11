@@ -83,6 +83,23 @@ test.describe("hub record pane", () => {
     await expect(index.locator(".record-row", { hasText: "E2E Pane Two" })).toHaveClass(/current/);
   });
 
+  test("index collapses from the default view and the toggle stays reachable", async ({ page }) => {
+    await login(page, "Gamemaster");
+    await createGroupWithPage(page, "E2E Pane Group", "E2E Pane One", "campaign-record.npc");
+    await page.evaluate(async () => {
+      const { CampaignHub } = await import("/modules/campaign-record/scripts/apps/hub/campaign-hub.mjs");
+      CampaignHub.open();
+    });
+    const hub = page.locator("#campaign-hub");
+    await hub.waitFor();
+    const toggle = hub.locator('.hub-index [data-action="toggleRail"]');
+    await expect(toggle).toBeVisible();
+    await toggle.click();
+    await expect(hub).toHaveClass(/rail-collapsed/);
+    await expect(hub.locator(".hub-index .record-list")).toBeHidden();
+    await expect(toggle).toBeVisible();
+  });
+
   test("left index collapse persists across a close/reopen", async ({ page }) => {
     await login(page, "Gamemaster");
     await createGroupWithPage(page, "E2E Pane Group", "E2E Pane One", "campaign-record.npc");
@@ -91,19 +108,19 @@ test.describe("hub record pane", () => {
       CampaignHub.open();
     });
     const hub = page.locator("#campaign-hub");
-    await hub.locator(".record-row", { hasText: "E2E Pane One" }).click();
-    await hub.locator('[data-action="toggleRail"]').click();
+    await hub.locator('.hub-index [data-action="toggleRail"]').click();
     await expect(hub).toHaveClass(/rail-collapsed/);
-    await expect(hub.locator(".hub-index")).toBeHidden();
+    await expect(hub.locator(".hub-index .record-list")).toBeHidden();
 
     await page.evaluate(async () => {
       const { CampaignHub } = await import("/modules/campaign-record/scripts/apps/hub/campaign-hub.mjs");
       CampaignHub.toggle(); // close
       CampaignHub.toggle(); // reopen
     });
-    await hub.locator(".record-row", { hasText: "E2E Pane One" }).click();
+    // The setting is applied on render, independent of whether a record is
+    // being viewed — the strip stays collapsed immediately on reopen.
     await expect(hub).toHaveClass(/rail-collapsed/);
-    await expect(hub.locator(".hub-index")).toBeHidden();
+    await expect(hub.locator(".hub-index .record-list")).toBeHidden();
   });
 
   test("back/forward traverse visits, loops included", async ({ page }) => {

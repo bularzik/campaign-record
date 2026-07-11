@@ -23,6 +23,11 @@
     {{/if}}
   </div>
   <div class="index-controls">
+    <button type="button" class="rail-toggle" data-action="toggleRail"
+            data-tooltip="CAMPAIGNRECORD.Hub.ToggleRail"
+            aria-label="{{localize "CAMPAIGNRECORD.Hub.ToggleRail"}}">
+      <i class="fa-solid fa-angles-left"></i>
+    </button>
     <input type="search" name="index-search" value="{{state.query}}"
            placeholder="{{localize "CAMPAIGNRECORD.Hub.FilterTag"}}" autocomplete="off">
     <label class="snippets-toggle">

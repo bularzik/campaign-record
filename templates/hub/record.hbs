@@ -1,11 +1,5 @@
 <section class="hub-record {{#if view}}active{{/if}}">
   <header class="record-pane-header">
-    {{#if view}}
-    <button type="button" class="rail-toggle" data-action="toggleRail"
-            data-tooltip="CAMPAIGNRECORD.Hub.ToggleRail" aria-label="{{localize "CAMPAIGNRECORD.Hub.ToggleRail"}}">
-      <i class="fa-solid fa-angles-left"></i>
-    </button>
-    {{/if}}
     <button type="button" data-action="paneBack" {{#unless canGoBack}}disabled{{/unless}}
             data-tooltip="CAMPAIGNRECORD.Hub.Back" aria-label="{{localize "CAMPAIGNRECORD.Hub.Back"}}">
       <i class="fa-solid fa-arrow-left"></i>
