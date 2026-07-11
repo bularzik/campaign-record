@@ -149,6 +149,14 @@ test.describe("scene picker (drag-free linking for players)", () => {
     const ids = await createGroupWithPage(
       gmPage, "E2E Picker Scene Group", "E2E Picker Scene Place", "campaign-record.place"
     );
+    // Wait for group and page to propagate to player client
+    await expect.poll(
+      () => playerPage.evaluate(
+        ({ groupId, pageId }) => !!game.journal.get(groupId)?.pages.get(pageId),
+        ids
+      ),
+      { timeout: 15_000 }
+    ).toBe(true);
     await playerPage.evaluate(
       ({ groupId, pageId }) => game.journal.get(groupId).pages.get(pageId).sheet.render(true),
       ids
