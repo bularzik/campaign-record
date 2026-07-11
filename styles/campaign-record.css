@@ -67,7 +67,7 @@
   margin-bottom: 0.5rem;
 }
 
-.campaign-hub .index-controls input[name="tag-filter"] {
+.campaign-hub .index-controls input[name="index-search"] {
   width: auto;
   flex: 1 1 8rem;
   min-width: 8rem;
@@ -165,12 +165,6 @@
 .campaign-hub .hit-snippet {
   font-size: var(--font-size-12, 12px);
   opacity: 0.8;
-}
-
-.campaign-hub .result-type ol {
-  list-style: none;
-  margin: 0;
-  padding: 0;
 }
 
 .campaign-hub .timepoints {

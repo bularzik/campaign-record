@@ -30,26 +30,26 @@ test.describe("hub index", () => {
     await gmPage.close();
   });
 
-  test("lists records and filters by type chip", async () => {
+  test("lists records and filters by type", async () => {
     const hub = gmPage.locator("#campaign-hub");
     await expect(hub.locator('.record-row', { hasText: "E2E Index NPC" })).toBeVisible();
     await expect(hub.locator('.record-row', { hasText: "E2E Index Quest" })).toBeVisible();
 
-    await hub.locator('.type-chip[data-type="quest"]').click();
+    await gmPage.evaluate(async () => {
+      const { CampaignHub } = await import("/modules/campaign-record/scripts/apps/hub/campaign-hub.mjs");
+      const h = CampaignHub.open();
+      h.state.types = new Set(["quest"]);
+      await h.render(true);
+    });
     await expect(hub.locator('.record-row', { hasText: "E2E Index Quest" })).toBeVisible();
     await expect(hub.locator('.record-row', { hasText: "E2E Index NPC" })).toHaveCount(0);
-    await hub.locator('.type-chip[data-type="quest"]').click(); // reset
-  });
 
-  test("type chips render as compact pills on shared rows", async () => {
-    const chips = gmPage.locator("#campaign-hub .type-chip");
-    const first = await chips.nth(0).boundingBox();
-    const second = await chips.nth(1).boundingBox();
-    // Same row: full-width buttons would stack each chip on its own line.
-    expect(second.y).toBe(first.y);
-    expect(second.x).toBeGreaterThan(first.x);
-    // Compact: a pill, not a 760px-wide bar.
-    expect(first.width).toBeLessThan(150);
+    await gmPage.evaluate(async () => {
+      const { CampaignHub } = await import("/modules/campaign-record/scripts/apps/hub/campaign-hub.mjs");
+      const h = CampaignHub.open();
+      h.state.types = new Set(); // reset
+      await h.render(true);
+    });
   });
 
   test("re-renders live when a record is created elsewhere", async () => {
@@ -90,24 +90,25 @@ test.describe("hub index", () => {
     await ctx.close();
   });
 
-  test("clear filters resets type, tag, and hidden-only in one click", async () => {
+  test("clear filters resets type and hidden-only, keeps the query", async () => {
     const hub = gmPage.locator("#campaign-hub");
-    // No filters active: control is absent.
-    await expect(hub.locator(".clear-filters")).toHaveCount(0);
-    await expect(hub.locator(".filtered-count")).toHaveCount(0);
-
-    await hub.locator('.type-chip[data-type="quest"]').click();
-    await hub.locator('input[name="tag-filter"]').fill("no-such-tag");
-    await expect(hub.locator(".record-row")).toHaveCount(0);
-    await expect(hub.locator(".filtered-count")).toBeVisible();
-    // Count reflects the filtered list: "0 of N" while nothing matches.
-    await expect(hub.locator(".filtered-count")).toHaveText(/^0 of \d+$/);
-
-    await hub.locator(".clear-filters").click();
-    await expect(hub.locator(".clear-filters")).toHaveCount(0);
-    await expect(hub.locator('input[name="tag-filter"]')).toHaveValue("");
-    await expect(hub.locator('.type-chip[data-type="quest"]')).not.toHaveClass(/active/);
-    await expect(hub.locator(".record-row", { hasText: "E2E Index NPC" })).toBeVisible();
+    await gmPage.evaluate(async () => {
+      const { CampaignHub } = await import("/modules/campaign-record/scripts/apps/hub/campaign-hub.mjs");
+      const h = CampaignHub.open();
+      h.state.query = "e2e";
+      h.state.types = new Set(["quest"]);
+      h.state.hiddenOnly = true;
+      await h.render(true);
+    });
+    await hub.locator('[data-action="clearFilters"]').first().click();
+    const state = await gmPage.evaluate(async () => {
+      const { CampaignHub } = await import("/modules/campaign-record/scripts/apps/hub/campaign-hub.mjs");
+      const h = CampaignHub.open();
+      return { types: h.state.types.size, hidden: h.state.hiddenOnly, query: h.state.query };
+    });
+    expect(state.types).toBe(0);
+    expect(state.hidden).toBe(false);
+    expect(state.query).toBe("e2e");
   });
 
   test("index search box filters the record list by content", async () => {

@@ -165,8 +165,8 @@ export function HubMixin(Base) {
      * disconnectedCallback saves + destroys the editor) and steals focus
      * mid-typing. Defer re-renders while the user is typing in an
      * inline-editable control INSIDE the pane mount; flushed on focusout.
-     * The hub's own tag-filter/search inputs manage their own partial
-     * re-render + refocus, so they must not defer.
+     * The hub's own index-search input manages its own partial
+     * re-render + refocus, so it must not defer.
      */
     async render(options = {}, _options = {}) {
       if (typeof options === "boolean") options = { force: options, ..._options };
