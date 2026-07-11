@@ -39,7 +39,7 @@ test.describe("group hub sheet", () => {
     await expect(sheet.locator(".record-pane-mount dl.record-facts")).toBeVisible();
   });
 
-  test("cross-group record links open the other group's hub", async ({ page }) => {
+  test("cross-group record links open in this hub's own pane", async ({ page }) => {
     await login(page, "Gamemaster");
     // Content links only render as clickable anchors in the read-only
     // (enriched) view — inline editing shows a live editor instead.
@@ -56,7 +56,11 @@ test.describe("group hub sheet", () => {
 
     const alpha = page.locator(".group-hub").first();
     await alpha.locator(".record-pane-mount a.content-link", { hasText: "far away" }).click();
-    const beta = page.locator(".group-hub", { hasText: "E2E Sheet Remote" }).last();
-    await expect(beta.locator(".record-pane-title")).toHaveText("E2E Sheet Remote");
+    // The SAME hub window shows the remote page; Beta's own hub never opens.
+    await expect(alpha.locator(".record-pane-title")).toHaveText("E2E Sheet Remote");
+    const betaHubOpen = await page.evaluate(
+      ({ b }) => game.journal.get(b.groupId).sheet.rendered, { b }
+    );
+    expect(betaHubOpen).toBe(false);
   });
 });
