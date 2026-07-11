@@ -1,6 +1,10 @@
 <section class="hub-timeline">
   <div class="timeline-tools">
     {{> campaign-record.hub-right-nav}}
+    <button type="button" class="new-record" data-action="newRecord"
+            data-tooltip="CAMPAIGNRECORD.Hub.NewRecord" aria-label="{{localize "CAMPAIGNRECORD.Hub.NewRecord"}}">
+      <i class="fa-solid fa-plus"></i>
+    </button>
     <button type="button" data-action="toggleThumbnails"
             class="{{#if thumbnails}}active{{/if}}"
             data-tooltip="CAMPAIGNRECORD.Hub.ToggleThumbnails">

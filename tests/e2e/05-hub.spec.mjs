@@ -63,9 +63,16 @@ test.describe("campaign hub shell", () => {
     await expect(hub.locator(".hub-timeline [data-action=\"newRecord\"]")).toBeVisible();
 
     await hub.locator(".record-row", { hasText: "E2E Hub Nav Npc" }).click();
-    const header = hub.locator(".record-pane-header");
+    const header = hub.locator(".hub-record.active .record-pane-header");
     await expect(header.locator('[data-action="newRecord"]')).toBeVisible();
     await expect(header.locator('[data-action="toggleEditMode"]')).toBeVisible();
+
+    // New Entry must render immediately before the edit-toggle button so it
+    // sits beside Edit, not bundled with Back/Forward on the other end.
+    const newButtonFollowedByEdit = await header
+      .locator('[data-action="newRecord"]')
+      .evaluate((el) => el.nextElementSibling?.dataset.action === "toggleEditMode");
+    expect(newButtonFollowedByEdit).toBe(true);
 
     await deleteGroupsByPrefix(page, "E2E Hub Nav");
   });
