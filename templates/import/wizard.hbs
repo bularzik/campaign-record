@@ -26,6 +26,7 @@
       <input type="text" name="group-name" value="{{groupName}}"
              aria-label="{{localize "CAMPAIGNRECORD.Import.GroupName"}}">
     </div>
+    <div class="import-sections-scroll">
     <table class="import-sections">
       <thead><tr>
         <th>{{localize "CAMPAIGNRECORD.Import.SectionTitle"}}</th>
@@ -67,6 +68,7 @@
         {{/each}}
       </tbody>
     </table>
+    </div>
     <footer class="form-footer">
       <button type="button" data-action="cancel">{{localize "CAMPAIGNRECORD.Import.Cancel"}}</button>
       <button type="button" data-action="backToSource">{{localize "CAMPAIGNRECORD.Import.Back"}}</button>

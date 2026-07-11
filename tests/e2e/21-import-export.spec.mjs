@@ -77,6 +77,87 @@ test.describe("import and export", () => {
     expect(summary.timepoints).toBeGreaterThanOrEqual(25);
   });
 
+  test("review step keeps the Create button on-screen for a many-section import", async () => {
+    await gmPage.evaluate(async () => {
+      const { ImportWizard } = await import("/modules/campaign-record/scripts/apps/import-wizard.mjs");
+      ImportWizard.open();
+    });
+    const wizard = gmPage.locator("#campaign-record-import");
+    await wizard.waitFor({ timeout: 15_000 });
+
+    await wizard.locator('[data-source-id="docx-file"] input[type="file"]').setInputFiles(FIXTURE);
+
+    // Review step: the fixture produces 30+ rows — enough to overflow the viewport.
+    const rows = wizard.locator("table.import-sections tbody tr");
+    await expect(rows.first()).toBeVisible({ timeout: 30_000 });
+    expect(await rows.count()).toBeGreaterThanOrEqual(30);
+
+    const viewport = gmPage.viewportSize();
+    const win = await wizard.boundingBox();
+
+    // The window must never be taller than the screen.
+    expect(win.y + win.height).toBeLessThanOrEqual(viewport.height + 1);
+
+    // The Create button must be fully visible within the window bounds.
+    const createBtn = wizard.locator('[data-action="createImport"]');
+    await expect(createBtn).toBeInViewport();
+    const btnBox = await createBtn.boundingBox();
+    expect(btnBox.y + btnBox.height).toBeLessThanOrEqual(win.y + win.height + 1);
+
+    // The section list — not the window — must be the scroll region.
+    const listScrolls = await wizard.locator(".import-sections-scroll").evaluate(
+      (el) => el.scrollHeight > el.clientHeight + 1
+    );
+    expect(listScrolls).toBe(true);
+
+    // Close without importing (creates no group; nothing to clean up).
+    await wizard.locator('[data-action="cancel"]').click();
+    await wizard.waitFor({ state: "detached", timeout: 10_000 });
+  });
+
+  test("split dialog keeps the Split button on-screen for a many-block section", async () => {
+    await gmPage.evaluate(async () => {
+      const { ImportWizard } = await import("/modules/campaign-record/scripts/apps/import-wizard.mjs");
+      ImportWizard.open();
+    });
+    const wizard = gmPage.locator("#campaign-record-import");
+    await wizard.waitFor({ timeout: 15_000 });
+    await wizard.locator('[data-source-id="docx-file"] input[type="file"]').setInputFiles(FIXTURE);
+
+    // Wait for the review step, then open the split dialog on the first
+    // section that can be split (a section with more than one block).
+    await expect(wizard.locator("table.import-sections tbody tr").first()).toBeVisible({ timeout: 30_000 });
+    const splitBtn = wizard.locator('[data-action="splitSection"]:not([disabled])').first();
+    await expect(splitBtn).toBeVisible({ timeout: 15_000 });
+    await splitBtn.click();
+
+    const dialog = gmPage.locator("dialog, .application.dialog").last();
+    await dialog.waitFor({ timeout: 15_000 });
+    const modal = dialog.locator(".cr-split-modal");
+    await expect(modal).toBeVisible({ timeout: 10_000 });
+
+    // The block list must be a bounded scroll region (the fix); pre-fix the
+    // computed overflow-y is "visible" and max-height is "none".
+    const box = await modal.evaluate((el) => {
+      const cs = getComputedStyle(el);
+      return { overflowY: cs.overflowY, maxHeight: cs.maxHeight };
+    });
+    expect(box.overflowY).toBe("auto");
+    expect(box.maxHeight).not.toBe("none");
+
+    // The dialog must fit the viewport and the Split button must be on-screen.
+    const viewport = gmPage.viewportSize();
+    const dialogBox = await dialog.boundingBox();
+    expect(dialogBox.y + dialogBox.height).toBeLessThanOrEqual(viewport.height + 1);
+    await expect(dialog.locator('[data-action="split"]')).toBeInViewport();
+
+    // Close the dialog, then the wizard.
+    await dialog.locator('[data-action="cancel"]').click();
+    await dialog.waitFor({ state: "detached", timeout: 10_000 });
+    await wizard.locator('[data-action="cancel"]').click();
+    await wizard.waitFor({ state: "detached", timeout: 10_000 });
+  });
+
   test("GM exports a group with and without GM content", async () => {
     // Build a small group: one NPC with gmNotes, one hidden NPC.
     await gmPage.evaluate(async () => {
