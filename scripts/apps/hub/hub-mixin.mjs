@@ -44,8 +44,6 @@ export function HubMixin(Base) {
         exportGroup: HubBase.#onExportGroup,
         toggleHiddenOnly: HubBase.#onToggleHiddenOnly,
         clearFilters: HubBase.#onClearFilters,
-        removeType: HubBase.#onRemoveType,
-        clearTypes: HubBase.#onClearTypes,
         toggleSnippets: HubBase.#onToggleSnippets,
         addTimepoint: HubBase.#onAddTimepoint,
         renameTimepoint: HubBase.#onRenameTimepoint,
@@ -60,7 +58,8 @@ export function HubMixin(Base) {
         paneForward: HubBase.#onPaneForward,
         toggleRail: HubBase.#onToggleRail,
         toggleEditMode: HubBase.#onToggleEditMode,
-        toggleSettingsMenu: HubBase.#onToggleSettingsMenu
+        toggleSettingsMenu: HubBase.#onToggleSettingsMenu,
+        closeRecord: HubBase.#onCloseRecord
       }
     };
 
@@ -73,7 +72,7 @@ export function HubMixin(Base) {
 
     state = {
       groupId: "all", types: new Set(), hiddenOnly: false, sort: "name", query: "",
-      settingsMenuOpen: false
+      typeMenuOpen: false, settingsMenuOpen: false
     };
 
     #history = createHistory();
@@ -132,6 +131,13 @@ export function HubMixin(Base) {
     static async #onToggleSettingsMenu() {
       this.state.settingsMenuOpen = !this.state.settingsMenuOpen;
       await this.render({ parts: ["header"] });
+    }
+
+    /** Dismiss the record overlay and return to the index/timeline. */
+    static async #onCloseRecord() {
+      if (!this.state.view) return;
+      this.state.view = null;
+      await this.render();
     }
 
     #hookHandlers = [];
@@ -259,6 +265,7 @@ export function HubMixin(Base) {
       // its navigation history are session-scoped state, not something to
       // resume like the window position or the collapsed-rail client setting.
       this.state.view = null;
+      this.state.typeMenuOpen = false;
       this.state.settingsMenuOpen = false;
       this.#history = createHistory();
       super._onClose(options);
@@ -384,16 +391,6 @@ export function HubMixin(Base) {
       this.state.hiddenOnly = false;
       if (this.showsGroupPicker) this.state.groupId = "all";
       this.render();
-    }
-
-    static #onRemoveType(event, target) {
-      this.state.types.delete(target.dataset.type);
-      this.#renderList();
-    }
-
-    static #onClearTypes() {
-      this.state.types.clear();
-      this.#renderList();
     }
 
     #timelineGroups() {
@@ -643,7 +640,12 @@ export function HubMixin(Base) {
       context.otherGroupMatches = this.#otherGroupMatches(records);
       context.hasActiveFilters = this.state.types.size > 0 || this.state.hiddenOnly
         || (this.showsGroupPicker && this.state.groupId !== "all");
-      context.doctypeFilter = buildDoctypeFilter(this.state.types, (t) => this.#typeLabel(t));
+      context.doctypeFilter = buildDoctypeFilter(
+        this.state.types,
+        (t) => this.#typeLabel(t),
+        game.i18n.localize("CAMPAIGNRECORD.Hub.AllTypesSummary")
+      );
+      context.typeMenuOpen = this.state.typeMenuOpen;
       context.sortOptions = ["name", "type", "updated"].map((s) => ({
         value: s,
         label: game.i18n.localize(`CAMPAIGNRECORD.Hub.Sort.${s}`),
@@ -737,14 +739,30 @@ export function HubMixin(Base) {
           }
         });
       }
-      const typeAdd = this.element.querySelector("select.doctype-add");
-      if (typeAdd && !typeAdd.dataset.crBound) {
-        typeAdd.dataset.crBound = "1";
-        typeAdd.addEventListener("change", (event) => {
-          const type = event.target.value;
-          if (!type) return;
-          this.state.types.add(type);
-          this.#renderList();
+      if (!this.element.dataset.crTypeBound) {
+        this.element.dataset.crTypeBound = "1";
+        // Toggle the menu from its trigger; close it on any outside click.
+        this.element.addEventListener("click", (event) => {
+          if (event.target.closest(".doctype-summary")) {
+            this.state.typeMenuOpen = !this.state.typeMenuOpen;
+            return this.#renderList();
+          }
+          if (this.state.typeMenuOpen && !event.target.closest(".doctype-filter")) {
+            this.state.typeMenuOpen = false;
+            this.#renderList();
+          }
+        });
+        // Check/uncheck a type; the menu stays open across the re-render.
+        this.element.addEventListener("change", async (event) => {
+          const cb = event.target.closest('input[name="doctype-check"]');
+          if (!cb) return;
+          const value = cb.value;
+          if (cb.checked) this.state.types.add(value);
+          else this.state.types.delete(value);
+          await this.#renderList();
+          // render({parts}) replaces this part's DOM — restore focus so keyboard
+          // users can toggle several types without tabbing from the top each time.
+          this.element.querySelector(`input[name="doctype-check"][value="${value}"]`)?.focus();
         });
       }
       if (!this.element.dataset.crLinkBound) {

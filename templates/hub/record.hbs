@@ -14,6 +14,11 @@
       <i class="fa-solid {{#if view.editing}}fa-eye{{else}}fa-pen-to-square{{/if}}"></i>
     </button>
     {{/if}}
+    <button type="button" class="close-record" data-action="closeRecord"
+            data-tooltip="CAMPAIGNRECORD.Hub.CloseRecord"
+            aria-label="{{localize "CAMPAIGNRECORD.Hub.CloseRecord"}}">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
     {{/if}}
   </header>
   {{#if view}}

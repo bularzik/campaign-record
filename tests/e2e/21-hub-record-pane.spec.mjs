@@ -23,6 +23,24 @@ test.describe("hub record pane", () => {
     await expect(hub.locator(".hub-index")).toBeVisible();
   });
 
+  test("close button dismisses the record and reveals the timeline", async ({ page }) => {
+    await login(page, "Gamemaster");
+    await createGroupWithPage(page, "E2E Pane Group", "E2E Pane Closer", "campaign-record.npc");
+    await page.evaluate(async () => {
+      const { CampaignHub } = await import("/modules/campaign-record/scripts/apps/hub/campaign-hub.mjs");
+      CampaignHub.open();
+    });
+    const hub = page.locator("#campaign-hub");
+    await hub.waitFor();
+    await hub.locator(".record-row", { hasText: "E2E Pane Closer" }).click();
+    await expect(hub.locator(".hub-record.active")).toBeVisible();
+
+    await hub.locator('.hub-record.active [data-action="closeRecord"]').click();
+
+    await expect(hub.locator(".hub-record.active")).toHaveCount(0);
+    await expect(hub.locator(".hub-timeline")).toBeVisible();
+  });
+
   test("record view keeps a searchable index in the left pane", async ({ page }) => {
     await login(page, "Gamemaster");
     await createGroupWithPage(page, "E2E Pane Group", "E2E Pane Npc", "campaign-record.npc");

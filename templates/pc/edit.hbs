@@ -12,6 +12,11 @@
   <button type="button" data-action="linkActor">
     <i class="fa-solid fa-link"></i> {{localize "CAMPAIGNRECORD.LinkActor"}}
   </button>
+  {{#if enriched.actorLink}}
+  <button type="button" data-action="unlinkActor">
+    <i class="fa-solid fa-link-slash"></i> {{localize "CAMPAIGNRECORD.UnlinkActor"}}
+  </button>
+  {{/if}}
   {{> campaign-record.actor-info}}
 </div>
 {{> campaign-record.common-edit}}
