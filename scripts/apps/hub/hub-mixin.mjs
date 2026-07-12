@@ -1,4 +1,5 @@
 import { getGroups } from "../../data/groups.mjs";
+import { getTargetGroup, setTargetGroup } from "../../settings/auto-target.mjs";
 import {
   MODULE_ID, THUMBNAILS_SETTING, RAIL_SETTING, INLINE_EDIT_SETTING, SNIPPETS_SETTING, RECORD_TYPES, typeId
 } from "../../constants.mjs";
@@ -57,6 +58,7 @@ export function HubMixin(Base) {
         paneForward: HubBase.#onPaneForward,
         toggleRail: HubBase.#onToggleRail,
         toggleEditMode: HubBase.#onToggleEditMode,
+        toggleSettingsMenu: HubBase.#onToggleSettingsMenu,
         closeRecord: HubBase.#onCloseRecord
       }
     };
@@ -68,7 +70,10 @@ export function HubMixin(Base) {
       record: { template: "modules/campaign-record/templates/hub/record.hbs" }
     };
 
-    state = { groupId: "all", types: new Set(), hiddenOnly: false, sort: "name", query: "", typeMenuOpen: false };
+    state = {
+      groupId: "all", types: new Set(), hiddenOnly: false, sort: "name", query: "",
+      typeMenuOpen: false, settingsMenuOpen: false
+    };
 
     #history = createHistory();
     #pane = new RecordPane();
@@ -121,6 +126,11 @@ export function HubMixin(Base) {
       if (!this.state.view) return;
       this.state.view.mode = this.state.view.mode === "edit" ? "view" : "edit";
       await this.render();
+    }
+
+    static async #onToggleSettingsMenu() {
+      this.state.settingsMenuOpen = !this.state.settingsMenuOpen;
+      await this.render({ parts: ["header"] });
     }
 
     /** Dismiss the record overlay and return to the index/timeline. */
@@ -256,6 +266,7 @@ export function HubMixin(Base) {
       // resume like the window position or the collapsed-rail client setting.
       this.state.view = null;
       this.state.typeMenuOpen = false;
+      this.state.settingsMenuOpen = false;
       this.#history = createHistory();
       super._onClose(options);
     }
@@ -643,6 +654,12 @@ export function HubMixin(Base) {
       context.timelineGroups = this.#timelineGroups();
       context.thumbnails = game.settings.get(MODULE_ID, THUMBNAILS_SETTING);
       context.inlineEditing = game.settings.get(MODULE_ID, INLINE_EDIT_SETTING);
+      context.settingsMenuOpen = this.state.settingsMenuOpen;
+      const target = getTargetGroup();
+      context.autoTargetNoneSelected = !target;
+      context.autoTargetOptions = getGroups().map((g) => ({
+        id: g.id, name: g.name, selected: g.id === target?.id
+      }));
       context.snippets = game.settings.get(MODULE_ID, SNIPPETS_SETTING);
       const viewedPage = this.#resolveViewedPage();
       const viewable = !!viewedPage
@@ -704,6 +721,22 @@ export function HubMixin(Base) {
         sortSelect.addEventListener("change", (event) => {
           this.state.sort = event.target.value;
           this.#renderList();
+        });
+      }
+      const targetSelect = this.element.querySelector('select[name="auto-target-select"]');
+      if (targetSelect && !targetSelect.dataset.crBound) {
+        targetSelect.dataset.crBound = "1";
+        targetSelect.addEventListener("change", async (event) => {
+          await setTargetGroup(event.target.value);
+        });
+      }
+      if (!this.element.dataset.crSettingsBound) {
+        this.element.dataset.crSettingsBound = "1";
+        this.element.addEventListener("click", (event) => {
+          if (this.state.settingsMenuOpen && !event.target.closest(".hub-settings-menu")) {
+            this.state.settingsMenuOpen = false;
+            this.render({ parts: ["header"] });
+          }
         });
       }
       if (!this.element.dataset.crTypeBound) {

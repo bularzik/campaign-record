@@ -81,7 +81,10 @@
       "EditRecord": "Edit entry",
       "CloseRecord": "Close entry",
       "DoneEditing": "Done editing",
-      "RecordUnavailable": "That entry can no longer be displayed."
+      "RecordUnavailable": "That entry can no longer be displayed.",
+      "Settings": "Settings",
+      "AutoTargetLabel": "Auto-capture target",
+      "AutoTargetNone": "None"
     },
     "Import": {
       "Title": "Import Document",
@@ -290,6 +293,14 @@
       "Next": "Next image",
       "Dismiss": "Dismiss",
       "NoImages": "This media entry has no images to present."
+    },
+    "AutoCapture": {
+      "NoGMForTarget": "No GM is connected, so the auto-capture target could not be changed.",
+      "EncounterName": "Combat at {scene}",
+      "Died": "Died",
+      "Injured": "Injured",
+      "Fled": "Fled",
+      "NoCasualties": "All combatants unharmed."
     }
   }
 }

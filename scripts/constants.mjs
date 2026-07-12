@@ -59,3 +59,15 @@ export const SNIPPETS_SETTING = "hubSnippets";
 
 /** Registered sheet id (scope.ClassName) that opens groups in the Campaign Hub. */
 export const GROUP_SHEET_CLASS = `${MODULE_ID}.GroupHubSheet`;
+
+/** World setting: id of the group that receives auto-captured records ("" = off). */
+export const AUTO_TARGET_SETTING = "autoCaptureTargetGroup";
+
+/** Socket action: relay a target-group change to the active GM. */
+export const AUTO_TARGET_ACTION = "set-auto-target";
+
+/** Combat flag: uuid of the Encounter page this combat is captured into. */
+export const ENCOUNTER_FLAG = "encounterUuid";
+
+/** Combat flag: combatants that left mid-fight, for the end summary. */
+export const DEPARTED_FLAG = "departed";
