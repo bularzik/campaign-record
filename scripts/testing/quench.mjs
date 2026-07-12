@@ -7,6 +7,19 @@ import {
 } from "../data/timepoints.mjs";
 import { isRecordVisible } from "../logic/visibility.mjs";
 
+// Auto-capture hooks are fire-and-forget (fired via Hooks.callAll, not awaited
+// by the triggering call), so tests must wait for the world-side effect rather
+// than assert synchronously. Resolves with the first truthy predicate value.
+async function waitFor(predicate, { timeout = 5000, interval = 50 } = {}) {
+  const deadline = Date.now() + timeout;
+  let last = await predicate();
+  while (!last && Date.now() < deadline) {
+    await new Promise((r) => setTimeout(r, interval));
+    last = await predicate();
+  }
+  return last;
+}
+
 Hooks.on("quenchReady", (quench) => {
   quench.registerBatch(
     "campaign-record.core",
@@ -257,6 +270,7 @@ Hooks.on("quenchReady", (quench) => {
         it("a newly created group becomes the target", async () => {
           const { getTargetGroup } = await import("../settings/auto-target.mjs");
           const fresh = await createGroup("Quench Auto Target");
+          await waitFor(() => getTargetGroup()?.id === fresh.id);
           assert.equal(getTargetGroup()?.id, fresh.id);
           await fresh.delete();
         });
@@ -292,14 +306,16 @@ Hooks.on("quenchReady", (quench) => {
           assert.ok(first.place.system.timepoints.has(second.timepointId));
         });
 
-        it("combatStart creates an Encounter attached to the Place timepoint", async () => {
+        it("combatStart creates an Encounter attached to the Place timepoint", async function () {
+          this.timeout(15000);
           const { ensurePlaceForScene } = await import("../hooks/auto-capture.mjs");
           const { timepointId } = await ensurePlaceForScene(group, scene, { createTimepoint: true });
-          const actor = await Actor.create({ name: "Quench Goblin", type: Object.keys(game.system.model?.Actor ?? { npc: {} })[0] });
+          const actorType = Actor.TYPES.find((t) => t !== "base") ?? Actor.TYPES[0];
+          const actor = await Actor.create({ name: "Quench Goblin", type: actorType });
           const combat = await Combat.create({ scene: scene.id });
           await combat.createEmbeddedDocuments("Combatant", [{ actorId: actor.id }, { actorId: actor.id }]);
           await combat.startCombat();
-          const encounterUuid = combat.getFlag("campaign-record", "encounterUuid");
+          const encounterUuid = await waitFor(() => combat.getFlag("campaign-record", "encounterUuid"));
           assert.ok(encounterUuid, "encounter flag stamped");
           const encounter = await fromUuid(encounterUuid);
           assert.equal(encounter.type, "campaign-record.encounter");
@@ -310,18 +326,23 @@ Hooks.on("quenchReady", (quench) => {
           await actor.delete();
         });
 
-        it("adding a combatant grows the Encounter; removal is tracked as departed", async () => {
+        it("adding a combatant grows the Encounter; removal is tracked as departed", async function () {
+          this.timeout(15000);
           const { ensurePlaceForScene } = await import("../hooks/auto-capture.mjs");
           await ensurePlaceForScene(group, scene, { createTimepoint: true });
-          const gob = await Actor.create({ name: "Quench Gob2", type: Object.keys(game.system.model?.Actor ?? { npc: {} })[0] });
-          const orc = await Actor.create({ name: "Quench Orc", type: Object.keys(game.system.model?.Actor ?? { npc: {} })[0] });
+          const actorType = Actor.TYPES.find((t) => t !== "base") ?? Actor.TYPES[0];
+          const gob = await Actor.create({ name: "Quench Gob2", type: actorType });
+          const orc = await Actor.create({ name: "Quench Orc", type: actorType });
           const combat = await Combat.create({ scene: scene.id });
           await combat.createEmbeddedDocuments("Combatant", [{ actorId: gob.id }]);
           await combat.startCombat();
-          const encounter = await fromUuid(combat.getFlag("campaign-record", "encounterUuid"));
+          const encounterUuid = await waitFor(() => combat.getFlag("campaign-record", "encounterUuid"));
+          const encounter = await fromUuid(encounterUuid);
           const [added] = await combat.createEmbeddedDocuments("Combatant", [{ actorId: orc.id }]);
+          await waitFor(() => encounter.system.combatants.length === 2);
           assert.equal(encounter.system.combatants.length, 2, "orc synced in");
           await added.delete();
+          await waitFor(() => (combat.getFlag("campaign-record", "departed") ?? []).length === 1);
           const departed = combat.getFlag("campaign-record", "departed") ?? [];
           assert.equal(departed.length, 1, "departure recorded");
           assert.equal(encounter.system.combatants.length, 2, "roster did not shrink");
@@ -330,17 +351,20 @@ Hooks.on("quenchReady", (quench) => {
           await orc.delete();
         });
 
-        it("deleteCombat writes an outcome summary onto the Encounter", async () => {
+        it("deleteCombat writes an outcome summary onto the Encounter", async function () {
+          this.timeout(15000);
           const { ensurePlaceForScene } = await import("../hooks/auto-capture.mjs");
           await ensurePlaceForScene(group, scene, { createTimepoint: true });
-          const foe = await Actor.create({ name: "Quench Foe", type: Object.keys(game.system.model?.Actor ?? { npc: {} })[0] });
+          const actorType = Actor.TYPES.find((t) => t !== "base") ?? Actor.TYPES[0];
+          const foe = await Actor.create({ name: "Quench Foe", type: actorType });
           const combat = await Combat.create({ scene: scene.id });
           const [c1] = await combat.createEmbeddedDocuments("Combatant", [{ actorId: foe.id }]);
           await combat.startCombat();
-          const encounterUuid = combat.getFlag("campaign-record", "encounterUuid");
+          const encounterUuid = await waitFor(() => combat.getFlag("campaign-record", "encounterUuid"));
           await c1.update({ defeated: true });
           await combat.delete();
           const encounter = await fromUuid(encounterUuid);
+          await waitFor(() => encounter.system.outcome?.includes("Died"));
           assert.ok(encounter.system.outcome.includes("Died"), "died bucket present");
           await foe.delete();
         });
