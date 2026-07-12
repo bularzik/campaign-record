@@ -684,6 +684,16 @@
   flex-direction: column;
 }
 
+/* Hide core's page-metadata row inside the hub's record pane: the heading-level
+   select, the "Display Page Title" checkbox, and the optional category picker.
+   The hub presents a cleaner editor; the page-title input above the row stays.
+   Scoped to .record-pane-mount so journal sheets opened normally keep the row.
+   (.page-metadata is the v13 class; .page-level covers the legacy template.) */
+.record-pane-mount .journal-header .page-metadata,
+.record-pane-mount .journal-header .page-level {
+  display: none;
+}
+
 /* Narrow left-index rows: icon + name only. */
 .campaign-hub .hub-index .record-row {
   grid-template-columns: 2rem minmax(0, 1fr);
