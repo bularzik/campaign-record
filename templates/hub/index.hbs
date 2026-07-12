@@ -6,24 +6,44 @@
       <i class="fa-solid fa-angles-left"></i>
     </button>
   </div>
-  <div class="doctype-filter">
-    <button type="button" class="doctype-summary" aria-haspopup="true"
-            aria-expanded="{{#if typeMenuOpen}}true{{else}}false{{/if}}"
-            data-tooltip="CAMPAIGNRECORD.Hub.TypeFilter"
-            aria-label="{{localize "CAMPAIGNRECORD.Hub.TypeFilter"}}">
-      <i class="fa-solid fa-filter"></i>
-      <span class="doctype-summary-label">{{#if typeMenuOpen}}{{localize "CAMPAIGNRECORD.Hub.AllTypes"}}{{else}}{{doctypeFilter.summary}}{{/if}}</span>
-    </button>
-    {{#if typeMenuOpen}}
-    <div class="doctype-menu">
-      {{#each doctypeFilter.items}}
-      <label class="doctype-option">
-        <input type="checkbox" name="doctype-check" value="{{this.type}}" {{#if this.checked}}checked{{/if}}>
-        <i class="{{this.icon}}"></i> {{this.label}}
-      </label>
-      {{/each}}
+  <div class="filter-row">
+    <div class="doctype-filter">
+      <button type="button" class="doctype-summary" aria-haspopup="true"
+              aria-expanded="{{#if typeMenuOpen}}true{{else}}false{{/if}}"
+              data-tooltip="CAMPAIGNRECORD.Hub.TypeFilter"
+              aria-label="{{localize "CAMPAIGNRECORD.Hub.TypeFilter"}}">
+        <i class="fa-solid fa-filter"></i>
+        <span class="doctype-summary-label">{{#if typeMenuOpen}}{{localize "CAMPAIGNRECORD.Hub.AllTypes"}}{{else}}{{doctypeFilter.summary}}{{/if}}</span>
+      </button>
+      {{#if typeMenuOpen}}
+      <div class="doctype-menu">
+        {{#each doctypeFilter.items}}
+        <label class="doctype-option">
+          <input type="checkbox" name="doctype-check" value="{{this.type}}" {{#if this.checked}}checked{{/if}}>
+          <i class="{{this.icon}}"></i> {{this.label}}
+        </label>
+        {{/each}}
+      </div>
+      {{/if}}
     </div>
-    {{/if}}
+    <div class="sort-filter">
+      <button type="button" class="sort-summary" aria-haspopup="true"
+              aria-expanded="{{#if sortMenuOpen}}true{{else}}false{{/if}}"
+              data-tooltip="CAMPAIGNRECORD.Hub.SortBy"
+              aria-label="{{localize "CAMPAIGNRECORD.Hub.SortBy"}}">
+        <i class="fa-solid fa-arrow-down-short-wide"></i>
+      </button>
+      {{#if sortMenuOpen}}
+      <div class="sort-menu">
+        {{#each sortMenu.items}}
+        <label class="sort-option">
+          <input type="radio" name="sort-select" value="{{this.value}}" {{#if this.selected}}checked{{/if}}>
+          {{this.label}}
+        </label>
+        {{/each}}
+      </div>
+      {{/if}}
+    </div>
   </div>
   <div class="index-controls">
     <input type="search" name="index-search" value="{{state.query}}"
@@ -33,11 +53,6 @@
              {{#if snippets}}checked{{/if}}>
       {{localize "CAMPAIGNRECORD.Hub.Snippets"}}
     </label>
-    <select name="sort-select">
-      {{#each sortOptions}}
-      <option value="{{this.value}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>
-      {{/each}}
-    </select>
     {{#if isGM}}
     <button type="button" class="hidden-toggle {{#if state.hiddenOnly}}active{{/if}}"
             data-action="toggleHiddenOnly" data-tooltip="CAMPAIGNRECORD.Hub.HiddenOnly">

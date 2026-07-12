@@ -89,10 +89,12 @@ test.describe("campaign hub shell", () => {
 
     await expect(hub.locator(".record-group-header")).toHaveCount(0); // default sort = name
 
-    await hub.locator('select[name="sort-select"]').selectOption("type");
+    await hub.locator('.sort-summary').click();
+    await hub.locator('.sort-menu input[name="sort-select"][value="type"]').check();
     await expect(hub.locator(".record-group-header").first()).toBeVisible();
 
-    await hub.locator('select[name="sort-select"]').selectOption("name");
+    await hub.locator('.sort-summary').click();
+    await hub.locator('.sort-menu input[name="sort-select"][value="name"]').check();
     await expect(hub.locator(".record-group-header")).toHaveCount(0);
 
     await deleteGroupsByPrefix(page, "E2E Hub Sort");

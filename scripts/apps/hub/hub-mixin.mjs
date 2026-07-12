@@ -5,6 +5,7 @@ import {
 } from "../../constants.mjs";
 import { hasInlineFocus } from "../../logic/inline-edit.mjs";
 import { buildDoctypeFilter } from "../../logic/doctype-filter.mjs";
+import { buildSortMenu } from "../../logic/sort-menu.mjs";
 import { collectRecords, isIndexablePage, getScopedGroups, toSearchRecord } from "./hub-data.mjs";
 import { createIndex, indexRecord, removeRecord, search } from "../../logic/search-index.mjs";
 import { hasGroupFlag, isRecordVisible } from "../../logic/visibility.mjs";
@@ -77,7 +78,7 @@ export function HubMixin(Base) {
 
     state = {
       groupId: "all", types: new Set(), hiddenOnly: false, sort: "name", query: "",
-      typeMenuOpen: false, settingsMenuOpen: false
+      typeMenuOpen: false, settingsMenuOpen: false, sortMenuOpen: false
     };
 
     #history = createHistory();
@@ -272,6 +273,7 @@ export function HubMixin(Base) {
       this.state.view = null;
       this.state.typeMenuOpen = false;
       this.state.settingsMenuOpen = false;
+      this.state.sortMenuOpen = false;
       this.#history = createHistory();
       super._onClose(options);
     }
@@ -652,11 +654,11 @@ export function HubMixin(Base) {
         game.i18n.localize("CAMPAIGNRECORD.Hub.AllTypesSummary")
       );
       context.typeMenuOpen = this.state.typeMenuOpen;
-      context.sortOptions = ["name", "type", "updated"].map((s) => ({
-        value: s,
-        label: game.i18n.localize(`CAMPAIGNRECORD.Hub.Sort.${s}`),
-        selected: this.state.sort === s
-      }));
+      context.sortMenu = buildSortMenu(
+        this.state.sort,
+        (s) => game.i18n.localize(`CAMPAIGNRECORD.Hub.Sort.${s}`)
+      );
+      context.sortMenuOpen = this.state.sortMenuOpen;
       context.timelineGroups = this.#timelineGroups();
       context.thumbnails = game.settings.get(MODULE_ID, THUMBNAILS_SETTING);
       context.inlineEditing = game.settings.get(MODULE_ID, INLINE_EDIT_SETTING);
@@ -721,11 +723,23 @@ export function HubMixin(Base) {
           restored?.setSelectionRange(restored.value.length, restored.value.length);
         }, 250));
       }
-      const sortSelect = this.element.querySelector('select[name="sort-select"]');
-      if (sortSelect && !sortSelect.dataset.crBound) {
-        sortSelect.dataset.crBound = "1";
-        sortSelect.addEventListener("change", (event) => {
-          this.state.sort = event.target.value;
+      if (!this.element.dataset.crSortBound) {
+        this.element.dataset.crSortBound = "1";
+        this.element.addEventListener("click", (event) => {
+          if (event.target.closest(".sort-summary")) {
+            this.state.sortMenuOpen = !this.state.sortMenuOpen;
+            return this.#renderList();
+          }
+          if (this.state.sortMenuOpen && !event.target.closest(".sort-filter")) {
+            this.state.sortMenuOpen = false;
+            this.#renderList();
+          }
+        });
+        this.element.addEventListener("change", (event) => {
+          const radio = event.target.closest('input[name="sort-select"]');
+          if (!radio) return;
+          this.state.sort = radio.value;
+          this.state.sortMenuOpen = false;
           this.#renderList();
         });
       }

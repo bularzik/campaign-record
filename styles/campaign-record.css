@@ -58,9 +58,50 @@
   flex: 0 0 auto;
 }
 
+.campaign-hub .filter-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+.campaign-hub .filter-row .doctype-filter {
+  flex: 1 1 auto;
+  margin-bottom: 0;
+}
+.campaign-hub .sort-filter {
+  position: relative;
+  flex: 0 0 auto;
+}
+.campaign-hub .sort-summary {
+  width: auto;
+  flex: 0 0 auto;
+}
+.campaign-hub .sort-menu {
+  position: absolute;
+  z-index: 2;
+  top: 100%;
+  right: 0;
+  min-width: 10rem;
+  padding: 0.25rem;
+  border: 1px solid var(--color-border-dark, #000);
+  border-radius: 4px;
+  background: var(--color-bg, #1c1c1c);
+  color: var(--color-text-primary, #f0f0e0);
+}
+.campaign-hub .sort-option {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.15rem 0.3rem;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.campaign-hub .sort-option:hover {
+  background: var(--color-hover-bg, rgba(255, 255, 240, 0.1));
+}
+
 .campaign-hub .doctype-filter {
   position: relative;
-  margin-bottom: 0.5rem;
 }
 .campaign-hub .doctype-summary {
   display: inline-flex;
@@ -112,11 +153,6 @@
   flex: 1 1 8rem;
   min-width: 8rem;
   max-width: 16rem;
-}
-
-.campaign-hub .index-controls select[name="sort-select"] {
-  width: auto;
-  flex: 0 0 auto;
 }
 
 .campaign-hub .index-controls button {
