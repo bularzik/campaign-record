@@ -545,30 +545,52 @@
   background: var(--color-bg-option, rgba(255, 255, 255, 0.5));
 }
 
-/* Height chain: the mounted view sheet fills the pane so the description
-   editor can grow with the window instead of collapsing to a few lines.
-   Core lays the active editor out as a flex column (menu + flex:1
-   .editor-container holding an absolutely-positioned .editor-content); we
-   size via core's own --min-height and let the container flex, never
-   overriding the editor's display. */
-.campaign-hub .record-pane-mount > .record-pane-sheet,
-.campaign-record-content.inline-edit {
+/* Height chain: whatever editor is mounted in the record pane — the inline
+   auto-save view, the core edit sheet for a typed entry, or a core text/journal
+   page — fills the pane and grows with the window instead of collapsing to a
+   few lines. Everything is scoped under .record-pane-mount so standalone record
+   windows keep their own sizing. Core lays the active ProseMirror out as its
+   own flex column (menu + flex:1 .editor-container holding an absolutely
+   positioned .editor-content); we never override the editor's own display — we
+   flex each ancestor and size via core's --min-height. */
+.record-pane-mount > .record-pane-sheet {
+  flex: 1 1 auto;
+  min-height: 0;
   display: flex;
   flex-direction: column;
+}
+/* Our typed content wrapper — both the inline view (.record-view.inline-edit)
+   and the core edit sheet's content (.record-edit). */
+.record-pane-mount .campaign-record-content {
+  flex: 1 1 auto;
   min-height: 0;
-}
-.campaign-record-content.inline-edit {
-  flex: 1;
-}
-.campaign-record-content.inline-edit .record-description {
   display: flex;
   flex-direction: column;
-  flex: 1;
-  min-height: 0;
 }
-.campaign-record-content.inline-edit prose-mirror {
+/* The description / GM-notes editor groups absorb the free space; the compact
+   field groups above them keep their natural height. Matches both the inline
+   view (.record-description.form-group.stacked) and the edit sheet
+   (.form-group.stacked). */
+.record-pane-mount .campaign-record-content .form-group.stacked {
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+/* Core text/journal pages don't use our wrapper: flex whichever direct child
+   of the mounted sheet actually holds the editor. */
+.record-pane-mount > .record-pane-sheet > .journal-page-content,
+.record-pane-mount > .record-pane-sheet > *:has(> prose-mirror) {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+/* The editors themselves fill their group; --min-height is the floor when the
+   pane is short (and the sole sizing if some core wrapper can't be flexed). */
+.record-pane-mount prose-mirror {
   --min-height: 12rem;
-  flex: 1;
+  flex: 1 1 auto;
   min-height: 0;
 }
 
@@ -655,8 +677,11 @@
 }
 .record-pane-mount {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   padding: 0.5rem;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Narrow left-index rows: icon + name only. */
