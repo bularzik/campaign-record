@@ -38,10 +38,6 @@
       "GroupPicker": "Campaign Record",
       "AllGroups": "All Campaign Records",
       "Empty": "Nothing here yet.",
-      "Tabs": {
-        "index": "Index",
-        "timeline": "Timeline"
-      },
       "NewRecord": "New Entry",
       "RecordName": "Name",
       "RecordType": "Type",

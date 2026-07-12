@@ -2,7 +2,7 @@
   "id": "campaign-record",
   "title": "Campaign Record",
   "description": "Collaborative campaign journaling: shared typed entries (NPCs, places, quests, and more) organized into Campaign Records, with an index, timeline, and cross-document search.",
-  "version": "1.2.6",
+  "version": "1.2.7",
   "authors": [{ "name": "Dan Bularzik" }],
   "compatibility": { "minimum": "13", "verified": "13" },
   "esmodules": ["scripts/campaign-record.mjs"],

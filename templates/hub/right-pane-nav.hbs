@@ -1,0 +1,8 @@
+<button type="button" data-action="paneBack" {{#unless canGoBack}}disabled{{/unless}}
+        data-tooltip="CAMPAIGNRECORD.Hub.Back" aria-label="{{localize "CAMPAIGNRECORD.Hub.Back"}}">
+  <i class="fa-solid fa-arrow-left"></i>
+</button>
+<button type="button" data-action="paneForward" {{#unless canGoForward}}disabled{{/unless}}
+        data-tooltip="CAMPAIGNRECORD.Hub.Forward" aria-label="{{localize "CAMPAIGNRECORD.Hub.Forward"}}">
+  <i class="fa-solid fa-arrow-right"></i>
+</button>

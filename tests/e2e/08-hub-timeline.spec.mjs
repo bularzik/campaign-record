@@ -10,6 +10,7 @@ test.describe("hub timeline", () => {
   const groupSection = (p) =>
     p.locator(`#campaign-hub .timeline-group[data-group-id="${ids.groupId}"]`);
 
+  // The timeline is always visible now (no tabs); this just opens the hub.
   const openTimeline = async (p) => {
     await p.evaluate(async () => {
       const { CampaignHub } = await import("/modules/campaign-record/scripts/apps/hub/campaign-hub.mjs");
@@ -17,7 +18,6 @@ test.describe("hub timeline", () => {
     });
     const hub = p.locator("#campaign-hub");
     await hub.waitFor({ timeout: 15_000 });
-    await hub.locator('[data-action="tab"][data-tab="timeline"]').click();
     return hub;
   };
 
@@ -207,22 +207,6 @@ test.describe("hub timeline", () => {
 
     await expect(gmPage.locator("#campaign-hub .record-chip", { hasText: "E2E Timeline NPC" }))
       .toHaveCount(0, { timeout: 10_000 });
-  });
-
-  test("dragenter on the timeline tab nav link switches to it mid-drag", async () => {
-    const gmHub = gmPage.locator("#campaign-hub");
-    await gmHub.locator('[data-action="tab"][data-tab="index"]').click();
-    await expect(gmHub.locator('.hub-index[data-tab="index"]')).toHaveClass(/active/);
-
-    await gmPage.evaluate(() => {
-      const link = document.querySelector(
-        '#campaign-hub .hub-header nav.tabs a[data-action="tab"][data-tab="timeline"]'
-      );
-      link.dispatchEvent(new DragEvent("dragenter", { bubbles: true }));
-    });
-
-    await expect(gmHub.locator('.hub-timeline[data-tab="timeline"]')).toHaveClass(/active/);
-    await expect(gmHub.locator('.hub-index[data-tab="index"]')).not.toHaveClass(/active/);
   });
 
   test("a link chip to an ordinary journal's page opens in this hub's pane", async () => {

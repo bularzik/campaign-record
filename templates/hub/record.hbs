@@ -1,21 +1,12 @@
 <section class="hub-record {{#if view}}active{{/if}}">
   <header class="record-pane-header">
-    {{#if view}}
-    <button type="button" class="rail-toggle" data-action="toggleRail"
-            data-tooltip="CAMPAIGNRECORD.Hub.ToggleRail" aria-label="{{localize "CAMPAIGNRECORD.Hub.ToggleRail"}}">
-      <i class="fa-solid fa-angles-left"></i>
-    </button>
-    {{/if}}
-    <button type="button" data-action="paneBack" {{#unless canGoBack}}disabled{{/unless}}
-            data-tooltip="CAMPAIGNRECORD.Hub.Back" aria-label="{{localize "CAMPAIGNRECORD.Hub.Back"}}">
-      <i class="fa-solid fa-arrow-left"></i>
-    </button>
-    <button type="button" data-action="paneForward" {{#unless canGoForward}}disabled{{/unless}}
-            data-tooltip="CAMPAIGNRECORD.Hub.Forward" aria-label="{{localize "CAMPAIGNRECORD.Hub.Forward"}}">
-      <i class="fa-solid fa-arrow-right"></i>
-    </button>
+    {{> campaign-record.hub-right-nav}}
     {{#if view}}
     <h2 class="record-pane-title">{{view.name}}</h2>
+    <button type="button" class="new-record" data-action="newRecord"
+            data-tooltip="CAMPAIGNRECORD.Hub.NewRecord" aria-label="{{localize "CAMPAIGNRECORD.Hub.NewRecord"}}">
+      <i class="fa-solid fa-plus"></i>
+    </button>
     {{#if view.canEdit}}
     <button type="button" class="edit-toggle" data-action="toggleEditMode"
             data-tooltip="{{#if view.editing}}CAMPAIGNRECORD.Hub.DoneEditing{{else}}CAMPAIGNRECORD.Hub.EditRecord{{/if}}"

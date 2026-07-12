@@ -22,7 +22,6 @@ function extractKeys() {
     /\{\{\s*localize\s+"([^"]+)"/g, // {{localize "KEY"}}
     /data-tooltip="((?:CAMPAIGNRECORD|TYPES)[^"{]+)"/g, // static tooltip keys
     /game\.i18n\.(?:localize|format)\(\s*"([^"]+)"/g, // JS lookups
-    /labelPrefix:\s*"([^"]+)"/g, // hub tab labels (suffixed below)
     /(?:title|label):\s*"((?:CAMPAIGNRECORD|TYPES)[^"]+)"/g // AppV2 window titles, sheet labels
   ];
   const files = [...filesUnder(path.join(ROOT, "templates"), ".hbs"), ...filesUnder(path.join(ROOT, "scripts"), ".mjs")];
@@ -39,12 +38,6 @@ describe("i18n coverage", () => {
   it("every referenced key resolves in lang/en.json", () => {
     const missing = [];
     for (const key of extractKeys()) {
-      if (key === "CAMPAIGNRECORD.Hub.Tabs") {
-        for (const tab of ["index", "timeline"]) {
-          if (typeof resolve(`${key}.${tab}`) !== "string") missing.push(`${key}.${tab}`);
-        }
-        continue;
-      }
       if (typeof resolve(key) !== "string") missing.push(key);
     }
     expect(missing).toEqual([]);

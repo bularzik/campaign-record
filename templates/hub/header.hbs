@@ -20,11 +20,4 @@
           aria-pressed="{{#if inlineEditing}}true{{else}}false{{/if}}">
     <i class="fa-solid {{#if inlineEditing}}fa-pen{{else}}fa-pen-slash{{/if}}"></i>
   </button>
-  <nav class="tabs" data-group="primary">
-    {{#each tabs}}
-    <a class="{{this.cssClass}}" data-action="tab" data-group="primary" data-tab="{{this.id}}">
-      <i class="{{this.icon}}"></i> {{localize this.label}}
-    </a>
-    {{/each}}
-  </nav>
 </div>

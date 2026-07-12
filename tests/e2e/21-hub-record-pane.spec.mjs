@@ -6,7 +6,7 @@ test.describe("hub record pane", () => {
     await deleteGroupsByPrefix(page, "E2E Pane");
   });
 
-  test("index click opens the record in-pane; tabs return to the index", async ({ page }) => {
+  test("index click opens the record in-pane", async ({ page }) => {
     await login(page, "Gamemaster");
     await createGroupWithPage(page, "E2E Pane Group", "E2E Pane Npc", "campaign-record.npc");
     await page.evaluate(async () => {
@@ -20,11 +20,7 @@ test.describe("hub record pane", () => {
     await expect(hub.locator(".record-pane-title")).toHaveText("E2E Pane Npc");
     await expect(hub.locator(".record-pane-mount dl.record-facts")).toBeVisible();
     // The index stays visible as the searchable left pane while viewing a record.
-    await expect(hub.locator('.hub-index[data-tab="index"]')).toBeVisible();
-
-    await hub.locator('[data-action="tab"][data-tab="index"]').click();
-    await expect(hub.locator('.hub-index[data-tab="index"]')).toBeVisible();
-    await expect(hub.locator(".record-pane-title")).toHaveCount(0);
+    await expect(hub.locator(".hub-index")).toBeVisible();
   });
 
   test("record view keeps a searchable index in the left pane", async ({ page }) => {
@@ -38,14 +34,13 @@ test.describe("hub record pane", () => {
     await hub.waitFor();
     await hub.locator(".record-row", { hasText: "E2E Pane Npc" }).click();
 
-    await expect(hub).toHaveClass(/viewing-record/);
     // The left pane exposes the index controls and rows...
     await expect(hub.locator(".hub-index .doctype-filter")).toBeVisible();
     await expect(hub.locator(".hub-index input[name='index-search']")).toBeVisible();
     // ...the current record is flagged...
     await expect(hub.locator(".hub-index .record-row.current")).toHaveCount(1);
-    // ...and the timeline tab panel is hidden.
-    await expect(hub.locator(".hub-timeline")).toBeHidden();
+    // ...and the record pane overlays the (still-mounted) timeline.
+    await expect(hub.locator(".hub-record.active")).toBeVisible();
     // The old rail markup is gone.
     await expect(hub.locator(".record-rail")).toHaveCount(0);
   });
@@ -64,7 +59,7 @@ test.describe("hub record pane", () => {
       ({ groupId, pageId }) => game.journal.get(groupId).pages.get(pageId).delete(),
       ids
     );
-    await expect(hub.locator('.hub-index[data-tab="index"]')).toBeVisible();
+    await expect(hub.locator(".hub-index")).toBeVisible();
   });
 
   test("left index highlights current record and jumps on click", async ({ page }) => {
@@ -87,6 +82,23 @@ test.describe("hub record pane", () => {
     await expect(index.locator(".record-row", { hasText: "E2E Pane Two" })).toHaveClass(/current/);
   });
 
+  test("index collapses from the default view and the toggle stays reachable", async ({ page }) => {
+    await login(page, "Gamemaster");
+    await createGroupWithPage(page, "E2E Pane Group", "E2E Pane One", "campaign-record.npc");
+    await page.evaluate(async () => {
+      const { CampaignHub } = await import("/modules/campaign-record/scripts/apps/hub/campaign-hub.mjs");
+      CampaignHub.open();
+    });
+    const hub = page.locator("#campaign-hub");
+    await hub.waitFor();
+    const toggle = hub.locator('.hub-index [data-action="toggleRail"]');
+    await expect(toggle).toBeVisible();
+    await toggle.click();
+    await expect(hub).toHaveClass(/rail-collapsed/);
+    await expect(hub.locator(".hub-index .record-list")).toBeHidden();
+    await expect(toggle).toBeVisible();
+  });
+
   test("left index collapse persists across a close/reopen", async ({ page }) => {
     await login(page, "Gamemaster");
     await createGroupWithPage(page, "E2E Pane Group", "E2E Pane One", "campaign-record.npc");
@@ -95,19 +107,19 @@ test.describe("hub record pane", () => {
       CampaignHub.open();
     });
     const hub = page.locator("#campaign-hub");
-    await hub.locator(".record-row", { hasText: "E2E Pane One" }).click();
-    await hub.locator('[data-action="toggleRail"]').click();
+    await hub.locator('.hub-index [data-action="toggleRail"]').click();
     await expect(hub).toHaveClass(/rail-collapsed/);
-    await expect(hub.locator(".hub-index")).toBeHidden();
+    await expect(hub.locator(".hub-index .record-list")).toBeHidden();
 
     await page.evaluate(async () => {
       const { CampaignHub } = await import("/modules/campaign-record/scripts/apps/hub/campaign-hub.mjs");
       CampaignHub.toggle(); // close
       CampaignHub.toggle(); // reopen
     });
-    await hub.locator(".record-row", { hasText: "E2E Pane One" }).click();
+    // The setting is applied on render, independent of whether a record is
+    // being viewed — the strip stays collapsed immediately on reopen.
     await expect(hub).toHaveClass(/rail-collapsed/);
-    await expect(hub.locator(".hub-index")).toBeHidden();
+    await expect(hub.locator(".hub-index .record-list")).toBeHidden();
   });
 
   test("back/forward traverse visits, loops included", async ({ page }) => {
@@ -123,6 +135,9 @@ test.describe("hub record pane", () => {
     const hub = page.locator("#campaign-hub");
     const index = hub.locator(".hub-index");
     const title = hub.locator(".record-pane-title");
+    // The shared right-pane nav also renders in the timeline tools, so scope
+    // Back/Forward to the record header while a record is being viewed.
+    const recordNav = hub.locator(".hub-record.active .record-pane-header");
 
     // Visit A -> B -> A (a loop) via index jumps.
     await hub.locator(".record-row", { hasText: "E2E Pane A" }).click();
@@ -130,17 +145,21 @@ test.describe("hub record pane", () => {
     await index.locator(".record-row", { hasText: "E2E Pane A" }).click();
     await expect(title).toHaveText("E2E Pane A");
 
-    await hub.locator('[data-action="paneBack"]').click();
+    await recordNav.locator('[data-action="paneBack"]').click();
     await expect(title).toHaveText("E2E Pane B");
-    await hub.locator('[data-action="paneBack"]').click();
+    // Forward works while a record is still showing (the pane, including its
+    // Back/Forward header, is part of the record overlay).
+    await recordNav.locator('[data-action="paneForward"]').click();
     await expect(title).toHaveText("E2E Pane A");
-    await hub.locator('[data-action="paneBack"]').click();
-    await expect(hub.locator('.hub-index[data-tab="index"]')).toBeVisible(); // root
-
-    await hub.locator('[data-action="paneForward"]').click();
-    await expect(title).toHaveText("E2E Pane A");
-    await hub.locator('[data-action="paneForward"]').click();
+    await recordNav.locator('[data-action="paneBack"]').click();
     await expect(title).toHaveText("E2E Pane B");
+    await recordNav.locator('[data-action="paneBack"]').click();
+    await expect(title).toHaveText("E2E Pane A");
+    await recordNav.locator('[data-action="paneBack"]').click();
+    // Root: the record pane (including its Back/Forward header) overlays
+    // nothing here and is hidden entirely — only the index is visible.
+    await expect(hub.locator(".hub-index")).toBeVisible();
+    await expect(hub.locator(".hub-record.active")).toHaveCount(0);
   });
 
   test("edit toggle flips to the edit form and persists a change", async ({ page }) => {
@@ -198,7 +217,9 @@ test.describe("hub record pane", () => {
       CampaignHub.open();
     });
     const hub = page.locator("#campaign-hub");
-    await hub.locator('[data-action="newRecord"]').click();
+    // The shared right-pane nav also renders in the (inactive) record
+    // header, so scope New Entry to the timeline tools shown by default.
+    await hub.locator('.hub-timeline [data-action="newRecord"]').click();
     const nameInput = page.locator('dialog input[name="name"], .application.dialog input[name="name"]');
     await nameInput.waitFor({ timeout: 10_000 });
     await nameInput.fill("E2E Pane Fresh");
@@ -282,7 +303,7 @@ test.describe("hub record pane", () => {
       }, ids);
 
       const hub = playerPage.locator("#campaign-hub");
-      await expect(hub.locator('.hub-index[data-tab="index"]')).toBeVisible();
+      await expect(hub.locator(".hub-index")).toBeVisible();
       await expect(hub.locator(".record-pane-title")).toHaveCount(0);
     } finally {
       await ctx.close();

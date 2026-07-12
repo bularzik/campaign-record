@@ -1,4 +1,4 @@
-<section class="tab hub-index{{#if tabs.index.active}} active{{/if}}" data-group="primary" data-tab="index">
+<section class="hub-index">
   <div class="doctype-filter">
     {{#each doctypeFilter.chips}}
     <span class="doctype-chip" data-type="{{this.type}}">
@@ -23,6 +23,11 @@
     {{/if}}
   </div>
   <div class="index-controls">
+    <button type="button" class="rail-toggle" data-action="toggleRail"
+            data-tooltip="CAMPAIGNRECORD.Hub.ToggleRail"
+            aria-label="{{localize "CAMPAIGNRECORD.Hub.ToggleRail"}}">
+      <i class="fa-solid fa-angles-left"></i>
+    </button>
     <input type="search" name="index-search" value="{{state.query}}"
            placeholder="{{localize "CAMPAIGNRECORD.Hub.FilterTag"}}" autocomplete="off">
     <label class="snippets-toggle">
@@ -44,9 +49,6 @@
     {{#if hasActiveFilters}}
     <span class="filtered-count">{{localize "CAMPAIGNRECORD.Hub.FilteredCount" shown=filteredCount total=totalCount}}</span>
     {{/if}}
-    <button type="button" data-action="newRecord">
-      <i class="fa-solid fa-plus"></i> {{localize "CAMPAIGNRECORD.Hub.NewRecord"}}
-    </button>
   </div>
   {{#if otherGroupMatches}}
   <button type="button" class="other-group-matches" data-action="clearFilters">
@@ -54,25 +56,16 @@
   </button>
   {{/if}}
   <ol class="record-list">
-    {{#each records}}
-    <li class="record-row{{#if this.current}} current{{/if}}" data-uuid="{{this.uuid}}"
-        {{#if this.canAttach}}data-drag-record draggable="true"{{/if}}
-        data-action="openRecord">
-      <i class="record-type-icon {{this.icon}}" data-tooltip="{{this.typeLabel}}"></i>
-      <span class="record-name">{{this.name}}
-        {{#if this.hidden}}<i class="fa-solid fa-eye-slash" data-tooltip="CAMPAIGNRECORD.Hidden"></i>{{/if}}
-      </span>
-      <span class="record-subtitle">{{this.subtitle}}</span>
-      {{#if @root.snippets}}{{#if this.matches.length}}
-      <div class="record-snippets">
-        {{#each this.matches}}
-        <span class="hit-snippet"><strong>{{this.field}}:</strong> {{this.snippet}}</span>
-        {{/each}}
-      </div>
-      {{/if}}{{/if}}
-    </li>
+    {{#if grouped}}
+      {{#each recordGroups}}
+      <li class="record-group-header">{{this.label}}</li>
+      {{#each this.records}}{{> campaign-record.hub-index-row}}{{/each}}
+      {{/each}}
     {{else}}
+      {{#each records}}{{> campaign-record.hub-index-row}}{{/each}}
+    {{/if}}
+    {{#unless records.length}}
     <li class="hint">{{localize "CAMPAIGNRECORD.Hub.NoRecords"}}</li>
-    {{/each}}
+    {{/unless}}
   </ol>
 </section>

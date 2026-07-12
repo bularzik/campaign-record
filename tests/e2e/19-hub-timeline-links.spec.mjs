@@ -4,6 +4,7 @@ import { login, deleteGroupsByPrefix, createGroupWithPage, settle } from "./help
 test.describe("hub timeline links", () => {
   let gmPage, playerCtx, playerPage, ids, actors;
 
+  // The timeline is always visible now (no tabs); this just opens the hub.
   const openTimeline = async (p) => {
     await p.evaluate(async () => {
       const { CampaignHub } = await import("/modules/campaign-record/scripts/apps/hub/campaign-hub.mjs");
@@ -11,7 +12,6 @@ test.describe("hub timeline links", () => {
     });
     const hub = p.locator("#campaign-hub");
     await hub.waitFor({ timeout: 15_000 });
-    await hub.locator('[data-action="tab"][data-tab="timeline"]').click();
     return hub;
   };
 

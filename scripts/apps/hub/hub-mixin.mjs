@@ -35,7 +35,7 @@ export function HubMixin(Base) {
     static DEFAULT_OPTIONS = {
       classes: ["campaign-record", "campaign-hub"],
       window: { title: "CAMPAIGNRECORD.Hub.Title", resizable: true, icon: "fa-solid fa-book-atlas" },
-      position: { width: 760, height: 640 },
+      position: { width: 960, height: 640 },
       actions: {
         openRecord: HubBase.#onOpenRecord,
         newRecord: HubBase.#onNewRecord,
@@ -67,17 +67,6 @@ export function HubMixin(Base) {
       index: { template: "modules/campaign-record/templates/hub/index.hbs" },
       timeline: { template: "modules/campaign-record/templates/hub/timeline.hbs" },
       record: { template: "modules/campaign-record/templates/hub/record.hbs" }
-    };
-
-    static TABS = {
-      primary: {
-        tabs: [
-          { id: "index", icon: "fa-solid fa-list" },
-          { id: "timeline", icon: "fa-solid fa-timeline" }
-        ],
-        initial: "index",
-        labelPrefix: "CAMPAIGNRECORD.Hub.Tabs"
-      }
     };
 
     state = { groupId: "all", types: new Set(), hiddenOnly: false, sort: "name", query: "" };
@@ -291,6 +280,13 @@ export function HubMixin(Base) {
         ? sorted.map((r) => ({ ...r, matches: matchesByUuid.get(r.uuid) ?? [] }))
         : sorted;
       return { records: withMatches, total: all.length };
+    }
+
+    /** Human-readable label for a shortType, used for both filter chips and group headers. */
+    #typeLabel(shortType) {
+      return shortType === "journal"
+        ? game.i18n.localize("CAMPAIGNRECORD.Hub.JournalPage")
+        : game.i18n.localize(`TYPES.JournalEntryPage.${typeId(shortType)}`);
     }
 
     /** Count query matches hidden by the current clearable filters, 0 when none. */
@@ -618,15 +614,25 @@ export function HubMixin(Base) {
         ...r,
         current: this.state.view?.uuid === r.uuid
       }));
+      context.grouped = this.state.sort === "type";
+      if (context.grouped) {
+        const groups = [];
+        let last = null;
+        for (const r of context.records) {
+          if (!last || last.shortType !== r.shortType) {
+            last = { shortType: r.shortType, label: this.#typeLabel(r.shortType), records: [] };
+            groups.push(last);
+          }
+          last.records.push(r);
+        }
+        context.recordGroups = groups;
+      }
       context.filteredCount = records.length;
       context.totalCount = total;
       context.otherGroupMatches = this.#otherGroupMatches(records);
       context.hasActiveFilters = this.state.types.size > 0 || this.state.hiddenOnly
         || (this.showsGroupPicker && this.state.groupId !== "all");
-      const typeLabel = (t) => t === "journal"
-        ? game.i18n.localize("CAMPAIGNRECORD.Hub.JournalPage")
-        : game.i18n.localize(`TYPES.JournalEntryPage.${typeId(t)}`);
-      context.doctypeFilter = buildDoctypeFilter(this.state.types, typeLabel);
+      context.doctypeFilter = buildDoctypeFilter(this.state.types, (t) => this.#typeLabel(t));
       context.sortOptions = ["name", "type", "updated"].map((s) => ({
         value: s,
         label: game.i18n.localize(`CAMPAIGNRECORD.Hub.Sort.${s}`),
@@ -708,22 +714,6 @@ export function HubMixin(Base) {
           this.#renderList();
         });
       }
-      // Dragging a record from the Index tab needs a way to reach a Timeline
-      // drop target while the tabs are mutually exclusive: hovering a tab's
-      // nav link mid-drag switches to it.
-      const tabNav = this.element.querySelector(".hub-header nav.tabs");
-      if (tabNav && !tabNav.dataset.crBound) {
-        tabNav.dataset.crBound = "1";
-        for (const link of tabNav.querySelectorAll('a[data-action="tab"]')) {
-          link.addEventListener("dragenter", () => {
-            if (link.dataset.tab !== this.tabGroups.primary) this.changeTab(link.dataset.tab, "primary");
-          });
-          link.addEventListener("click", () => {
-            if (this.state.view) this.navigateToIndex();
-          });
-        }
-      }
-
       if (!this.element.dataset.crLinkBound) {
         this.element.dataset.crLinkBound = "1";
         this.element.addEventListener(
@@ -756,8 +746,11 @@ export function HubMixin(Base) {
         }
       }).bind(this.element);
 
-      this.element.classList.toggle("viewing-record", !!this.state.view);
       this.element.classList.toggle("rail-collapsed", game.settings.get(MODULE_ID, RAIL_SETTING));
+      // The timeline stays mounted (live) beneath an open record, but the
+      // opaque overlay only blocks the mouse — keep its controls out of the
+      // keyboard/AT reach while a record covers it.
+      this.element.querySelector(".hub-timeline")?.toggleAttribute("inert", !!this.state.view);
       const mount = this.element.querySelector(".record-pane-mount");
       if (mount && this.state.view) {
         const page = this.#resolveViewedPage();
