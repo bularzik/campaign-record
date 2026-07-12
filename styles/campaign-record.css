@@ -694,6 +694,14 @@
   display: none;
 }
 
+/* Hide core's "Save Changes" footer button in the pane editor. Both core page
+   sheets and our record sheets use form.submitOnChange, so name and prose edits
+   persist automatically — the button is redundant. Scoped to the pane so
+   journal sheets opened normally keep their footer. */
+.record-pane-mount .form-footer {
+  display: none;
+}
+
 /* Narrow left-index rows: icon + name only. */
 .campaign-hub .hub-index .record-row {
   grid-template-columns: 2rem minmax(0, 1fr);
