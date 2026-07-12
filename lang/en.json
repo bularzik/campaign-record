@@ -78,6 +78,7 @@
       "Forward": "Forward",
       "ToggleRail": "Toggle entry list",
       "EditRecord": "Edit entry",
+      "CloseRecord": "Close entry",
       "DoneEditing": "Done editing",
       "RecordUnavailable": "That entry can no longer be displayed."
     },

@@ -58,7 +58,8 @@ export function HubMixin(Base) {
         paneBack: HubBase.#onPaneBack,
         paneForward: HubBase.#onPaneForward,
         toggleRail: HubBase.#onToggleRail,
-        toggleEditMode: HubBase.#onToggleEditMode
+        toggleEditMode: HubBase.#onToggleEditMode,
+        closeRecord: HubBase.#onCloseRecord
       }
     };
 
@@ -121,6 +122,13 @@ export function HubMixin(Base) {
     static async #onToggleEditMode() {
       if (!this.state.view) return;
       this.state.view.mode = this.state.view.mode === "edit" ? "view" : "edit";
+      await this.render();
+    }
+
+    /** Dismiss the record overlay and return to the index/timeline. */
+    static async #onCloseRecord() {
+      if (!this.state.view) return;
+      this.state.view = null;
       await this.render();
     }
 
