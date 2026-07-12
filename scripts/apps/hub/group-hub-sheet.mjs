@@ -20,6 +20,11 @@ export class GroupHubSheet extends HubMixin(DocumentSheetV2) {
     return false;
   }
 
+  /** Window title stays generic; the record's name shows in the header row. */
+  get title() {
+    return game.i18n.localize("CAMPAIGNRECORD.Hub.WindowTitle");
+  }
+
   /** Core JournalEntrySheet API compat: content links and callers land in-pane. */
   goToPage(pageId) {
     const page = this.document.pages.get(pageId);

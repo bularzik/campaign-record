@@ -84,7 +84,8 @@
       "RecordUnavailable": "That entry can no longer be displayed.",
       "Settings": "Settings",
       "AutoTargetLabel": "Auto-capture target",
-      "AutoTargetNone": "None"
+      "AutoTargetNone": "None",
+      "WindowTitle": "Campaign Record"
     },
     "Import": {
       "Title": "Import Document",
