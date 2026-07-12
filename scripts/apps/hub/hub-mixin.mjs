@@ -1,7 +1,7 @@
 import { getGroups } from "../../data/groups.mjs";
 import { getTargetGroup, setTargetGroup } from "../../settings/auto-target.mjs";
 import {
-  MODULE_ID, THUMBNAILS_SETTING, RAIL_SETTING, INLINE_EDIT_SETTING, SNIPPETS_SETTING, RECORD_TYPES, typeId
+  MODULE_ID, RAIL_SETTING, INLINE_EDIT_SETTING, SNIPPETS_SETTING, RECORD_TYPES, typeId
 } from "../../constants.mjs";
 import { hasInlineFocus } from "../../logic/inline-edit.mjs";
 import { buildDoctypeFilter } from "../../logic/doctype-filter.mjs";
@@ -57,7 +57,6 @@ export function HubMixin(Base) {
         openLink: HubBase.#onOpenLink,
         removeLink: HubBase.#onRemoveLink,
         toggleLinkShowPlayers: HubBase.#onToggleLinkShowPlayers,
-        toggleThumbnails: HubBase.#onToggleThumbnails,
         toggleInlineEdit: HubBase.#onToggleInlineEdit,
         paneBack: HubBase.#onPaneBack,
         paneForward: HubBase.#onPaneForward,
@@ -393,7 +392,6 @@ export function HubMixin(Base) {
     }
 
     #timelineGroups() {
-      const thumbnails = game.settings.get(MODULE_ID, THUMBNAILS_SETTING);
       return getScopedGroups(this.groupScopeId).map((group) => {
         const canEdit = group.canUserModify(game.user, "update");
         return {
@@ -410,7 +408,7 @@ export function HubMixin(Base) {
             links: Timepoints.resolveLinks(tp, game.user).map((entry) => ({
               ...entry,
               broken: entry.kind === "broken",
-              thumb: thumbnails && entry.img ? entry.img : null,
+              thumb: entry.img || null,
               canToggleVisibility: canEdit && game.user.isGM && entry.kind === "image"
             }))
           }))
@@ -501,12 +499,6 @@ export function HubMixin(Base) {
       const timepointId = target.closest("[data-timepoint-id]").dataset.timepointId;
       const linkId = target.closest("[data-link-id]").dataset.linkId;
       if (group) await Timepoints.toggleLinkShowPlayers(group, timepointId, linkId);
-    }
-
-    static async #onToggleThumbnails() {
-      const current = game.settings.get(MODULE_ID, THUMBNAILS_SETTING);
-      await game.settings.set(MODULE_ID, THUMBNAILS_SETTING, !current);
-      this.render();
     }
 
     static async #onToggleInlineEdit() {
@@ -652,7 +644,6 @@ export function HubMixin(Base) {
       );
       context.sortMenuOpen = this.state.sortMenuOpen;
       context.timelineGroups = this.#timelineGroups();
-      context.thumbnails = game.settings.get(MODULE_ID, THUMBNAILS_SETTING);
       context.inlineEditing = game.settings.get(MODULE_ID, INLINE_EDIT_SETTING);
       context.settingsMenuOpen = this.state.settingsMenuOpen;
       const target = getTargetGroup();

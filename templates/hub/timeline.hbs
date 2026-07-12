@@ -5,11 +5,6 @@
             data-tooltip="CAMPAIGNRECORD.Hub.NewRecord" aria-label="{{localize "CAMPAIGNRECORD.Hub.NewRecord"}}">
       <i class="fa-solid fa-plus"></i>
     </button>
-    <button type="button" data-action="toggleThumbnails"
-            class="{{#if thumbnails}}active{{/if}}"
-            data-tooltip="CAMPAIGNRECORD.Hub.ToggleThumbnails">
-      <i class="fa-solid fa-image"></i>
-    </button>
   </div>
   {{#each timelineGroups}}
   <section class="timeline-group" data-group-id="{{this.id}}">
