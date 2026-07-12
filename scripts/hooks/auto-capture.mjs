@@ -2,7 +2,7 @@ import { isGroup } from "../data/groups.mjs";
 import { setTargetGroup, getTargetGroup } from "../settings/auto-target.mjs";
 import { MODULE_ID, typeId, ENCOUNTER_FLAG, DEPARTED_FLAG } from "../constants.mjs";
 import { addTimepoint, attachRecord, getTimepoints } from "../data/timepoints.mjs";
-import { matchPlaceForScene, pickLatestTimepoint, collapseParticipants, mergeParticipants } from "../logic/auto-capture.mjs";
+import { matchPlaceForScene, pickLatestTimepoint, collapseParticipants, mergeParticipants, summarizeOutcome } from "../logic/auto-capture.mjs";
 
 const PLACE_TYPE = typeId("place");
 
@@ -14,6 +14,14 @@ function placesOf(group) {
 /** Live combatants as raw {actorUuid, name} entries. */
 function combatParticipants(combat) {
   return combat.combatants.map((c) => ({ actorUuid: c.actor?.uuid ?? null, name: c.name }));
+}
+
+/** Best-effort current/max HP for an actor, or null when the system hides it. */
+function actorHp(actor) {
+  const hp = actor?.system?.attributes?.hp;
+  return hp && typeof hp.value === "number" && typeof hp.max === "number"
+    ? { value: hp.value, max: hp.max }
+    : null;
 }
 
 /** The Encounter page linked to a combat, or null. */
@@ -117,5 +125,23 @@ export function registerAutoCapture() {
   Hooks.on("deleteCombatant", (combatant) => {
     if (game.user !== game.users.activeGM) return;
     recordDeparture(combatant.combat, combatant);
+  });
+
+  // Combat ends → summarize deaths, injuries, and flights onto the Encounter.
+  Hooks.on("deleteCombat", async (combat) => {
+    if (game.user !== game.users.activeGM) return;
+    const encounter = await linkedEncounter(combat);
+    if (!encounter) return;
+    const present = combat.combatants.map((c) => ({
+      name: c.name, defeated: c.isDefeated === true, hp: actorHp(c.actor)
+    }));
+    const departed = combat.getFlag(MODULE_ID, DEPARTED_FLAG) ?? [];
+    const outcome = summarizeOutcome({ present, departed }, {
+      died: game.i18n.localize("CAMPAIGNRECORD.AutoCapture.Died"),
+      injured: game.i18n.localize("CAMPAIGNRECORD.AutoCapture.Injured"),
+      fled: game.i18n.localize("CAMPAIGNRECORD.AutoCapture.Fled"),
+      none: game.i18n.localize("CAMPAIGNRECORD.AutoCapture.NoCasualties")
+    });
+    await encounter.update({ "system.outcome": outcome });
   });
 }

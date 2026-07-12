@@ -291,7 +291,11 @@
     },
     "AutoCapture": {
       "NoGMForTarget": "No GM is connected, so the auto-capture target could not be changed.",
-      "EncounterName": "Combat at {scene}"
+      "EncounterName": "Combat at {scene}",
+      "Died": "Died",
+      "Injured": "Injured",
+      "Fled": "Fled",
+      "NoCasualties": "All combatants unharmed."
     }
   }
 }

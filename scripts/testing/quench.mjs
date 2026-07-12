@@ -329,6 +329,21 @@ Hooks.on("quenchReady", (quench) => {
           await gob.delete();
           await orc.delete();
         });
+
+        it("deleteCombat writes an outcome summary onto the Encounter", async () => {
+          const { ensurePlaceForScene } = await import("../hooks/auto-capture.mjs");
+          await ensurePlaceForScene(group, scene, { createTimepoint: true });
+          const foe = await Actor.create({ name: "Quench Foe", type: Object.keys(game.system.model?.Actor ?? { npc: {} })[0] });
+          const combat = await Combat.create({ scene: scene.id });
+          const [c1] = await combat.createEmbeddedDocuments("Combatant", [{ actorId: foe.id }]);
+          await combat.startCombat();
+          const encounterUuid = combat.getFlag("campaign-record", "encounterUuid");
+          await c1.update({ defeated: true });
+          await combat.delete();
+          const encounter = await fromUuid(encounterUuid);
+          assert.ok(encounter.system.outcome.includes("Died"), "died bucket present");
+          await foe.delete();
+        });
       });
     },
     { displayName: "Campaign Record: Auto Capture" }
