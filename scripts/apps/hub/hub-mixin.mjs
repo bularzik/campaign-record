@@ -518,7 +518,7 @@ export function HubMixin(Base) {
     static async #onToggleSnippets() {
       const current = game.settings.get(MODULE_ID, SNIPPETS_SETTING);
       await game.settings.set(MODULE_ID, SNIPPETS_SETTING, !current);
-      await this.render({ parts: ["index"] });
+      await this.render({ parts: ["header", "index"] });
     }
 
     #onTimelineDragStart(event) {

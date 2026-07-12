@@ -30,6 +30,11 @@
         <i class="fa-solid {{#if inlineEditing}}fa-pen{{else}}fa-pen-slash{{/if}}"></i>
         {{localize "CAMPAIGNRECORD.Hub.ToggleInlineEdit"}}
       </button>
+      <button type="button" role="menuitemcheckbox" data-action="toggleSnippets"
+              aria-checked="{{#if snippets}}true{{else}}false{{/if}}">
+        <i class="fa-solid {{#if snippets}}fa-square-check{{else}}fa-square{{/if}}"></i>
+        {{localize "CAMPAIGNRECORD.Hub.Snippets"}}
+      </button>
       <hr>
       <label class="hub-auto-target">
         {{localize "CAMPAIGNRECORD.Hub.AutoTargetLabel"}}

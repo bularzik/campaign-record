@@ -48,11 +48,6 @@
   <div class="index-controls">
     <input type="search" name="index-search" value="{{state.query}}"
            placeholder="{{localize "CAMPAIGNRECORD.Hub.FilterTag"}}" autocomplete="off">
-    <label class="snippets-toggle">
-      <input type="checkbox" name="snippets-toggle" data-action="toggleSnippets"
-             {{#if snippets}}checked{{/if}}>
-      {{localize "CAMPAIGNRECORD.Hub.Snippets"}}
-    </label>
     {{#if hasActiveFilters}}
     <span class="filtered-count">{{localize "CAMPAIGNRECORD.Hub.FilteredCount" shown=filteredCount total=totalCount}}</span>
     {{/if}}
