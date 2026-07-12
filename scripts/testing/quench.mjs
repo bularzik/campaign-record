@@ -254,6 +254,12 @@ Hooks.on("quenchReady", (quench) => {
           await game.settings.set("campaign-record", "autoCaptureTargetGroup", "does-not-exist");
           assert.equal(getTargetGroup(), null);
         });
+        it("a newly created group becomes the target", async () => {
+          const { getTargetGroup } = await import("../settings/auto-target.mjs");
+          const fresh = await createGroup("Quench Auto Target");
+          assert.equal(getTargetGroup()?.id, fresh.id);
+          await fresh.delete();
+        });
       });
     },
     { displayName: "Campaign Record: Auto Target" }
