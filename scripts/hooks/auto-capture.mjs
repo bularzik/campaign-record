@@ -2,7 +2,7 @@ import { isGroup } from "../data/groups.mjs";
 import { setTargetGroup, getTargetGroup } from "../settings/auto-target.mjs";
 import { MODULE_ID, typeId, ENCOUNTER_FLAG, DEPARTED_FLAG } from "../constants.mjs";
 import { addTimepoint, attachRecord, getTimepoints } from "../data/timepoints.mjs";
-import { matchPlaceForScene, pickLatestTimepoint, collapseParticipants } from "../logic/auto-capture.mjs";
+import { matchPlaceForScene, pickLatestTimepoint, collapseParticipants, mergeParticipants } from "../logic/auto-capture.mjs";
 
 const PLACE_TYPE = typeId("place");
 
@@ -14,6 +14,31 @@ function placesOf(group) {
 /** Live combatants as raw {actorUuid, name} entries. */
 function combatParticipants(combat) {
   return combat.combatants.map((c) => ({ actorUuid: c.actor?.uuid ?? null, name: c.name }));
+}
+
+/** The Encounter page linked to a combat, or null. */
+async function linkedEncounter(combat) {
+  const uuid = combat.getFlag(MODULE_ID, ENCOUNTER_FLAG);
+  return uuid ? fromUuid(uuid) : null;
+}
+
+/** Additively merge the live roster into the linked Encounter (never shrinks). */
+async function syncEncounterRoster(combat) {
+  const encounter = await linkedEncounter(combat);
+  if (!encounter) return;
+  const merged = mergeParticipants(
+    encounter.system.combatants.map((c) => c.toObject?.() ?? { ...c }),
+    collapseParticipants(combatParticipants(combat))
+  );
+  await encounter.update({ "system.combatants": merged });
+}
+
+/** Note a departing combatant (with its defeated state) for the end summary. */
+async function recordDeparture(combat, combatant) {
+  if (!combat.getFlag(MODULE_ID, ENCOUNTER_FLAG)) return;
+  const departed = [...(combat.getFlag(MODULE_ID, DEPARTED_FLAG) ?? [])];
+  departed.push({ actorUuid: combatant.actor?.uuid ?? null, name: combatant.name, defeated: combatant.isDefeated === true });
+  await combat.setFlag(MODULE_ID, DEPARTED_FLAG, departed);
 }
 
 /**
@@ -79,5 +104,18 @@ export function registerAutoCapture() {
     ]);
     await attachRecord(encounter, timepointId);
     await combat.setFlag(MODULE_ID, ENCOUNTER_FLAG, encounter.uuid);
+  });
+
+  // Roster grows/changes → additively sync the Encounter's participants.
+  const onRosterChange = (combatant) => {
+    if (game.user !== game.users.activeGM) return;
+    syncEncounterRoster(combatant.combat);
+  };
+  Hooks.on("createCombatant", onRosterChange);
+  Hooks.on("updateCombatant", onRosterChange);
+  // Removal doesn't shrink the record; note who left (and whether defeated).
+  Hooks.on("deleteCombatant", (combatant) => {
+    if (game.user !== game.users.activeGM) return;
+    recordDeparture(combatant.combat, combatant);
   });
 }

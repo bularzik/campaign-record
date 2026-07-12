@@ -309,6 +309,26 @@ Hooks.on("quenchReady", (quench) => {
           await combat.delete();
           await actor.delete();
         });
+
+        it("adding a combatant grows the Encounter; removal is tracked as departed", async () => {
+          const { ensurePlaceForScene } = await import("../hooks/auto-capture.mjs");
+          await ensurePlaceForScene(group, scene, { createTimepoint: true });
+          const gob = await Actor.create({ name: "Quench Gob2", type: Object.keys(game.system.model?.Actor ?? { npc: {} })[0] });
+          const orc = await Actor.create({ name: "Quench Orc", type: Object.keys(game.system.model?.Actor ?? { npc: {} })[0] });
+          const combat = await Combat.create({ scene: scene.id });
+          await combat.createEmbeddedDocuments("Combatant", [{ actorId: gob.id }]);
+          await combat.startCombat();
+          const encounter = await fromUuid(combat.getFlag("campaign-record", "encounterUuid"));
+          const [added] = await combat.createEmbeddedDocuments("Combatant", [{ actorId: orc.id }]);
+          assert.equal(encounter.system.combatants.length, 2, "orc synced in");
+          await added.delete();
+          const departed = combat.getFlag("campaign-record", "departed") ?? [];
+          assert.equal(departed.length, 1, "departure recorded");
+          assert.equal(encounter.system.combatants.length, 2, "roster did not shrink");
+          await combat.delete();
+          await gob.delete();
+          await orc.delete();
+        });
       });
     },
     { displayName: "Campaign Record: Auto Capture" }
