@@ -73,7 +73,9 @@ Hooks.on("quenchReady", (quench) => {
           assert.equal(page.ownership.default, CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE);
           await setRecordHidden(page, false);
           assert.equal(page.system.hidden, false);
-          assert.equal(page.ownership.default, CONST.DOCUMENT_META_OWNERSHIP_LEVELS.DEFAULT);
+          // v13 rejects writing the inherit marker through updates, so revealing
+          // restores the group's effective default explicitly (see setRecordHidden).
+          assert.equal(page.ownership.default, page.parent.ownership.default);
         });
       });
     },
