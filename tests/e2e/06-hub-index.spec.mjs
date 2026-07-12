@@ -63,7 +63,7 @@ test.describe("hub index", () => {
       .toBeVisible({ timeout: 10_000 });
   });
 
-  test("players never see hidden records; GM hidden-only filter shows them", async ({ browser }) => {
+  test("players never see hidden records; the GM always does", async ({ browser }) => {
     await gmPage.evaluate(async ({ groupId }) => {
       const { setRecordHidden } = await import("/modules/campaign-record/scripts/data/groups.mjs");
       const page = game.journal.get(groupId).pages.getName("E2E Index Quest");
@@ -71,9 +71,8 @@ test.describe("hub index", () => {
     }, ids);
 
     const hub = gmPage.locator("#campaign-hub");
-    await hub.locator(".hidden-toggle").click();
+    // GMs always see hidden records in the index; there is no hidden-only filter.
     await expect(hub.locator(".record-row", { hasText: "E2E Index Quest" })).toBeVisible();
-    await hub.locator(".hidden-toggle").click();
 
     const ctx = await browser.newContext();
     const playerPage = await ctx.newPage();
@@ -86,7 +85,6 @@ test.describe("hub index", () => {
     await playerHub.waitFor({ timeout: 15_000 });
     await expect(playerHub.locator(".record-row", { hasText: "E2E Index NPC" })).toBeVisible();
     await expect(playerHub.locator(".record-row", { hasText: "E2E Index Quest" })).toHaveCount(0);
-    await expect(playerHub.locator(".hidden-toggle")).toHaveCount(0);
     await ctx.close();
   });
 
