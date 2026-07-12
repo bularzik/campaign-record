@@ -72,7 +72,7 @@ test.describe("hub integration for phase 3 types", () => {
     await hub.locator('.doctype-menu input[value="pc"]').check();
     // Two selected -> "first label +1" (shop precedes journal but pc precedes shop in list order).
     // Close the menu to read the summary.
-    await hub.locator(".record-list").click();
+    await hub.locator("input[name='index-search']").click();
     await expect(hub.locator(".doctype-menu")).toHaveCount(0);
     await expect(hub.locator(".doctype-summary-label")).toContainText("+1");
 
@@ -80,7 +80,7 @@ test.describe("hub integration for phase 3 types", () => {
     await hub.locator(".doctype-summary").click();
     await hub.locator('.doctype-menu input[value="shop"]').uncheck();
     await hub.locator('.doctype-menu input[value="pc"]').uncheck();
-    await hub.locator(".record-list").click();
+    await hub.locator("input[name='index-search']").click();
     await expect(hub.locator(".doctype-summary-label")).toHaveText("All types");
     await expect(hub.locator(".record-list")).toContainText("E2E HubTypes PC");
   });

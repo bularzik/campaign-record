@@ -255,6 +255,7 @@ export function HubMixin(Base) {
       // its navigation history are session-scoped state, not something to
       // resume like the window position or the collapsed-rail client setting.
       this.state.view = null;
+      this.state.typeMenuOpen = false;
       this.#history = createHistory();
       super._onClose(options);
     }
@@ -719,12 +720,16 @@ export function HubMixin(Base) {
           }
         });
         // Check/uncheck a type; the menu stays open across the re-render.
-        this.element.addEventListener("change", (event) => {
+        this.element.addEventListener("change", async (event) => {
           const cb = event.target.closest('input[name="doctype-check"]');
           if (!cb) return;
-          if (cb.checked) this.state.types.add(cb.value);
-          else this.state.types.delete(cb.value);
-          this.#renderList();
+          const value = cb.value;
+          if (cb.checked) this.state.types.add(value);
+          else this.state.types.delete(value);
+          await this.#renderList();
+          // render({parts}) replaces this part's DOM — restore focus so keyboard
+          // users can toggle several types without tabbing from the top each time.
+          this.element.querySelector(`input[name="doctype-check"][value="${value}"]`)?.focus();
         });
       }
       if (!this.element.dataset.crLinkBound) {
