@@ -67,6 +67,18 @@ test.describe("actor picker (drag-free linking for players)", () => {
     await expect(sheet.locator("a.content-link")).toContainText("E2E Picker Actor", {
       timeout: 15_000
     });
+
+    // Unlinking clears system.actor and restores the drop hint.
+    await sheet.locator('button[data-action="unlinkActor"]').first().click();
+    await expect
+      .poll(() =>
+        playerPage.evaluate(
+          ({ groupId, pageId }) => game.journal.get(groupId).pages.get(pageId).system.actor,
+          ids
+        )
+      )
+      .toBe("");
+    await expect(sheet.locator("a.content-link")).toHaveCount(0);
     await playerPage.evaluate(
       ({ groupId, pageId }) => game.journal.get(groupId).pages.get(pageId).sheet.close(),
       ids

@@ -24,6 +24,8 @@ export class BaseRecordSheet extends JournalEntryPageHandlebarsSheet {
       toggleHidden: BaseRecordSheet.#onToggleHidden,
       linkActor: BaseRecordSheet.#onLinkActor,
       linkScene: BaseRecordSheet.#onLinkScene,
+      unlinkActor: BaseRecordSheet.#onUnlinkActor,
+      unlinkScene: BaseRecordSheet.#onUnlinkScene,
       exportRecord: BaseRecordSheet.#onExportRecord
     }
   };
@@ -201,6 +203,18 @@ export class BaseRecordSheet extends JournalEntryPageHandlebarsSheet {
   static async #onLinkScene() {
     const uuid = await promptSelectScene();
     if (uuid) await this._onDropDocument({ type: "Scene", uuid });
+  }
+
+  /** Clear a linked Actor. No-op on sheets without a system.actor field. */
+  static async #onUnlinkActor() {
+    if (!("actor" in this.document.system)) return;
+    await this.document.update({ "system.actor": "" });
+  }
+
+  /** Clear a linked Scene. No-op on sheets without a system.scene field. */
+  static async #onUnlinkScene() {
+    if (!("scene" in this.document.system)) return;
+    await this.document.update({ "system.scene": "" });
   }
 
   static async #onExportRecord() {
