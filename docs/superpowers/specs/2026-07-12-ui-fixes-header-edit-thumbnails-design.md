@@ -72,37 +72,58 @@ is `styles/campaign-record.css`.
 
 ## C. Editing experience
 
-**Decision:** open entries in an inline-editable view that auto-saves. This
-removes the separate full-edit-sheet path, and with it **both** Save buttons.
+**Decision:** typed entries open in an inline-editable view that auto-saves; the
+manual "edit mode" (Foundry's full edit sheet, with its two Save buttons and
+4-line box) is no longer offered for those entries.
 
-### C1. Inline editing works reliably
-- **Files:** `scripts/apps/hub/base-record-sheet.mjs:44–49`,
-  `scripts/logic/inline-edit.mjs`, `scripts/hooks/hub-ui.mjs:56–74`,
-  `hub-mixin.mjs:93` (`navigateToRecord` default mode), `:371` (new-record mode).
-- Target behavior: opening **any** entry lands in the inline-editable view
-  (`common-view.hbs`, `<prose-mirror data-inline-prose>`). Click in, type, and it
-  **auto-saves** (inline editing already saves automatically per its setting
-  description). The full Foundry edit sheet is never the default path.
-- Implementation includes diagnosing why inline editing currently isn't taking
-  effect (users land in the full edit sheet instead). Likely area:
-  `computeInlineEdit` gating and/or the record-pane open mode.
-- New records (`hub-mixin.mjs:371`, currently open in `"edit"`) should also land
-  in the inline-editable view for consistency.
+**Diagnosis (from code trace).** Inline editing is *not* broken. For the normal
+case (a module record page, inside a group journal, viewed by a user who can
+update it, with the default-on `inlineEditing` setting), the view already renders
+as an always-open auto-saving editor with **no** Save buttons. Users land in the
+full edit sheet only because the module still *offers* an edit path: a pen
+"edit-toggle" button in the pane header (`record.hbs:10–16` → `#onToggleEditMode`)
+shown whenever the user can update — independent of inline-editability — plus new
+records opening in `mode: "edit"` (`hub-mixin.mjs:371`). The two Save buttons are
+Foundry core's edit-mode footer submit + the ProseMirror menu Save; they exist
+only in `mode: "edit"`, so this is a *mode* problem, not CSS.
+
+**Nuance — do not regress text pages.** Only module record types
+(`campaign-record.*`) use `BaseRecordSheet` and therefore have an inline-editable
+view. Core **text/journal** pages have no inline path, and users may also turn
+`inlineEditing` off. For those cases the edit-toggle must remain, or the entry
+becomes uneditable in the hub. So: **hide the edit-toggle only when the current
+view is genuinely inline-editable**; keep it otherwise.
+
+### C1. Inline view is the default; edit-toggle hidden when redundant
+- **Files:** `scripts/apps/hub/hub-mixin.mjs` (`:371` new-record mode; `_prepareContext`
+  `view` block `:675–681`), `templates/hub/record.hbs:10–16` (edit-toggle),
+  `scripts/logic/inline-edit.mjs` (add a pure `shouldShowEditToggle` helper),
+  `scripts/sheets/base-record-sheet.mjs:44–49` (reference for the inline predicate).
+- New records open in **view** mode (`navigateToRecord(page.uuid)` — drop
+  `{ mode: "edit" }`). With inline editing on, the view is immediately editable.
+- The pane's edit-toggle renders only when the view is **not** inline-editable —
+  i.e. hidden for a `campaign-record.*` page in a group journal with inline
+  editing on and update permission (the default typed-entry case), shown for text
+  pages, inline-off, or already-in-edit-mode (as the "Done editing" toggle).
+- The `toggleEditMode` action/handler stays (it still serves text pages and
+  inline-off); only its visibility gate changes.
 
 ### C2. Editor fills the pane and resizes
-- **File:** `styles/campaign-record.css:516–522` (currently only scopes
-  `--min-height: 8rem` to the inline-edit VIEW path) and `.record-pane-mount`
-  (`:605–609`).
-- The inline editor grows to fill the available record-pane height and resizes
-  with the window (flex-fill + a real min-height), replacing the collapsed
-  ~4-line box. Root cause: the edit-mode editor got no `--min-height`.
+- **File:** `styles/campaign-record.css:516–522` (currently scopes
+  `--min-height: 8rem` to the inline-edit view path only) plus `.record-pane-mount`
+  (`:605–609`) and the two-pane record cell (`.hub-record.active`, `:561–568`).
+- Establish a flex-column height chain from `.record-pane-body` →
+  `.record-pane-mount` → the mounted view sheet → `.campaign-record-content.inline-edit`
+  so the description editor grows to fill the pane and resizes with the window,
+  replacing the fixed short box.
 
-### C3. Save buttons removed
-- Both the button-bar Save and the large bottom Save originate from Foundry
-  core's `JournalEntryPageHandlebarsSheet` full edit sheet
-  (`scripts/apps/hub/record-pane.mjs`). Because C1 makes the inline-editable view
-  the default, the full edit sheet no longer appears in the normal flow, so
-  neither Save button renders. Auto-save replaces them. **(Confirmed with user.)**
+### C3. Save buttons gone in the normal flow
+- Consequence of C1: for the default typed-entry case there is no edit-toggle,
+  so `mode: "edit"` (and thus core's footer Save + ProseMirror menu Save) is never
+  reached. Auto-save replaces them. The buttons still exist in core's edit sheet,
+  which is only reachable now for text pages / inline-off — where a Save button is
+  the expected affordance. **(Direction confirmed with user; text-page/inline-off
+  retention is an implementation-driven refinement — flagged for review.)**
 
 ## D. Thumbnails as the standard display
 
@@ -139,9 +160,9 @@ removes the separate full-edit-sheet path, and with it **both** Save buttons.
 5. Sort is a single icon to the right of the types dropdown that opens a popup;
    selecting Name/Type/Updated re-sorts the list.
 6. There is no "Show hidden entries only" control anywhere, and no dead references.
-7. Opening any entry (existing or new) lands in an inline-editable view that
-   auto-saves; the full Foundry edit sheet and both Save buttons never appear in
-   the normal flow.
+7. Opening a typed entry (existing or new) lands in an inline-editable view that
+   auto-saves; no edit-toggle, edit sheet, or Save buttons appear for it. The
+   edit-toggle still appears for text pages and when inline editing is off.
 8. The editor fills the record pane and grows/shrinks with the window (not a
    fixed ~4-line box).
 9. Entry rows show image thumbnails (with fallback), and timeline chips with an
