@@ -48,7 +48,6 @@ export function HubMixin(Base) {
         newRecord: HubBase.#onNewRecord,
         importDocument: HubBase.#onImportDocument,
         exportGroup: HubBase.#onExportGroup,
-        toggleHiddenOnly: HubBase.#onToggleHiddenOnly,
         clearFilters: HubBase.#onClearFilters,
         toggleSnippets: HubBase.#onToggleSnippets,
         addTimepoint: HubBase.#onAddTimepoint,
@@ -77,7 +76,7 @@ export function HubMixin(Base) {
     };
 
     state = {
-      groupId: "all", types: new Set(), hiddenOnly: false, sort: "name", query: "",
+      groupId: "all", types: new Set(), sort: "name", query: "",
       typeMenuOpen: false, settingsMenuOpen: false, sortMenuOpen: false
     };
 
@@ -294,7 +293,6 @@ export function HubMixin(Base) {
         records = records.filter((r) => matchesByUuid.has(r.uuid));
       }
       if (this.state.types.size) records = records.filter((r) => this.state.types.has(r.shortType));
-      if (this.state.hiddenOnly) records = records.filter((r) => r.hidden);
       const sorters = {
         name: (a, b) => a.name.localeCompare(b.name),
         type: (a, b) => a.shortType.localeCompare(b.shortType) || a.name.localeCompare(b.name),
@@ -319,7 +317,7 @@ export function HubMixin(Base) {
       const query = (this.state.query ?? "").trim();
       if (query.length < 2) return 0;
       const scopingClearable = this.showsGroupPicker && this.state.groupId !== "all";
-      const filtersActive = this.state.types.size > 0 || this.state.hiddenOnly || scopingClearable;
+      const filtersActive = this.state.types.size > 0 || scopingClearable;
       if (!filtersActive) return 0;
       // Records visible once clearable filters are reset: unscoped for the
       // standalone hub, still this group for a locked single-group sheet.
@@ -388,14 +386,8 @@ export function HubMixin(Base) {
       await exportGroupDialog(group);
     }
 
-    static #onToggleHiddenOnly() {
-      this.state.hiddenOnly = !this.state.hiddenOnly;
-      this.render();
-    }
-
     static #onClearFilters() {
       this.state.types.clear();
-      this.state.hiddenOnly = false;
       if (this.showsGroupPicker) this.state.groupId = "all";
       this.render();
     }
@@ -646,7 +638,7 @@ export function HubMixin(Base) {
       context.filteredCount = records.length;
       context.totalCount = total;
       context.otherGroupMatches = this.#otherGroupMatches(records);
-      context.hasActiveFilters = this.state.types.size > 0 || this.state.hiddenOnly
+      context.hasActiveFilters = this.state.types.size > 0
         || (this.showsGroupPicker && this.state.groupId !== "all");
       context.doctypeFilter = buildDoctypeFilter(
         this.state.types,

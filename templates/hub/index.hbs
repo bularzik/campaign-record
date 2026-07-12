@@ -53,12 +53,6 @@
              {{#if snippets}}checked{{/if}}>
       {{localize "CAMPAIGNRECORD.Hub.Snippets"}}
     </label>
-    {{#if isGM}}
-    <button type="button" class="hidden-toggle {{#if state.hiddenOnly}}active{{/if}}"
-            data-action="toggleHiddenOnly" data-tooltip="CAMPAIGNRECORD.Hub.HiddenOnly">
-      <i class="fa-solid fa-eye-slash"></i>
-    </button>
-    {{/if}}
     {{#if hasActiveFilters}}
     <span class="filtered-count">{{localize "CAMPAIGNRECORD.Hub.FilteredCount" shown=filteredCount total=totalCount}}</span>
     {{/if}}

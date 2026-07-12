@@ -90,24 +90,22 @@ test.describe("hub index", () => {
     await ctx.close();
   });
 
-  test("clear filters resets type and hidden-only, keeps the query", async () => {
+  test("clear filters resets the type filter, keeps the query", async () => {
     const hub = gmPage.locator("#campaign-hub");
     await gmPage.evaluate(async () => {
       const { CampaignHub } = await import("/modules/campaign-record/scripts/apps/hub/campaign-hub.mjs");
       const h = CampaignHub.open();
       h.state.query = "e2e";
       h.state.types = new Set(["quest"]);
-      h.state.hiddenOnly = true;
       await h.render(true);
     });
     await hub.locator('[data-action="clearFilters"]').first().click();
     const state = await gmPage.evaluate(async () => {
       const { CampaignHub } = await import("/modules/campaign-record/scripts/apps/hub/campaign-hub.mjs");
       const h = CampaignHub.open();
-      return { types: h.state.types.size, hidden: h.state.hiddenOnly, query: h.state.query };
+      return { types: h.state.types.size, query: h.state.query };
     });
     expect(state.types).toBe(0);
-    expect(state.hidden).toBe(false);
     expect(state.query).toBe("e2e");
   });
 
