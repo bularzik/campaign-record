@@ -43,13 +43,36 @@ test.describe("hub integration for phase 3 types", () => {
       await hub.render(true);
     });
 
+  // CampaignHub is a singleton and typeMenuOpen is persistent instance state, so a
+  // prior test may have left the dropdown open. Open idempotently — a blind toggle
+  // click would close an already-open menu.
+  // Track open-state by presence: the template renders .doctype-menu only when
+  // open, and Playwright reports this position:absolute popup as "not visible",
+  // so count is reliable where toBeVisible/isVisible are not.
+  const openTypeMenu = async (hub) => {
+    if ((await hub.locator(".doctype-menu").count()) === 0) {
+      await hub.locator(".doctype-summary").click();
+    }
+    await expect(hub.locator(".doctype-menu")).toHaveCount(1);
+  };
+
+  // Close deterministically via the trigger toggle (the summary-click branch flips
+  // typeMenuOpen directly), not an outside-click whose timing races the async
+  // re-render a checkbox toggle kicks off.
+  const closeTypeMenu = async (hub) => {
+    if ((await hub.locator(".doctype-menu").count()) > 0) {
+      await hub.locator(".doctype-summary").click();
+    }
+    await expect(hub.locator(".doctype-menu")).toHaveCount(0);
+  };
+
   test("type filter offers one checkbox per record type plus journal, and phase-3 subtitles", async () => {
     await openHub();
     const hub = page.locator("#campaign-hub");
     await hub.waitFor({ timeout: 15_000 });
     // Closed by default: summary reads "All types".
     await expect(hub.locator(".doctype-summary-label")).toHaveText("All types");
-    await hub.locator(".doctype-summary").click();
+    await openTypeMenu(hub);
     // 10 record types + journal = 11 checkboxes.
     await expect(hub.locator('.doctype-menu input[name="doctype-check"]')).toHaveCount(11);
     await expect(hub.locator(".record-list")).toContainText("Blacksmith");     // shop subtitle
@@ -62,25 +85,27 @@ test.describe("hub integration for phase 3 types", () => {
     const hub = page.locator("#campaign-hub");
     await hub.waitFor({ timeout: 15_000 });
 
-    await hub.locator(".doctype-summary").click();
+    await openTypeMenu(hub);
     await hub.locator('.doctype-menu input[value="shop"]').check();
-    // Menu stays open for multi-select.
-    await expect(hub.locator(".doctype-menu")).toBeVisible();
+    // Settle the check's async re-render before asserting / acting further.
+    await expect(hub.locator('.doctype-menu input[value="shop"]')).toBeChecked();
+    // Menu stays open for multi-select (present == open; see openTypeMenu note).
+    await expect(hub.locator(".doctype-menu")).toHaveCount(1);
     await expect(hub.locator(".record-list")).toContainText("E2E HubTypes Shop");
     await expect(hub.locator(".record-list")).not.toContainText("E2E HubTypes PC");
 
     await hub.locator('.doctype-menu input[value="pc"]').check();
-    // Two selected -> "first label +1" (shop precedes journal but pc precedes shop in list order).
-    // Close the menu to read the summary.
-    await hub.locator("input[name='index-search']").click();
-    await expect(hub.locator(".doctype-menu")).toHaveCount(0);
+    await expect(hub.locator('.doctype-menu input[value="pc"]')).toBeChecked(); // settle
+    // Two selected -> "first label +1" (pc precedes shop in RECORD_TYPES order).
+    await closeTypeMenu(hub);
     await expect(hub.locator(".doctype-summary-label")).toContainText("+1");
 
     // Reopen and uncheck both -> back to "All types" and unfiltered.
-    await hub.locator(".doctype-summary").click();
+    await openTypeMenu(hub);
     await hub.locator('.doctype-menu input[value="shop"]').uncheck();
     await hub.locator('.doctype-menu input[value="pc"]').uncheck();
-    await hub.locator("input[name='index-search']").click();
+    await expect(hub.locator('.doctype-menu input[value="pc"]')).not.toBeChecked(); // settle
+    await closeTypeMenu(hub);
     await expect(hub.locator(".doctype-summary-label")).toHaveText("All types");
     await expect(hub.locator(".record-list")).toContainText("E2E HubTypes PC");
   });

@@ -3,7 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   ensureTestWorld, login, ensureModuleEnabled,
-  deleteGroupsByPrefix, deleteActorsByPrefix, BASE_URL
+  deleteGroupsByPrefix, deleteActorsByPrefix, deleteScenesByPrefix, BASE_URL
 } from "./helpers/foundry.mjs";
 import { acquireLock, releaseLock } from "./helpers/env-lock.mjs";
 import { pinSymlink, verifyDeployment } from "./helpers/deploy.mjs";
@@ -27,6 +27,7 @@ export default async function globalSetup() {
       await ensureModuleEnabled(page);
       await deleteGroupsByPrefix(page, "E2E ");
       await deleteActorsByPrefix(page, "E2E ");
+      await deleteScenesByPrefix(page, "E2E ");
       // An active scene makes every headless client render its canvas via
       // software WebGL, which starves player-side tests into timeouts.
       await page.evaluate(async () => {

@@ -141,6 +141,14 @@ export async function deleteActorsByPrefix(page, prefix) {
   }, prefix);
 }
 
+/** Delete all scenes whose name starts with the prefix (crashed-run artifacts). */
+export async function deleteScenesByPrefix(page, prefix) {
+  await page.evaluate(async (prefix) => {
+    const ids = game.scenes.filter((s) => s.name.startsWith(prefix)).map((s) => s.id);
+    if (ids.length) await Scene.implementation.deleteDocuments(ids);
+  }, prefix);
+}
+
 /**
  * Bounded settle for asserting a change did NOT happen: a no-op has no
  * observable completion signal to await, so we wait out the round-trip window.

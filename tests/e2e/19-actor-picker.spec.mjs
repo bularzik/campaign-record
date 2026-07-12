@@ -77,7 +77,7 @@ test.describe("actor picker (drag-free linking for players)", () => {
           ids
         )
       )
-      .toBe("");
+      .toBeNull(); // system.actor is a DocumentUUIDField — clearing it stores null, not ""
     await expect(sheet.locator("a.content-link")).toHaveCount(0);
     await playerPage.evaluate(
       ({ groupId, pageId }) => game.journal.get(groupId).pages.get(pageId).sheet.close(),
