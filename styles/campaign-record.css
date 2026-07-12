@@ -545,12 +545,31 @@
   background: var(--color-bg-option, rgba(255, 255, 255, 0.5));
 }
 
-/* Core lays the active editor out as a flex column (menu + flex:1
-   .editor-container holding an absolutely-positioned .editor-content).
-   Overriding display would collapse the container to zero height and clip
-   the content unclickable — size it via core's own --min-height instead. */
+/* Height chain: the mounted view sheet fills the pane so the description
+   editor can grow with the window instead of collapsing to a few lines.
+   Core lays the active editor out as a flex column (menu + flex:1
+   .editor-container holding an absolutely-positioned .editor-content); we
+   size via core's own --min-height and let the container flex, never
+   overriding the editor's display. */
+.campaign-hub .record-pane-mount > .record-pane-sheet,
+.campaign-record-content.inline-edit {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.campaign-record-content.inline-edit {
+  flex: 1;
+}
+.campaign-record-content.inline-edit .record-description {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
 .campaign-record-content.inline-edit prose-mirror {
-  --min-height: 8rem;
+  --min-height: 12rem;
+  flex: 1;
+  min-height: 0;
 }
 
 .campaign-record-content.inline-edit .form-group.stacked > label,
