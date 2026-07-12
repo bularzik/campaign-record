@@ -7,17 +7,38 @@
     {{/each}}
   </select>
   {{/if}}
-  {{#if canImport}}
-  <button type="button" data-action="importDocument" data-tooltip="CAMPAIGNRECORD.Import.Button">
-    <i class="fa-solid fa-file-import"></i>
-  </button>
-  {{/if}}
-  <button type="button" data-action="exportGroup" data-tooltip="CAMPAIGNRECORD.Export.GroupButton">
-    <i class="fa-solid fa-file-word"></i>
-  </button>
-  <button type="button" class="hub-inline-edit-toggle" data-action="toggleInlineEdit"
-          data-tooltip="CAMPAIGNRECORD.Hub.ToggleInlineEdit"
-          aria-pressed="{{#if inlineEditing}}true{{else}}false{{/if}}">
-    <i class="fa-solid {{#if inlineEditing}}fa-pen{{else}}fa-pen-slash{{/if}}"></i>
-  </button>
+  <div class="hub-settings-menu {{#if settingsMenuOpen}}open{{/if}}">
+    <button type="button" class="hub-settings-trigger" data-action="toggleSettingsMenu"
+            data-tooltip="CAMPAIGNRECORD.Hub.Settings" aria-haspopup="true"
+            aria-expanded="{{#if settingsMenuOpen}}true{{else}}false{{/if}}">
+      <i class="fa-solid fa-gear"></i>
+    </button>
+    {{#if settingsMenuOpen}}
+    <div class="hub-settings-panel" role="menu">
+      {{#if canImport}}
+      <button type="button" role="menuitem" data-action="importDocument">
+        <i class="fa-solid fa-file-import"></i> {{localize "CAMPAIGNRECORD.Import.Button"}}
+      </button>
+      {{/if}}
+      <button type="button" role="menuitem" data-action="exportGroup">
+        <i class="fa-solid fa-file-word"></i> {{localize "CAMPAIGNRECORD.Export.GroupButton"}}
+      </button>
+      <button type="button" role="menuitemcheckbox" data-action="toggleInlineEdit"
+              aria-checked="{{#if inlineEditing}}true{{else}}false{{/if}}">
+        <i class="fa-solid {{#if inlineEditing}}fa-pen{{else}}fa-pen-slash{{/if}}"></i>
+        {{localize "CAMPAIGNRECORD.Hub.ToggleInlineEdit"}}
+      </button>
+      <hr>
+      <label class="hub-auto-target">
+        {{localize "CAMPAIGNRECORD.Hub.AutoTargetLabel"}}
+        <select name="auto-target-select">
+          <option value="" {{#if autoTargetNoneSelected}}selected{{/if}}>{{localize "CAMPAIGNRECORD.Hub.AutoTargetNone"}}</option>
+          {{#each autoTargetOptions}}
+          <option value="{{this.id}}" {{#if this.selected}}selected{{/if}}>{{this.name}}</option>
+          {{/each}}
+        </select>
+      </label>
+    </div>
+    {{/if}}
+  </div>
 </div>

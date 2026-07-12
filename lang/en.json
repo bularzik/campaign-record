@@ -79,7 +79,10 @@
       "ToggleRail": "Toggle entry list",
       "EditRecord": "Edit entry",
       "DoneEditing": "Done editing",
-      "RecordUnavailable": "That entry can no longer be displayed."
+      "RecordUnavailable": "That entry can no longer be displayed.",
+      "Settings": "Settings",
+      "AutoTargetLabel": "Auto-capture target",
+      "AutoTargetNone": "None"
     },
     "Import": {
       "Title": "Import Document",
