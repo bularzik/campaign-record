@@ -571,7 +571,10 @@ function placesOf(group) {
  * the place has none yet (combat fallback).
  */
 export async function ensurePlaceForScene(group, scene, { createTimepoint }) {
-  let place = matchPlaceForScene(placesOf(group), scene.uuid);
+  // matchPlaceForScene matches on a top-level `.scene` property; place pages
+  // carry it under `.system.scene`, so adapt the shape here and unwrap after.
+  const candidates = placesOf(group).map((p) => ({ scene: p.system.scene, page: p }));
+  let place = matchPlaceForScene(candidates, scene.uuid)?.page ?? null;
   if (!place) {
     [place] = await group.createEmbeddedDocuments("JournalEntryPage", [
       { name: scene.name, type: PLACE_TYPE, system: { scene: scene.uuid } }
