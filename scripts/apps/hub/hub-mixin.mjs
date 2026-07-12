@@ -726,7 +726,6 @@ export function HubMixin(Base) {
         targetSelect.dataset.crBound = "1";
         targetSelect.addEventListener("change", async (event) => {
           await setTargetGroup(event.target.value);
-          await this.render({ parts: ["header"] });
         });
       }
       if (!this.element.dataset.crSettingsBound) {

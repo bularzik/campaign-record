@@ -9,7 +9,14 @@ export function registerAutoTargetSetting() {
     scope: "world",
     config: false,
     type: String,
-    default: ""
+    default: "",
+    onChange: () => {
+      for (const app of foundry.applications.instances.values()) {
+        if (app.rendered && app.element?.classList?.contains("campaign-hub")) {
+          app.render({ parts: ["header"] });
+        }
+      }
+    }
   });
 }
 
