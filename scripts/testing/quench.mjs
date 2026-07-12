@@ -264,4 +264,35 @@ Hooks.on("quenchReady", (quench) => {
     },
     { displayName: "Campaign Record: Auto Target" }
   );
+
+  quench.registerBatch(
+    "campaign-record.auto-capture",
+    (context) => {
+      const { describe, it, assert, before, after } = context;
+      let group, scene;
+      describe("Auto-capture placement", () => {
+        before(async () => {
+          group = await createGroup("Quench Capture Group");
+          await game.settings.set("campaign-record", "autoCaptureTargetGroup", group.id);
+          scene = await Scene.create({ name: "Quench Tavern", width: 1000, height: 1000 });
+        });
+        after(async () => {
+          await game.settings.set("campaign-record", "autoCaptureTargetGroup", "");
+          await scene.delete();
+          await group.delete();
+        });
+        it("ensurePlaceForScene reuses a place and adds a timepoint each activation", async () => {
+          const { ensurePlaceForScene } = await import("../hooks/auto-capture.mjs");
+          const first = await ensurePlaceForScene(group, scene, { createTimepoint: true });
+          const second = await ensurePlaceForScene(group, scene, { createTimepoint: true });
+          assert.equal(first.place.id, second.place.id, "same place reused");
+          assert.notEqual(first.timepointId, second.timepointId, "new timepoint each time");
+          assert.equal(first.place.type, "campaign-record.place");
+          assert.equal(first.place.system.scene, scene.uuid);
+          assert.ok(first.place.system.timepoints.has(second.timepointId));
+        });
+      });
+    },
+    { displayName: "Campaign Record: Auto Capture" }
+  );
 });
