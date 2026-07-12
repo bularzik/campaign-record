@@ -31,9 +31,18 @@
 .campaign-hub .hub-header {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 1rem;
   padding-bottom: 0.5rem;
   border-bottom: 1px solid var(--color-border-light-primary, #7a7971);
+}
+.campaign-hub .hub-header .hub-title {
+  margin: 0;
+  border: none;
+  font-size: var(--font-size-18, 1.125rem);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .campaign-hub .hub-header select[name="group-select"] {

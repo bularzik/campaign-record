@@ -33,6 +33,11 @@ export function HubMixin(Base) {
       return true;
     }
 
+    /** Name shown at the left of the header; null on the standalone hub (the group picker names it instead). */
+    get headerTitle() {
+      return null;
+    }
+
     static DEFAULT_OPTIONS = {
       classes: ["campaign-record", "campaign-hub"],
       window: { title: "CAMPAIGNRECORD.Hub.Title", resizable: true, icon: "fa-solid fa-book-atlas" },
@@ -613,6 +618,7 @@ export function HubMixin(Base) {
       context.isGM = game.user.isGM;
       context.canImport = game.user.can("JOURNAL_CREATE");
       context.showGroupPicker = this.showsGroupPicker;
+      context.headerTitle = this.headerTitle;
       context.groups = getGroups().map((g) => ({
         id: g.id, name: g.name, selected: g.id === this.state.groupId
       }));

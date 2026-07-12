@@ -6,6 +6,8 @@
     <option value="{{this.id}}" {{#if this.selected}}selected{{/if}}>{{this.name}}</option>
     {{/each}}
   </select>
+  {{else if headerTitle}}
+  <h2 class="hub-title">{{headerTitle}}</h2>
   {{/if}}
   <div class="hub-settings-menu">
     <button type="button" class="hub-settings-trigger" data-action="toggleSettingsMenu"
