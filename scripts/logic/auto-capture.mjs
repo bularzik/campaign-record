@@ -35,3 +35,42 @@ export function mergeParticipants(existing, incoming) {
   }
   return [...byKey.values()];
 }
+
+/** The place whose scene matches, or null. */
+export function matchPlaceForScene(places, sceneUuid) {
+  return places.find((p) => p.scene === sceneUuid) ?? null;
+}
+
+/** The attached timepoint id with the greatest sort, or null. */
+export function pickLatestTimepoint(attachedIds, timepoints) {
+  const attached = new Set(attachedIds);
+  let best = null;
+  for (const tp of timepoints) {
+    if (attached.has(tp.id) && (best === null || tp.sort > best.sort)) best = tp;
+  }
+  return best?.id ?? null;
+}
+
+/** Collapse a list of names into "Name ×N" fragments (N omitted when 1). */
+function countedNames(names) {
+  const counts = new Map();
+  for (const n of names) counts.set(n, (counts.get(n) ?? 0) + 1);
+  return [...counts.entries()].map(([n, c]) => (c > 1 ? `${n} ×${c}` : n)).join(", ");
+}
+
+/** Build the combat outcome summary string from resolved end-state. */
+export function summarizeOutcome(state, labels) {
+  const died = [
+    ...state.present.filter((c) => c.defeated).map((c) => c.name),
+    ...state.departed.filter((c) => c.defeated).map((c) => c.name)
+  ];
+  const fled = state.departed.filter((c) => !c.defeated).map((c) => c.name);
+  const injured = state.present
+    .filter((c) => !c.defeated && c.hp && c.hp.value < c.hp.max && c.hp.value > 0)
+    .map((c) => c.name);
+  const parts = [];
+  if (died.length) parts.push(`${labels.died}: ${countedNames(died)}`);
+  if (injured.length) parts.push(`${labels.injured}: ${countedNames(injured)}`);
+  if (fled.length) parts.push(`${labels.fled}: ${countedNames(fled)}`);
+  return parts.length ? parts.join(" · ") : labels.none;
+}
