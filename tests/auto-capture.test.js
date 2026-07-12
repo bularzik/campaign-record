@@ -44,4 +44,16 @@ describe("mergeParticipants", () => {
     expect(merged).toContainEqual({ id: "Actor.gob", name: "Goblin", count: 3, actor: "Actor.gob" });
     expect(merged).toContainEqual({ id: "Actor.orc", name: "Orc", count: 2, actor: "Actor.orc" });
   });
+  it("applies max in reverse: incoming larger wins, and unmatched existing survives", () => {
+    const existing = [
+      { id: "Actor.gob", name: "Goblin", count: 2, actor: "Actor.gob" },
+      { id: "Actor.elf", name: "Elf", count: 4, actor: "Actor.elf" }
+    ];
+    const incoming = [
+      { id: "Actor.gob", name: "Goblin", count: 5, actor: "Actor.gob" }
+    ];
+    const merged = mergeParticipants(existing, incoming);
+    expect(merged).toContainEqual({ id: "Actor.gob", name: "Goblin", count: 5, actor: "Actor.gob" });
+    expect(merged).toContainEqual({ id: "Actor.elf", name: "Elf", count: 4, actor: "Actor.elf" });
+  });
 });
