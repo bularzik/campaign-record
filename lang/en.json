@@ -288,6 +288,9 @@
       "Next": "Next image",
       "Dismiss": "Dismiss",
       "NoImages": "This media entry has no images to present."
+    },
+    "AutoCapture": {
+      "NoGMForTarget": "No GM is connected, so the auto-capture target could not be changed."
     }
   }
 }

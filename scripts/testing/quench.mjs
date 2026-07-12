@@ -231,4 +231,31 @@ Hooks.on("quenchReady", (quench) => {
     },
     { displayName: "Campaign Record: Types" }
   );
+
+  quench.registerBatch(
+    "campaign-record.auto-target",
+    (context) => {
+      const { describe, it, assert, before, after } = context;
+      let group;
+      describe("Auto-capture target", () => {
+        before(async () => { group = await createGroup("Quench Target Group"); });
+        after(async () => {
+          await game.settings.set("campaign-record", "autoCaptureTargetGroup", "");
+          await group.delete();
+        });
+        it("GM setTargetGroup writes and resolves the world setting", async () => {
+          const { setTargetGroup, getTargetGroup } = await import("../settings/auto-target.mjs");
+          await setTargetGroup(group.id);
+          assert.equal(game.settings.get("campaign-record", "autoCaptureTargetGroup"), group.id);
+          assert.equal(getTargetGroup()?.id, group.id);
+        });
+        it("clears to null on a stale id", async () => {
+          const { getTargetGroup } = await import("../settings/auto-target.mjs");
+          await game.settings.set("campaign-record", "autoCaptureTargetGroup", "does-not-exist");
+          assert.equal(getTargetGroup(), null);
+        });
+      });
+    },
+    { displayName: "Campaign Record: Auto Target" }
+  );
 });
