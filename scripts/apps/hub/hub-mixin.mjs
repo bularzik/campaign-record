@@ -43,8 +43,6 @@ export function HubMixin(Base) {
         exportGroup: HubBase.#onExportGroup,
         toggleHiddenOnly: HubBase.#onToggleHiddenOnly,
         clearFilters: HubBase.#onClearFilters,
-        removeType: HubBase.#onRemoveType,
-        clearTypes: HubBase.#onClearTypes,
         toggleSnippets: HubBase.#onToggleSnippets,
         addTimepoint: HubBase.#onAddTimepoint,
         renameTimepoint: HubBase.#onRenameTimepoint,
@@ -70,7 +68,7 @@ export function HubMixin(Base) {
       record: { template: "modules/campaign-record/templates/hub/record.hbs" }
     };
 
-    state = { groupId: "all", types: new Set(), hiddenOnly: false, sort: "name", query: "" };
+    state = { groupId: "all", types: new Set(), hiddenOnly: false, sort: "name", query: "", typeMenuOpen: false };
 
     #history = createHistory();
     #pane = new RecordPane();
@@ -383,16 +381,6 @@ export function HubMixin(Base) {
       this.render();
     }
 
-    static #onRemoveType(event, target) {
-      this.state.types.delete(target.dataset.type);
-      this.#renderList();
-    }
-
-    static #onClearTypes() {
-      this.state.types.clear();
-      this.#renderList();
-    }
-
     #timelineGroups() {
       const thumbnails = game.settings.get(MODULE_ID, THUMBNAILS_SETTING);
       return getScopedGroups(this.groupScopeId).map((group) => {
@@ -640,7 +628,12 @@ export function HubMixin(Base) {
       context.otherGroupMatches = this.#otherGroupMatches(records);
       context.hasActiveFilters = this.state.types.size > 0 || this.state.hiddenOnly
         || (this.showsGroupPicker && this.state.groupId !== "all");
-      context.doctypeFilter = buildDoctypeFilter(this.state.types, (t) => this.#typeLabel(t));
+      context.doctypeFilter = buildDoctypeFilter(
+        this.state.types,
+        (t) => this.#typeLabel(t),
+        game.i18n.localize("CAMPAIGNRECORD.Hub.AllTypesSummary")
+      );
+      context.typeMenuOpen = this.state.typeMenuOpen;
       context.sortOptions = ["name", "type", "updated"].map((s) => ({
         value: s,
         label: game.i18n.localize(`CAMPAIGNRECORD.Hub.Sort.${s}`),
@@ -712,13 +705,25 @@ export function HubMixin(Base) {
           this.#renderList();
         });
       }
-      const typeAdd = this.element.querySelector("select.doctype-add");
-      if (typeAdd && !typeAdd.dataset.crBound) {
-        typeAdd.dataset.crBound = "1";
-        typeAdd.addEventListener("change", (event) => {
-          const type = event.target.value;
-          if (!type) return;
-          this.state.types.add(type);
+      if (!this.element.dataset.crTypeBound) {
+        this.element.dataset.crTypeBound = "1";
+        // Toggle the menu from its trigger; close it on any outside click.
+        this.element.addEventListener("click", (event) => {
+          if (event.target.closest(".doctype-summary")) {
+            this.state.typeMenuOpen = !this.state.typeMenuOpen;
+            return this.#renderList();
+          }
+          if (this.state.typeMenuOpen && !event.target.closest(".doctype-filter")) {
+            this.state.typeMenuOpen = false;
+            this.#renderList();
+          }
+        });
+        // Check/uncheck a type; the menu stays open across the re-render.
+        this.element.addEventListener("change", (event) => {
+          const cb = event.target.closest('input[name="doctype-check"]');
+          if (!cb) return;
+          if (cb.checked) this.state.types.add(cb.value);
+          else this.state.types.delete(cb.value);
           this.#renderList();
         });
       }

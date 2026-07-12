@@ -1,33 +1,31 @@
 <section class="hub-index">
-  <div class="doctype-filter">
-    {{#each doctypeFilter.chips}}
-    <span class="doctype-chip" data-type="{{this.type}}">
-      <i class="{{this.icon}}"></i> {{this.label}}
-      <a data-action="removeType" data-type="{{this.type}}"
-         data-tooltip="CAMPAIGNRECORD.Hub.RemoveType"
-         aria-label="{{localize "CAMPAIGNRECORD.Hub.RemoveType"}}"><i class="fa-solid fa-xmark"></i></a>
-    </span>
-    {{/each}}
-    <select class="doctype-add" aria-label="{{localize "CAMPAIGNRECORD.Hub.TypeFilter"}}">
-      <option value="">{{localize "CAMPAIGNRECORD.Hub.AddType"}}</option>
-      {{#each doctypeFilter.available}}
-      <option value="{{this.type}}">{{this.label}}</option>
-      {{/each}}
-    </select>
-    {{#if doctypeFilter.hasSelection}}
-    <button type="button" class="doctype-clear" data-action="clearTypes"
-            data-tooltip="CAMPAIGNRECORD.Hub.ClearTypes"
-            aria-label="{{localize "CAMPAIGNRECORD.Hub.ClearTypes"}}">
-      <i class="fa-solid fa-xmark"></i>
-    </button>
-    {{/if}}
-  </div>
-  <div class="index-controls">
+  <div class="rail-row">
     <button type="button" class="rail-toggle" data-action="toggleRail"
             data-tooltip="CAMPAIGNRECORD.Hub.ToggleRail"
             aria-label="{{localize "CAMPAIGNRECORD.Hub.ToggleRail"}}">
       <i class="fa-solid fa-angles-left"></i>
     </button>
+  </div>
+  <div class="doctype-filter{{#if typeMenuOpen}} open{{/if}}">
+    <button type="button" class="doctype-summary" aria-haspopup="true"
+            aria-expanded="{{#if typeMenuOpen}}true{{else}}false{{/if}}"
+            data-tooltip="CAMPAIGNRECORD.Hub.TypeFilter"
+            aria-label="{{localize "CAMPAIGNRECORD.Hub.TypeFilter"}}">
+      <i class="fa-solid fa-filter"></i>
+      <span class="doctype-summary-label">{{#if typeMenuOpen}}{{localize "CAMPAIGNRECORD.Hub.AllTypes"}}{{else}}{{doctypeFilter.summary}}{{/if}}</span>
+    </button>
+    {{#if typeMenuOpen}}
+    <div class="doctype-menu">
+      {{#each doctypeFilter.items}}
+      <label class="doctype-option">
+        <input type="checkbox" name="doctype-check" value="{{this.type}}" {{#if this.checked}}checked{{/if}}>
+        <i class="{{this.icon}}"></i> {{this.label}}
+      </label>
+      {{/each}}
+    </div>
+    {{/if}}
+  </div>
+  <div class="index-controls">
     <input type="search" name="index-search" value="{{state.query}}"
            placeholder="{{localize "CAMPAIGNRECORD.Hub.FilterTag"}}" autocomplete="off">
     <label class="snippets-toggle">

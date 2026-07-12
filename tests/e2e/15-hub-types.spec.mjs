@@ -43,40 +43,45 @@ test.describe("hub integration for phase 3 types", () => {
       await hub.render(true);
     });
 
-  test("index doctype filter offers one option per record type plus journal, and phase-3 subtitles", async () => {
+  test("type filter offers one checkbox per record type plus journal, and phase-3 subtitles", async () => {
     await openHub();
     const hub = page.locator("#campaign-hub");
     await hub.waitFor({ timeout: 15_000 });
-    // 10 record types + journal = 11 selectable options, plus the blank
-    // "Add type…" prompt option.
-    const typeAdd = hub.locator("select.doctype-add");
-    await expect(typeAdd).toBeVisible();
-    await expect(typeAdd.locator('option[value]:not([value=""])')).toHaveCount(11);
+    // Closed by default: summary reads "All types".
+    await expect(hub.locator(".doctype-summary-label")).toHaveText("All types");
+    await hub.locator(".doctype-summary").click();
+    // 10 record types + journal = 11 checkboxes.
+    await expect(hub.locator('.doctype-menu input[name="doctype-check"]')).toHaveCount(11);
     await expect(hub.locator(".record-list")).toContainText("Blacksmith");     // shop subtitle
     await expect(hub.locator(".record-list")).toContainText("Dan — Rogue 3");  // pc subtitle
     await expect(hub.locator(".record-list")).toContainText("1/2 done");       // checklist subtitle
   });
 
-  test("doctype filter chips select, filter, remove, and clear", async () => {
+  test("checking types filters the list; menu stays open; summary updates", async () => {
     await openHub();
     const hub = page.locator("#campaign-hub");
     await hub.waitFor({ timeout: 15_000 });
 
-    await hub.locator("select.doctype-add").selectOption("shop");
-    await expect(hub.locator('.doctype-chip[data-type="shop"]')).toBeVisible();
+    await hub.locator(".doctype-summary").click();
+    await hub.locator('.doctype-menu input[value="shop"]').check();
+    // Menu stays open for multi-select.
+    await expect(hub.locator(".doctype-menu")).toBeVisible();
     await expect(hub.locator(".record-list")).toContainText("E2E HubTypes Shop");
     await expect(hub.locator(".record-list")).not.toContainText("E2E HubTypes PC");
 
-    await hub.locator('.doctype-chip[data-type="shop"] a[data-action="removeType"]').click();
-    await expect(hub.locator('.doctype-chip[data-type="shop"]')).toHaveCount(0);
-    await expect(hub.locator(".record-list")).toContainText("E2E HubTypes PC");
+    await hub.locator('.doctype-menu input[value="pc"]').check();
+    // Two selected -> "first label +1" (shop precedes journal but pc precedes shop in list order).
+    // Close the menu to read the summary.
+    await hub.locator(".record-list").click();
+    await expect(hub.locator(".doctype-menu")).toHaveCount(0);
+    await expect(hub.locator(".doctype-summary-label")).toContainText("+1");
 
-    await hub.locator("select.doctype-add").selectOption("shop");
-    await hub.locator("select.doctype-add").selectOption("pc");
-    await expect(hub.locator(".doctype-chip")).toHaveCount(2);
-
-    await hub.locator(".doctype-clear").click();
-    await expect(hub.locator(".doctype-chip")).toHaveCount(0);
+    // Reopen and uncheck both -> back to "All types" and unfiltered.
+    await hub.locator(".doctype-summary").click();
+    await hub.locator('.doctype-menu input[value="shop"]').uncheck();
+    await hub.locator('.doctype-menu input[value="pc"]').uncheck();
+    await hub.locator(".record-list").click();
+    await expect(hub.locator(".doctype-summary-label")).toHaveText("All types");
     await expect(hub.locator(".record-list")).toContainText("E2E HubTypes PC");
   });
 
