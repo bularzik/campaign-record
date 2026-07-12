@@ -13,6 +13,11 @@
   <button type="button" data-action="linkScene">
     <i class="fa-solid fa-link"></i> {{localize "CAMPAIGNRECORD.LinkScene"}}
   </button>
+  {{#if enriched.sceneLink}}
+  <button type="button" data-action="unlinkScene">
+    <i class="fa-solid fa-link-slash"></i> {{localize "CAMPAIGNRECORD.UnlinkScene"}}
+  </button>
+  {{/if}}
 </div>
 {{> campaign-record.common-edit}}
 </section>
