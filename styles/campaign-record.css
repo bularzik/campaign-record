@@ -694,15 +694,6 @@
   display: none;
 }
 
-/* Hide the ProseMirror toolbar's own Save button — the floppy icon just left of
-   "Source HTML" (data-action="save" in core's editor menu). The big footer
-   "Save Changes" button is kept, and the sheet auto-saves on change
-   (submitOnChange), so this inline duplicate is redundant. Scoped to the
-   prose-mirror inside the pane so nothing else is touched. */
-.record-pane-mount prose-mirror button[data-action="save"] {
-  display: none;
-}
-
 /* Narrow left-index rows: icon + name only. */
 .campaign-hub .hub-index .record-row {
   grid-template-columns: 2rem minmax(0, 1fr);
