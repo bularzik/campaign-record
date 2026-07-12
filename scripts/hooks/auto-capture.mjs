@@ -1,14 +1,19 @@
 import { isGroup } from "../data/groups.mjs";
 import { setTargetGroup, getTargetGroup } from "../settings/auto-target.mjs";
-import { typeId } from "../constants.mjs";
+import { MODULE_ID, typeId, ENCOUNTER_FLAG, DEPARTED_FLAG } from "../constants.mjs";
 import { addTimepoint, attachRecord, getTimepoints } from "../data/timepoints.mjs";
-import { matchPlaceForScene, pickLatestTimepoint } from "../logic/auto-capture.mjs";
+import { matchPlaceForScene, pickLatestTimepoint, collapseParticipants } from "../logic/auto-capture.mjs";
 
 const PLACE_TYPE = typeId("place");
 
 /** Every place page in a group whose scene is set. */
 function placesOf(group) {
   return group.pages.filter((p) => p.type === PLACE_TYPE && p.system.scene);
+}
+
+/** Live combatants as raw {actorUuid, name} entries. */
+function combatParticipants(combat) {
+  return combat.combatants.map((c) => ({ actorUuid: c.actor?.uuid ?? null, name: c.name }));
 }
 
 /**
@@ -54,5 +59,25 @@ export function registerAutoCapture() {
     const group = getTargetGroup();
     if (!group) return;
     await ensurePlaceForScene(group, scene, { createTimepoint: true });
+  });
+
+  // GM begins combat → create an Encounter on the scene's Place timepoint.
+  Hooks.on("combatStart", async (combat) => {
+    if (game.user !== game.users.activeGM) return;
+    const scene = combat.scene;
+    if (!scene) return;
+    const group = getTargetGroup();
+    if (!group) return;
+    const { timepointId } = await ensurePlaceForScene(group, scene, { createTimepoint: false });
+    const combatants = collapseParticipants(combatParticipants(combat));
+    const [encounter] = await group.createEmbeddedDocuments("JournalEntryPage", [
+      {
+        name: game.i18n.format("CAMPAIGNRECORD.AutoCapture.EncounterName", { scene: scene.name }),
+        type: typeId("encounter"),
+        system: { scene: scene.uuid, combatants }
+      }
+    ]);
+    await attachRecord(encounter, timepointId);
+    await combat.setFlag(MODULE_ID, ENCOUNTER_FLAG, encounter.uuid);
   });
 }

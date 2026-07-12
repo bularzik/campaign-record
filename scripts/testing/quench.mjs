@@ -291,6 +291,24 @@ Hooks.on("quenchReady", (quench) => {
           assert.equal(first.place.system.scene, scene.uuid);
           assert.ok(first.place.system.timepoints.has(second.timepointId));
         });
+
+        it("combatStart creates an Encounter attached to the Place timepoint", async () => {
+          const { ensurePlaceForScene } = await import("../hooks/auto-capture.mjs");
+          const { timepointId } = await ensurePlaceForScene(group, scene, { createTimepoint: true });
+          const actor = await Actor.create({ name: "Quench Goblin", type: Object.keys(game.system.model?.Actor ?? { npc: {} })[0] });
+          const combat = await Combat.create({ scene: scene.id });
+          await combat.createEmbeddedDocuments("Combatant", [{ actorId: actor.id }, { actorId: actor.id }]);
+          await combat.startCombat();
+          const encounterUuid = combat.getFlag("campaign-record", "encounterUuid");
+          assert.ok(encounterUuid, "encounter flag stamped");
+          const encounter = await fromUuid(encounterUuid);
+          assert.equal(encounter.type, "campaign-record.encounter");
+          assert.equal(encounter.system.scene, scene.uuid);
+          assert.ok(encounter.system.timepoints.has(timepointId), "attached to latest timepoint");
+          assert.equal(encounter.system.combatants[0].count, 2, "collapsed by actor");
+          await combat.delete();
+          await actor.delete();
+        });
       });
     },
     { displayName: "Campaign Record: Auto Capture" }

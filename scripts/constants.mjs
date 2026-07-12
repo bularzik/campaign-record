@@ -65,3 +65,9 @@ export const AUTO_TARGET_SETTING = "autoCaptureTargetGroup";
 
 /** Socket action: relay a target-group change to the active GM. */
 export const AUTO_TARGET_ACTION = "set-auto-target";
+
+/** Combat flag: uuid of the Encounter page this combat is captured into. */
+export const ENCOUNTER_FLAG = "encounterUuid";
+
+/** Combat flag: combatants that left mid-fight, for the end summary. */
+export const DEPARTED_FLAG = "departed";
