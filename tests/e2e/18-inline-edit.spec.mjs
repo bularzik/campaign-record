@@ -161,15 +161,17 @@ test.describe("inline-editable record views", () => {
     // viewport (same workaround as 05-hub.spec.mjs).
     await gmPage.locator(".campaign-record-open-hub").evaluate((el) => el.click());
     const hub = gmPage.locator("#campaign-hub");
+    await hub.locator(".hub-settings-trigger").click();
     const toggle = hub.locator('[data-action="toggleInlineEdit"]');
-    await expect(toggle).toHaveAttribute("aria-pressed", "true");
+    await expect(toggle).toHaveAttribute("aria-checked", "true");
     await expect(toggle.locator("i")).toHaveClass(/fa-pen(?!-)/);
     await toggle.click();
     await expect
       .poll(() => gmPage.evaluate(() => game.settings.get("campaign-record", "inlineEditing")))
       .toBe(false);
-    await expect(hub.locator('[data-action="toggleInlineEdit"]')).toHaveAttribute("aria-pressed", "false");
+    await expect(hub.locator('[data-action="toggleInlineEdit"]')).toHaveAttribute("aria-checked", "false");
     await expect(hub.locator('[data-action="toggleInlineEdit"] i')).toHaveClass(/fa-pen-slash/);
+    await hub.locator(".hub-settings-trigger").click();
     await openViewReadOnly();
     // restore for later tests
     await gmPage.evaluate(() => game.settings.set("campaign-record", "inlineEditing", true));
