@@ -642,7 +642,15 @@
 
 /* Narrow left-index rows: icon + name only. */
 .campaign-hub .hub-index .record-row {
-  grid-template-columns: 1.5rem minmax(0, 1fr);
+  grid-template-columns: 2rem minmax(0, 1fr);
+}
+.campaign-hub .record-row .record-thumb {
+  width: 2rem;
+  height: 2rem;
+  object-fit: cover;
+  border: none;
+  border-radius: 3px;
+  justify-self: center;
 }
 .campaign-hub .hub-index .record-subtitle { display: none; }
 .campaign-hub .hub-index .record-row.current {

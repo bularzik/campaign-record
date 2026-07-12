@@ -1,7 +1,11 @@
 <li class="record-row{{#if this.current}} current{{/if}}" data-uuid="{{this.uuid}}"
     {{#if this.canAttach}}data-drag-record draggable="true"{{/if}}
     data-action="openRecord">
+  {{#if this.image}}
+  <img class="record-thumb" src="{{this.image}}" alt="" data-tooltip="{{this.typeLabel}}">
+  {{else}}
   <i class="record-type-icon {{this.icon}}" data-tooltip="{{this.typeLabel}}"></i>
+  {{/if}}
   <span class="record-name">{{this.name}}
     {{#if this.hidden}}<i class="fa-solid fa-eye-slash" data-tooltip="CAMPAIGNRECORD.Hidden"></i>{{/if}}
   </span>
