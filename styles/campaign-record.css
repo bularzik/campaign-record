@@ -694,11 +694,12 @@
   display: none;
 }
 
-/* Hide core's "Save Changes" footer button in the pane editor. Both core page
-   sheets and our record sheets use form.submitOnChange, so name and prose edits
-   persist automatically — the button is redundant. Scoped to the pane so
-   journal sheets opened normally keep their footer. */
-.record-pane-mount .form-footer {
+/* Hide the ProseMirror toolbar's own Save button — the floppy icon just left of
+   "Source HTML" (data-action="save" in core's editor menu). The big footer
+   "Save Changes" button is kept, and the sheet auto-saves on change
+   (submitOnChange), so this inline duplicate is redundant. Scoped to the
+   prose-mirror inside the pane so nothing else is touched. */
+.record-pane-mount prose-mirror button[data-action="save"] {
   display: none;
 }
 
