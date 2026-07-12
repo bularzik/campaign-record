@@ -562,7 +562,8 @@
   display: flex;
   flex-direction: column;
   min-height: 0;
-  background: var(--color-bg, var(--dnd5e-color-parchment, #ededed));
+  background: var(--color-bg-option, var(--color-cool-5, #23221d));
+  color: var(--color-text-primary, inherit);
   z-index: 1; /* record part follows timeline in DOM; this keeps it on top */
 }
 
