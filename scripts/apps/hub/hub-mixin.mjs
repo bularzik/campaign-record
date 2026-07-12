@@ -1,9 +1,9 @@
 import { getGroups } from "../../data/groups.mjs";
 import { getTargetGroup, setTargetGroup } from "../../settings/auto-target.mjs";
 import {
-  MODULE_ID, RAIL_SETTING, INLINE_EDIT_SETTING, SNIPPETS_SETTING, RECORD_TYPES, typeId
+  MODULE_ID, RAIL_SETTING, INLINE_EDIT_SETTING, SNIPPETS_SETTING, RECORD_TYPES, typeId, GROUP_SHEET_CLASS
 } from "../../constants.mjs";
-import { hasInlineFocus } from "../../logic/inline-edit.mjs";
+import { hasInlineFocus, shouldShowEditToggle } from "../../logic/inline-edit.mjs";
 import { buildDoctypeFilter } from "../../logic/doctype-filter.mjs";
 import { buildSortMenu } from "../../logic/sort-menu.mjs";
 import { collectRecords, isIndexablePage, getScopedGroups, toSearchRecord } from "./hub-data.mjs";
@@ -372,7 +372,7 @@ export function HubMixin(Base) {
       const [page] = await group.createEmbeddedDocuments("JournalEntryPage", [
         { name: result.name, type: result.type }
       ]);
-      await this.navigateToRecord(page.uuid, { mode: "edit" });
+      await this.navigateToRecord(page.uuid);
     }
 
     static #onImportDocument() {
@@ -663,13 +663,26 @@ export function HubMixin(Base) {
       }
       context.canGoBack = canGoBack(this.#history);
       context.canGoForward = canGoForward(this.#history);
-      context.view = this.state.view && viewedPage
-        ? {
-            name: viewedPage.name,
-            editing: this.state.view.mode === "edit",
-            canEdit: viewedPage.canUserModify(game.user, "update")
-          }
-        : null;
+      if (this.state.view && viewedPage) {
+        const canEdit = viewedPage.canUserModify(game.user, "update");
+        const inlineEditableView =
+          game.settings.get(MODULE_ID, INLINE_EDIT_SETTING) &&
+          canEdit &&
+          viewedPage.type.startsWith(`${MODULE_ID}.`) &&
+          viewedPage.parent?.getFlag("core", "sheetClass") === GROUP_SHEET_CLASS;
+        context.view = {
+          name: viewedPage.name,
+          editing: this.state.view.mode === "edit",
+          canEdit,
+          showEditToggle: shouldShowEditToggle({
+            canEdit,
+            inViewMode: this.state.view.mode !== "edit",
+            inlineEditableView
+          })
+        };
+      } else {
+        context.view = null;
+      }
       return context;
     }
 

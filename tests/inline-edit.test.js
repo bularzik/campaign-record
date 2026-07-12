@@ -1,5 +1,21 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { computeInlineEdit, createDebouncedSaver, hasInlineFocus } from "../scripts/logic/inline-edit.mjs";
+import { shouldShowEditToggle } from "../scripts/logic/inline-edit.mjs";
+
+describe("shouldShowEditToggle", () => {
+  it("hides the toggle for an inline-editable typed entry in view mode", () => {
+    expect(shouldShowEditToggle({ canEdit: true, inViewMode: true, inlineEditableView: true })).toBe(false);
+  });
+  it("shows the toggle when the view is not inline-editable (text page / inline off)", () => {
+    expect(shouldShowEditToggle({ canEdit: true, inViewMode: true, inlineEditableView: false })).toBe(true);
+  });
+  it("shows the toggle while in edit mode so the user can return to view", () => {
+    expect(shouldShowEditToggle({ canEdit: true, inViewMode: false, inlineEditableView: true })).toBe(true);
+  });
+  it("never shows the toggle without update permission", () => {
+    expect(shouldShowEditToggle({ canEdit: false, inViewMode: true, inlineEditableView: false })).toBe(false);
+  });
+});
 
 describe("computeInlineEdit", () => {
   it("is true only when enabled, permitted, in view mode, and inside a group journal", () => {

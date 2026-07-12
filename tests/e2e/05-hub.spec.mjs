@@ -49,7 +49,7 @@ test.describe("campaign hub shell", () => {
     await deleteGroupsByPrefix(page, "E2E Hub Shell");
   });
 
-  test("New Entry sits in the timeline tools by default and beside Edit when viewing", async ({ page }) => {
+  test("New Entry sits in the timeline tools and pane header; typed entries show no edit-toggle", async ({ page }) => {
     await login(page, "Gamemaster");
     await createGroupWithPage(page, "E2E Hub Nav Group", "E2E Hub Nav Npc", "campaign-record.npc");
     await page.evaluate(async () => {
@@ -65,14 +65,8 @@ test.describe("campaign hub shell", () => {
     await hub.locator(".record-row", { hasText: "E2E Hub Nav Npc" }).click();
     const header = hub.locator(".hub-record.active .record-pane-header");
     await expect(header.locator('[data-action="newRecord"]')).toBeVisible();
-    await expect(header.locator('[data-action="toggleEditMode"]')).toBeVisible();
-
-    // New Entry must render immediately before the edit-toggle button so it
-    // sits beside Edit, not bundled with Back/Forward on the other end.
-    const newButtonFollowedByEdit = await header
-      .locator('[data-action="newRecord"]')
-      .evaluate((el) => el.nextElementSibling?.dataset.action === "toggleEditMode");
-    expect(newButtonFollowedByEdit).toBe(true);
+    // A typed entry is inline-editable (default), so no manual edit-toggle is shown.
+    await expect(header.locator('[data-action="toggleEditMode"]')).toHaveCount(0);
 
     await deleteGroupsByPrefix(page, "E2E Hub Nav");
   });
