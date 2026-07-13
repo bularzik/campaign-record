@@ -190,15 +190,16 @@ export function registerAutoCapture() {
 
   // GM shows players an image/video via Foundry's native "Show Players" →
   // file it onto the newest timepoint. shareImage fires no hook and the
-  // socket emit doesn't echo to the sender, so wrap the static method; the
-  // sharing GM captures on their own client (single-writer, no relay).
+  // socket emit doesn't echo to the sender, so wrap the prototype method
+  // (the button calls `this.shareImage()` with no args); the sharing GM
+  // captures on their own client (single-writer, no relay).
   const ImagePopout = foundry.applications.apps.ImagePopout;
-  const originalShareImage = ImagePopout.shareImage;
-  ImagePopout.shareImage = function (options = {}) {
+  const originalShareImage = ImagePopout.prototype.shareImage;
+  ImagePopout.prototype.shareImage = function (options = {}) {
     const result = originalShareImage.call(this, options);
     if (game.user.isGM) {
-      const src = options.image ?? options.src;
-      const caption = options.title ?? options.caption ?? "";
+      const src = options.image ?? this.options?.src;
+      const caption = options.caption ?? this.options?.caption ?? options.title ?? this.options?.window?.title ?? "";
       captureSharedMedia(src, caption).catch((err) =>
         console.error("campaign-record | shared-media capture failed", err)
       );
