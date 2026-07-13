@@ -1,12 +1,17 @@
 import { MODULE_ID, GROUP_FLAG } from "../constants.mjs";
 import { sortKeyBetween, sortTimepoints } from "../logic/timeline-sort.mjs";
 import { isRecordVisible } from "../logic/visibility.mjs";
-import { withLink, withoutLink, displayLink } from "../logic/timeline-links.mjs";
+import { withLink, withoutLink, displayLink, timepointIdsWithLink } from "../logic/timeline-links.mjs";
 
 /** Sorted timepoints of a group. */
 export function getTimepoints(group) {
   const flag = group.getFlag(MODULE_ID, GROUP_FLAG);
   return sortTimepoints(flag?.timepoints ?? []);
+}
+
+/** Timepoint ids whose links reference this record uuid. */
+export function timepointsForRecord(group, uuid) {
+  return timepointIdsWithLink(getTimepoints(group), uuid);
 }
 
 async function setTimepoints(group, timepoints) {

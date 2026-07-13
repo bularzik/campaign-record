@@ -126,3 +126,20 @@ describe("recordDragPayload", () => {
     });
   });
 });
+
+import { timepointIdsWithLink } from "../scripts/logic/timeline-links.mjs";
+
+describe("timepointIdsWithLink", () => {
+  const tps = [
+    { id: "t1", links: [{ id: "l1", uuid: "JournalEntry.g.JournalEntryPage.p1" }] },
+    { id: "t2", links: [] },
+    { id: "t3", links: [{ id: "l2", uuid: "JournalEntry.g.JournalEntryPage.p1" }, { id: "l3", uuid: "Actor.x" }] },
+    { id: "t4" }
+  ];
+  it("returns ids of timepoints whose links reference the uuid", () => {
+    expect(timepointIdsWithLink(tps, "JournalEntry.g.JournalEntryPage.p1")).toEqual(["t1", "t3"]);
+  });
+  it("returns empty when nothing matches", () => {
+    expect(timepointIdsWithLink(tps, "Actor.none")).toEqual([]);
+  });
+});

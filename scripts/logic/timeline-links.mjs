@@ -103,3 +103,10 @@ export function displayLink(link, { isGM, doc }) {
 export function recordDragPayload(uuid) {
   return { kind: "campaign-record.record", type: "JournalEntryPage", uuid };
 }
+
+/** Ids of timepoints whose links reference this document uuid. */
+export function timepointIdsWithLink(timepoints, uuid) {
+  return (timepoints ?? [])
+    .filter((tp) => (tp.links ?? []).some((l) => l.uuid === uuid))
+    .map((tp) => tp.id);
+}
