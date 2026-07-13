@@ -143,3 +143,24 @@ describe("timepointIdsWithLink", () => {
     expect(timepointIdsWithLink(tps, "Actor.none")).toEqual([]);
   });
 });
+
+import { recordLinkMigrationEntries } from "../scripts/logic/timeline-links.mjs";
+
+describe("recordLinkMigrationEntries", () => {
+  it("emits one link entry per (page, timepoint) membership", () => {
+    const pages = [
+      { uuid: "JournalEntry.g.JournalEntryPage.p1", name: "Natick", timepointIds: ["t1", "t2"] },
+      { uuid: "JournalEntry.g.JournalEntryPage.p2", name: "Strahd", timepointIds: [] },
+      { uuid: "JournalEntry.g.JournalEntryPage.p3", name: "Vault", timepointIds: ["t2"] }
+    ];
+    expect(recordLinkMigrationEntries(pages)).toEqual([
+      { timepointId: "t1", link: { uuid: "JournalEntry.g.JournalEntryPage.p1", name: "Natick", type: "JournalEntryPage" } },
+      { timepointId: "t2", link: { uuid: "JournalEntry.g.JournalEntryPage.p1", name: "Natick", type: "JournalEntryPage" } },
+      { timepointId: "t2", link: { uuid: "JournalEntry.g.JournalEntryPage.p3", name: "Vault", type: "JournalEntryPage" } }
+    ]);
+  });
+
+  it("returns empty for no memberships", () => {
+    expect(recordLinkMigrationEntries([{ uuid: "x", name: "x", timepointIds: [] }])).toEqual([]);
+  });
+});

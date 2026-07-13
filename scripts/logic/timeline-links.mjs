@@ -110,3 +110,17 @@ export function timepointIdsWithLink(timepoints, uuid) {
     .filter((tp) => (tp.links ?? []).some((l) => l.uuid === uuid))
     .map((tp) => tp.id);
 }
+
+/**
+ * Flatten record→timepoint memberships into link-add operations for the v3
+ * migration. addLink dedupes, so re-running is safe.
+ */
+export function recordLinkMigrationEntries(pages) {
+  const entries = [];
+  for (const page of pages ?? []) {
+    for (const timepointId of page.timepointIds ?? []) {
+      entries.push({ timepointId, link: { uuid: page.uuid, name: page.name, type: "JournalEntryPage" } });
+    }
+  }
+  return entries;
+}
