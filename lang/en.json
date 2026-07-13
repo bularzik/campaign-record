@@ -141,6 +141,10 @@
       "InlineEditing": {
         "Name": "Inline editing",
         "Hint": "Edit entries directly while viewing them; changes save automatically. Turn off for read-only views."
+      },
+      "AutoCaptureSharedMedia": {
+        "Name": "Auto-capture shared media",
+        "Hint": "When a GM shows players an image or video (via Foundry's Show Players control), file it into a Shared media entry on the newest timeline point of the auto-capture target Campaign Record."
       }
     },
     "Sheets": {

@@ -68,3 +68,9 @@ export const ENCOUNTER_FLAG = "encounterUuid";
 
 /** Combat flag: combatants that left mid-fight, for the end summary. */
 export const DEPARTED_FLAG = "departed";
+
+/** World setting: auto-file media the GM shows players onto the newest timepoint. */
+export const MEDIA_CAPTURE_SETTING = "autoCaptureSharedMedia";
+
+/** Media page flag: the timepoint id whose auto-created gallery this page is. */
+export const AUTO_MEDIA_FLAG = "autoMediaTimepoint";
