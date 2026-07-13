@@ -2,13 +2,30 @@
   "id": "campaign-record",
   "title": "Campaign Record",
   "description": "Collaborative campaign journaling: shared typed entries (NPCs, places, quests, and more) organized into Campaign Records, with an index, timeline, and cross-document search.",
-  "version": "1.2.10",
-  "authors": [{ "name": "Dan Bularzik" }],
-  "compatibility": { "minimum": "13", "verified": "13" },
-  "esmodules": ["scripts/campaign-record.mjs"],
-  "styles": ["styles/campaign-record.css"],
+  "version": "1.2.11",
+  "authors": [
+    {
+      "name": "Dan Bularzik"
+    }
+  ],
+  "compatibility": {
+    "minimum": "13",
+    "verified": "13"
+  },
+  "esmodules": [
+    "scripts/campaign-record.mjs"
+  ],
+  "styles": [
+    "styles/campaign-record.css"
+  ],
   "socket": true,
-  "languages": [{ "lang": "en", "name": "English", "path": "lang/en.json" }],
+  "languages": [
+    {
+      "lang": "en",
+      "name": "English",
+      "path": "lang/en.json"
+    }
+  ],
   "documentTypes": {
     "JournalEntryPage": {
       "npc": {},
