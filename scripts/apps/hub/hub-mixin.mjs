@@ -53,7 +53,6 @@ export function HubMixin(Base) {
         addTimepoint: HubBase.#onAddTimepoint,
         renameTimepoint: HubBase.#onRenameTimepoint,
         deleteTimepoint: HubBase.#onDeleteTimepoint,
-        detachRecord: HubBase.#onDetachRecord,
         openLink: HubBase.#onOpenLink,
         removeLink: HubBase.#onRemoveLink,
         toggleLinkShowPlayers: HubBase.#onToggleLinkShowPlayers,
@@ -402,9 +401,6 @@ export function HubMixin(Base) {
             ...tp,
             position: i,
             canEdit,
-            records: Timepoints.recordsAtTimepoint(group, tp.id, game.user).map((p) => ({
-              uuid: p.uuid, name: p.name
-            })),
             links: Timepoints.resolveLinks(tp, game.user).map((entry) => ({
               ...entry,
               broken: entry.kind === "broken",
@@ -465,12 +461,6 @@ export function HubMixin(Base) {
         })}</p>`
       });
       if (confirmed) await Timepoints.deleteTimepoint(group, id);
-    }
-
-    static async #onDetachRecord(event, target) {
-      const id = target.closest("[data-timepoint-id]").dataset.timepointId;
-      const page = await fromUuid(target.closest("[data-uuid]").dataset.uuid);
-      if (page) await Timepoints.detachRecord(page, id);
     }
 
     static async #onOpenLink(event, target) {
