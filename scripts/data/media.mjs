@@ -11,7 +11,7 @@ export class MediaModel extends BaseRecordModel {
       images: new ArrayField(
         new SchemaField({
           id: new StringField({ required: true, blank: false }),
-          src: new FilePathField({ categories: ["IMAGE"] }),
+          src: new FilePathField({ categories: ["IMAGE", "VIDEO"] }),
           caption: new StringField()
         })
       ),

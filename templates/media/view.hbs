@@ -6,7 +6,11 @@
 <div class="media-gallery">
   {{#each system.images}}
   <figure data-row-id="{{this.id}}">
+    {{#if (crIsVideo this.src)}}
+    <video src="{{this.src}}" controls muted></video>
+    {{else}}
     <img src="{{this.src}}" alt="{{this.caption}}">
+    {{/if}}
     {{#if this.caption}}<figcaption>{{this.caption}}</figcaption>{{/if}}
     {{#if @root.isGM}}
     <button type="button" data-action="showImage">
