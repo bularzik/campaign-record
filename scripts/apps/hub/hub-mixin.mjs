@@ -1,10 +1,11 @@
 import { getGroups } from "../../data/groups.mjs";
 import { getTargetGroup, setTargetGroup } from "../../settings/auto-target.mjs";
 import {
-  MODULE_ID, THUMBNAILS_SETTING, RAIL_SETTING, INLINE_EDIT_SETTING, SNIPPETS_SETTING, RECORD_TYPES, typeId
+  MODULE_ID, RAIL_SETTING, INLINE_EDIT_SETTING, SNIPPETS_SETTING, RECORD_TYPES, typeId, GROUP_SHEET_CLASS
 } from "../../constants.mjs";
-import { hasInlineFocus } from "../../logic/inline-edit.mjs";
+import { hasInlineFocus, shouldShowEditToggle } from "../../logic/inline-edit.mjs";
 import { buildDoctypeFilter } from "../../logic/doctype-filter.mjs";
+import { buildSortMenu } from "../../logic/sort-menu.mjs";
 import { collectRecords, isIndexablePage, getScopedGroups, toSearchRecord } from "./hub-data.mjs";
 import { createIndex, indexRecord, removeRecord, search } from "../../logic/search-index.mjs";
 import { hasGroupFlag, isRecordVisible } from "../../logic/visibility.mjs";
@@ -33,6 +34,11 @@ export function HubMixin(Base) {
       return true;
     }
 
+    /** Name shown at the left of the header; null on the standalone hub (the group picker names it instead). */
+    get headerTitle() {
+      return null;
+    }
+
     static DEFAULT_OPTIONS = {
       classes: ["campaign-record", "campaign-hub"],
       window: { title: "CAMPAIGNRECORD.Hub.Title", resizable: true, icon: "fa-solid fa-book-atlas" },
@@ -42,7 +48,6 @@ export function HubMixin(Base) {
         newRecord: HubBase.#onNewRecord,
         importDocument: HubBase.#onImportDocument,
         exportGroup: HubBase.#onExportGroup,
-        toggleHiddenOnly: HubBase.#onToggleHiddenOnly,
         clearFilters: HubBase.#onClearFilters,
         toggleSnippets: HubBase.#onToggleSnippets,
         addTimepoint: HubBase.#onAddTimepoint,
@@ -52,7 +57,6 @@ export function HubMixin(Base) {
         openLink: HubBase.#onOpenLink,
         removeLink: HubBase.#onRemoveLink,
         toggleLinkShowPlayers: HubBase.#onToggleLinkShowPlayers,
-        toggleThumbnails: HubBase.#onToggleThumbnails,
         toggleInlineEdit: HubBase.#onToggleInlineEdit,
         paneBack: HubBase.#onPaneBack,
         paneForward: HubBase.#onPaneForward,
@@ -71,8 +75,8 @@ export function HubMixin(Base) {
     };
 
     state = {
-      groupId: "all", types: new Set(), hiddenOnly: false, sort: "name", query: "",
-      typeMenuOpen: false, settingsMenuOpen: false
+      groupId: "all", types: new Set(), sort: "name", query: "",
+      typeMenuOpen: false, settingsMenuOpen: false, sortMenuOpen: false
     };
 
     #history = createHistory();
@@ -267,6 +271,7 @@ export function HubMixin(Base) {
       this.state.view = null;
       this.state.typeMenuOpen = false;
       this.state.settingsMenuOpen = false;
+      this.state.sortMenuOpen = false;
       this.#history = createHistory();
       super._onClose(options);
     }
@@ -287,7 +292,6 @@ export function HubMixin(Base) {
         records = records.filter((r) => matchesByUuid.has(r.uuid));
       }
       if (this.state.types.size) records = records.filter((r) => this.state.types.has(r.shortType));
-      if (this.state.hiddenOnly) records = records.filter((r) => r.hidden);
       const sorters = {
         name: (a, b) => a.name.localeCompare(b.name),
         type: (a, b) => a.shortType.localeCompare(b.shortType) || a.name.localeCompare(b.name),
@@ -312,7 +316,7 @@ export function HubMixin(Base) {
       const query = (this.state.query ?? "").trim();
       if (query.length < 2) return 0;
       const scopingClearable = this.showsGroupPicker && this.state.groupId !== "all";
-      const filtersActive = this.state.types.size > 0 || this.state.hiddenOnly || scopingClearable;
+      const filtersActive = this.state.types.size > 0 || scopingClearable;
       if (!filtersActive) return 0;
       // Records visible once clearable filters are reset: unscoped for the
       // standalone hub, still this group for a locked single-group sheet.
@@ -368,7 +372,7 @@ export function HubMixin(Base) {
       const [page] = await group.createEmbeddedDocuments("JournalEntryPage", [
         { name: result.name, type: result.type }
       ]);
-      await this.navigateToRecord(page.uuid, { mode: "edit" });
+      await this.navigateToRecord(page.uuid);
     }
 
     static #onImportDocument() {
@@ -381,20 +385,13 @@ export function HubMixin(Base) {
       await exportGroupDialog(group);
     }
 
-    static #onToggleHiddenOnly() {
-      this.state.hiddenOnly = !this.state.hiddenOnly;
-      this.render();
-    }
-
     static #onClearFilters() {
       this.state.types.clear();
-      this.state.hiddenOnly = false;
       if (this.showsGroupPicker) this.state.groupId = "all";
       this.render();
     }
 
     #timelineGroups() {
-      const thumbnails = game.settings.get(MODULE_ID, THUMBNAILS_SETTING);
       return getScopedGroups(this.groupScopeId).map((group) => {
         const canEdit = group.canUserModify(game.user, "update");
         return {
@@ -411,7 +408,7 @@ export function HubMixin(Base) {
             links: Timepoints.resolveLinks(tp, game.user).map((entry) => ({
               ...entry,
               broken: entry.kind === "broken",
-              thumb: thumbnails && entry.img ? entry.img : null,
+              thumb: entry.img || null,
               canToggleVisibility: canEdit && game.user.isGM && entry.kind === "image"
             }))
           }))
@@ -504,12 +501,6 @@ export function HubMixin(Base) {
       if (group) await Timepoints.toggleLinkShowPlayers(group, timepointId, linkId);
     }
 
-    static async #onToggleThumbnails() {
-      const current = game.settings.get(MODULE_ID, THUMBNAILS_SETTING);
-      await game.settings.set(MODULE_ID, THUMBNAILS_SETTING, !current);
-      this.render();
-    }
-
     static async #onToggleInlineEdit() {
       const current = game.settings.get(MODULE_ID, INLINE_EDIT_SETTING);
       // The setting's onChange re-renders every hub and record sheet.
@@ -519,7 +510,7 @@ export function HubMixin(Base) {
     static async #onToggleSnippets() {
       const current = game.settings.get(MODULE_ID, SNIPPETS_SETTING);
       await game.settings.set(MODULE_ID, SNIPPETS_SETTING, !current);
-      await this.render({ parts: ["index"] });
+      await this.render({ parts: ["header", "index"] });
     }
 
     #onTimelineDragStart(event) {
@@ -613,6 +604,7 @@ export function HubMixin(Base) {
       context.isGM = game.user.isGM;
       context.canImport = game.user.can("JOURNAL_CREATE");
       context.showGroupPicker = this.showsGroupPicker;
+      context.headerTitle = this.headerTitle;
       context.groups = getGroups().map((g) => ({
         id: g.id, name: g.name, selected: g.id === this.state.groupId
       }));
@@ -638,7 +630,7 @@ export function HubMixin(Base) {
       context.filteredCount = records.length;
       context.totalCount = total;
       context.otherGroupMatches = this.#otherGroupMatches(records);
-      context.hasActiveFilters = this.state.types.size > 0 || this.state.hiddenOnly
+      context.hasActiveFilters = this.state.types.size > 0
         || (this.showsGroupPicker && this.state.groupId !== "all");
       context.doctypeFilter = buildDoctypeFilter(
         this.state.types,
@@ -646,13 +638,12 @@ export function HubMixin(Base) {
         game.i18n.localize("CAMPAIGNRECORD.Hub.AllTypesSummary")
       );
       context.typeMenuOpen = this.state.typeMenuOpen;
-      context.sortOptions = ["name", "type", "updated"].map((s) => ({
-        value: s,
-        label: game.i18n.localize(`CAMPAIGNRECORD.Hub.Sort.${s}`),
-        selected: this.state.sort === s
-      }));
+      context.sortMenu = buildSortMenu(
+        this.state.sort,
+        (s) => game.i18n.localize(`CAMPAIGNRECORD.Hub.Sort.${s}`)
+      );
+      context.sortMenuOpen = this.state.sortMenuOpen;
       context.timelineGroups = this.#timelineGroups();
-      context.thumbnails = game.settings.get(MODULE_ID, THUMBNAILS_SETTING);
       context.inlineEditing = game.settings.get(MODULE_ID, INLINE_EDIT_SETTING);
       context.settingsMenuOpen = this.state.settingsMenuOpen;
       const target = getTargetGroup();
@@ -672,13 +663,26 @@ export function HubMixin(Base) {
       }
       context.canGoBack = canGoBack(this.#history);
       context.canGoForward = canGoForward(this.#history);
-      context.view = this.state.view && viewedPage
-        ? {
-            name: viewedPage.name,
-            editing: this.state.view.mode === "edit",
-            canEdit: viewedPage.canUserModify(game.user, "update")
-          }
-        : null;
+      if (this.state.view && viewedPage) {
+        const canEdit = viewedPage.canUserModify(game.user, "update");
+        const inlineEditableView =
+          game.settings.get(MODULE_ID, INLINE_EDIT_SETTING) &&
+          canEdit &&
+          viewedPage.type.startsWith(`${MODULE_ID}.`) &&
+          viewedPage.parent?.getFlag("core", "sheetClass") === GROUP_SHEET_CLASS;
+        context.view = {
+          name: viewedPage.name,
+          editing: this.state.view.mode === "edit",
+          canEdit,
+          showEditToggle: shouldShowEditToggle({
+            canEdit,
+            inViewMode: this.state.view.mode !== "edit",
+            inlineEditableView
+          })
+        };
+      } else {
+        context.view = null;
+      }
       return context;
     }
 
@@ -715,11 +719,23 @@ export function HubMixin(Base) {
           restored?.setSelectionRange(restored.value.length, restored.value.length);
         }, 250));
       }
-      const sortSelect = this.element.querySelector('select[name="sort-select"]');
-      if (sortSelect && !sortSelect.dataset.crBound) {
-        sortSelect.dataset.crBound = "1";
-        sortSelect.addEventListener("change", (event) => {
-          this.state.sort = event.target.value;
+      if (!this.element.dataset.crSortBound) {
+        this.element.dataset.crSortBound = "1";
+        this.element.addEventListener("click", (event) => {
+          if (event.target.closest(".sort-summary")) {
+            this.state.sortMenuOpen = !this.state.sortMenuOpen;
+            return this.#renderList();
+          }
+          if (this.state.sortMenuOpen && !event.target.closest(".sort-filter")) {
+            this.state.sortMenuOpen = false;
+            this.#renderList();
+          }
+        });
+        this.element.addEventListener("change", (event) => {
+          const radio = event.target.closest('input[name="sort-select"]');
+          if (!radio) return;
+          this.state.sort = radio.value;
+          this.state.sortMenuOpen = false;
           this.#renderList();
         });
       }

@@ -7,7 +7,7 @@
             data-tooltip="CAMPAIGNRECORD.Hub.NewRecord" aria-label="{{localize "CAMPAIGNRECORD.Hub.NewRecord"}}">
       <i class="fa-solid fa-plus"></i>
     </button>
-    {{#if view.canEdit}}
+    {{#if view.showEditToggle}}
     <button type="button" class="edit-toggle" data-action="toggleEditMode"
             data-tooltip="{{#if view.editing}}CAMPAIGNRECORD.Hub.DoneEditing{{else}}CAMPAIGNRECORD.Hub.EditRecord{{/if}}"
             aria-label="{{#if view.editing}}{{localize "CAMPAIGNRECORD.Hub.DoneEditing"}}{{else}}{{localize "CAMPAIGNRECORD.Hub.EditRecord"}}{{/if}}">

@@ -13,6 +13,18 @@ export function computeInlineEdit({ enabled, canUpdate, isView, inGroup }) {
 }
 
 /**
+ * Should the pane header show the manual edit-toggle for the viewed record?
+ * Hidden only when the view is already inline-editable (a typed entry, inline
+ * editing on) and we are in view mode — there is nothing to switch to. Kept for
+ * text pages, inline-off, no inline path, and while in edit mode (as the
+ * "done editing" affordance). Requires update permission in every case.
+ */
+export function shouldShowEditToggle({ canEdit, inViewMode, inlineEditableView }) {
+  if (!canEdit) return false;
+  return !(inViewMode && inlineEditableView);
+}
+
+/**
  * Debounced field saver. schedule() saves quietly (render suppressed) after
  * `delay` ms of inactivity; flush() saves immediately with a normal render.
  * A value identical to the last saved one is skipped.

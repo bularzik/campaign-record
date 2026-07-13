@@ -63,7 +63,7 @@ test.describe("hub index", () => {
       .toBeVisible({ timeout: 10_000 });
   });
 
-  test("players never see hidden records; GM hidden-only filter shows them", async ({ browser }) => {
+  test("players never see hidden records; the GM always does", async ({ browser }) => {
     await gmPage.evaluate(async ({ groupId }) => {
       const { setRecordHidden } = await import("/modules/campaign-record/scripts/data/groups.mjs");
       const page = game.journal.get(groupId).pages.getName("E2E Index Quest");
@@ -71,9 +71,8 @@ test.describe("hub index", () => {
     }, ids);
 
     const hub = gmPage.locator("#campaign-hub");
-    await hub.locator(".hidden-toggle").click();
+    // GMs always see hidden records in the index; there is no hidden-only filter.
     await expect(hub.locator(".record-row", { hasText: "E2E Index Quest" })).toBeVisible();
-    await hub.locator(".hidden-toggle").click();
 
     const ctx = await browser.newContext();
     const playerPage = await ctx.newPage();
@@ -86,28 +85,25 @@ test.describe("hub index", () => {
     await playerHub.waitFor({ timeout: 15_000 });
     await expect(playerHub.locator(".record-row", { hasText: "E2E Index NPC" })).toBeVisible();
     await expect(playerHub.locator(".record-row", { hasText: "E2E Index Quest" })).toHaveCount(0);
-    await expect(playerHub.locator(".hidden-toggle")).toHaveCount(0);
     await ctx.close();
   });
 
-  test("clear filters resets type and hidden-only, keeps the query", async () => {
+  test("clear filters resets the type filter, keeps the query", async () => {
     const hub = gmPage.locator("#campaign-hub");
     await gmPage.evaluate(async () => {
       const { CampaignHub } = await import("/modules/campaign-record/scripts/apps/hub/campaign-hub.mjs");
       const h = CampaignHub.open();
       h.state.query = "e2e";
       h.state.types = new Set(["quest"]);
-      h.state.hiddenOnly = true;
       await h.render(true);
     });
     await hub.locator('[data-action="clearFilters"]').first().click();
     const state = await gmPage.evaluate(async () => {
       const { CampaignHub } = await import("/modules/campaign-record/scripts/apps/hub/campaign-hub.mjs");
       const h = CampaignHub.open();
-      return { types: h.state.types.size, hidden: h.state.hiddenOnly, query: h.state.query };
+      return { types: h.state.types.size, query: h.state.query };
     });
     expect(state.types).toBe(0);
-    expect(state.hidden).toBe(false);
     expect(state.query).toBe("e2e");
   });
 

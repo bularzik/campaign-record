@@ -48,6 +48,7 @@
       "NoRecords": "No entries match the current filters.",
       "FilterTag": "Search entries…",
       "TypeFilter": "Filter by type",
+      "SortBy": "Sort entries",
       "AllTypes": "All Types",
       "AllTypesSummary": "All types",
       "Snippets": "Snippets",
@@ -84,7 +85,8 @@
       "RecordUnavailable": "That entry can no longer be displayed.",
       "Settings": "Settings",
       "AutoTargetLabel": "Auto-capture target",
-      "AutoTargetNone": "None"
+      "AutoTargetNone": "None",
+      "WindowTitle": "Campaign Record"
     },
     "Import": {
       "Title": "Import Document",
