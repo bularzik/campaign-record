@@ -20,7 +20,7 @@ function findAutoGallery(group, timepointId) {
  * gallery (with a single timeline link) the first time media lands on a
  * timepoint; later shares append to that gallery, deduped by src.
  */
-export async function captureSharedMedia(src, caption) {
+async function doCaptureSharedMedia(src, caption) {
   if (!src) return;
   if (!game.settings.get(MODULE_ID, MEDIA_CAPTURE_SETTING)) return;
   const group = getTargetGroup();
@@ -47,6 +47,19 @@ export async function captureSharedMedia(src, caption) {
     }
   ]);
   await addLink(group, tp.id, { uuid: page.uuid, name: page.name, type: "JournalEntryPage" });
+}
+
+// Serializes captures per client so rapid back-to-back shares can't race
+// findAutoGallery against a still-pending gallery create for the same
+// timepoint (which would otherwise produce duplicate galleries/links).
+let captureQueue = Promise.resolve();
+
+/** Queue a shared-media capture so it never overlaps a prior in-flight one. */
+export function captureSharedMedia(src, caption) {
+  captureQueue = captureQueue
+    .then(() => doCaptureSharedMedia(src, caption))
+    .catch((err) => console.error("campaign-record | shared-media capture failed", err));
+  return captureQueue;
 }
 
 /** Every place page in a group whose scene is set. */
@@ -199,10 +212,8 @@ export function registerAutoCapture() {
     const result = originalShareImage.call(this, options);
     if (game.user.isGM) {
       const src = options.image ?? this.options?.src;
-      const caption = options.caption ?? this.options?.caption ?? options.title ?? this.options?.window?.title ?? "";
-      captureSharedMedia(src, caption).catch((err) =>
-        console.error("campaign-record | shared-media capture failed", err)
-      );
+      const caption = options.caption || this.options?.caption || options.title || this.options?.window?.title || "";
+      captureSharedMedia(src, caption);
     }
     return result;
   };

@@ -39,12 +39,10 @@ test.describe("shared-media capture", () => {
     // Construct real ImagePopout instances and call the wrapped prototype
     // method exactly as the "Show Players" button does (no args; src/caption/
     // title come from the instance's own `this.options`). captureSharedMedia
-    // is fire-and-forget from shareImage()'s point of view (its promise isn't
-    // chained to shareImage()'s return), so — just like a real GM clicking
-    // "Show Players" once per image, a few seconds apart — each share here
-    // is awaited to completion (via poll) before the next is fired; firing
-    // them back-to-back races findAutoGallery against the previous share's
-    // still-pending gallery creation.
+    // is now serialized through a module-level queue, so firing all three
+    // shares back-to-back (no waits between them) genuinely exercises that
+    // serialization: if it regressed, findAutoGallery would race and produce
+    // duplicate galleries/links for the same timepoint.
     const galleryImageCount = ({ groupId, tp1 }) => page.evaluate(({ groupId, tp1 }) => {
       const g = game.journal.get(groupId);
       const gallery = g.pages.find(
@@ -53,21 +51,24 @@ test.describe("shared-media capture", () => {
       return gallery ? gallery.system.images.length : 0;
     }, { groupId, tp1 });
 
-    const share = (src, caption) => page.evaluate(({ src, caption }) => {
+    await page.evaluate(() => {
       const ImagePopout = foundry.applications.apps.ImagePopout;
-      new ImagePopout({ src, caption, window: { title: caption } }).shareImage();
-    }, { src, caption });
+      new ImagePopout({ src: "icons/svg/mystery-man.svg", caption: "Handout A", window: { title: "Handout A" } }).shareImage();
+      new ImagePopout({ src: "icons/svg/cowled.svg", caption: "Handout B", window: { title: "Handout B" } }).shareImage();
+      // re-share A: should dedup, not add a third image
+      new ImagePopout({ src: "icons/svg/mystery-man.svg", caption: "Handout A again", window: { title: "Handout A again" } }).shareImage();
+    });
 
-    await share("icons/svg/mystery-man.svg", "Handout A");
-    await expect.poll(() => galleryImageCount(ids), { timeout: 15_000 }).toBe(1);
-
-    await share("icons/svg/cowled.svg", "Handout B");
     await expect.poll(() => galleryImageCount(ids), { timeout: 15_000 }).toBe(2);
 
-    // re-share A: should dedup, not add a third image
-    await share("icons/svg/mystery-man.svg", "Handout A again");
-    await page.waitForTimeout(1000);
-    expect(await galleryImageCount(ids)).toBe(2);
+    // one link on the timepoint (no duplicate gallery/link from the race)
+    const tp1LinkCount = await page.evaluate(async ({ groupId, tp1 }) => {
+      const { getTimepoints } = await import("/modules/campaign-record/scripts/data/timepoints.mjs");
+      const g = game.journal.get(groupId);
+      const tp = getTimepoints(g).find((t) => t.id === tp1);
+      return tp.links.length;
+    }, ids);
+    expect(tp1LinkCount).toBe(1);
 
     // the gallery is linked to tp1
     const linkedToTp1 = await page.evaluate(async ({ groupId, tp1 }) => {
