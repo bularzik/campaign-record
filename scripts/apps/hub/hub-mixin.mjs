@@ -9,7 +9,7 @@ import { buildSortMenu } from "../../logic/sort-menu.mjs";
 import { collectRecords, isIndexablePage, getScopedGroups, toSearchRecord } from "./hub-data.mjs";
 import { createIndex, indexRecord, removeRecord, search } from "../../logic/search-index.mjs";
 import { hasGroupFlag, isRecordVisible } from "../../logic/visibility.mjs";
-import { classifyDropData, filenameFromSrc } from "../../logic/timeline-links.mjs";
+import { classifyDropData, filenameFromSrc, recordDragPayload } from "../../logic/timeline-links.mjs";
 import { classifyLinkTarget } from "../../logic/record-links.mjs";
 import * as Timepoints from "../../data/timepoints.mjs";
 import { ImportWizard } from "../import-wizard.mjs";
@@ -53,7 +53,6 @@ export function HubMixin(Base) {
         addTimepoint: HubBase.#onAddTimepoint,
         renameTimepoint: HubBase.#onRenameTimepoint,
         deleteTimepoint: HubBase.#onDeleteTimepoint,
-        detachRecord: HubBase.#onDetachRecord,
         openLink: HubBase.#onOpenLink,
         removeLink: HubBase.#onRemoveLink,
         toggleLinkShowPlayers: HubBase.#onToggleLinkShowPlayers,
@@ -402,9 +401,6 @@ export function HubMixin(Base) {
             ...tp,
             position: i,
             canEdit,
-            records: Timepoints.recordsAtTimepoint(group, tp.id, game.user).map((p) => ({
-              uuid: p.uuid, name: p.name
-            })),
             links: Timepoints.resolveLinks(tp, game.user).map((entry) => ({
               ...entry,
               broken: entry.kind === "broken",
@@ -467,12 +463,6 @@ export function HubMixin(Base) {
       if (confirmed) await Timepoints.deleteTimepoint(group, id);
     }
 
-    static async #onDetachRecord(event, target) {
-      const id = target.closest("[data-timepoint-id]").dataset.timepointId;
-      const page = await fromUuid(target.closest("[data-uuid]").dataset.uuid);
-      if (page) await Timepoints.detachRecord(page, id);
-    }
-
     static async #onOpenLink(event, target) {
       const chip = target.closest("[data-link-id]");
       const { uuid, src, name } = chip.dataset;
@@ -523,10 +513,7 @@ export function HubMixin(Base) {
           groupId: tpRow.closest("[data-group-id]").dataset.groupId
         }));
       } else if (recordRow) {
-        event.dataTransfer.setData("text/plain", JSON.stringify({
-          kind: "campaign-record.record",
-          uuid: recordRow.dataset.uuid
-        }));
+        event.dataTransfer.setData("text/plain", JSON.stringify(recordDragPayload(recordRow.dataset.uuid)));
       }
     }
 
@@ -546,20 +533,6 @@ export function HubMixin(Base) {
         if (data.groupId !== groupId) return; // no cross-group reordering
         return Timepoints.moveTimepoint(group, data.id, Number(target.dataset.position));
       }
-      if (data.kind === "campaign-record.record") {
-        const page = await fromUuid(data.uuid);
-        if (!page) return;
-        if (page.parent.id !== groupId) {
-          // Cross-group records attach as document links instead of warning.
-          return this.#dropLink(group, timepointId, {
-            uuid: page.uuid, name: page.name, type: "JournalEntryPage"
-          });
-        }
-        if (!page.system?.schema?.fields?.timepoints) {
-          return ui.notifications.warn(game.i18n.localize("CAMPAIGNRECORD.Hub.CannotAttach"));
-        }
-        return Timepoints.attachRecord(page, timepointId);
-      }
       const drop = classifyDropData(data, event.dataTransfer.getData("text/uri-list"));
       if (!drop) {
         return ui.notifications.warn(game.i18n.localize("CAMPAIGNRECORD.Hub.CannotAttach"));
@@ -568,12 +541,6 @@ export function HubMixin(Base) {
         const doc = await fromUuid(drop.uuid);
         if (!doc) {
           return ui.notifications.warn(game.i18n.localize("CAMPAIGNRECORD.Hub.CannotAttach"));
-        }
-        // A same-group record page dropped via Foundry drag data uses the
-        // record-attachment path so it stays a first-class record chip.
-        if (doc.documentName === "JournalEntryPage" && doc.parent?.id === groupId
-            && doc.system?.schema?.fields?.timepoints) {
-          return Timepoints.attachRecord(doc, timepointId);
         }
         return this.#dropLink(group, timepointId, { uuid: drop.uuid, name: doc.name, type: drop.type });
       }

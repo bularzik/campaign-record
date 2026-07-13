@@ -25,14 +25,6 @@
           {{/if}}
         </div>
         <div class="timepoint-records">
-          {{#each this.records}}
-          <span class="record-chip" data-uuid="{{this.uuid}}"
-                data-action="openRecord">{{this.name}}
-            {{#if ../canEdit}}
-            <a data-action="detachRecord" data-tooltip="CAMPAIGNRECORD.Hub.Detach"><i class="fa-solid fa-xmark"></i></a>
-            {{/if}}
-          </span>
-          {{/each}}
           {{#each this.links}}
           <span class="record-chip link-chip{{#if this.broken}} broken{{/if}}"
                 data-link-id="{{this.id}}" data-action="openLink" data-name="{{this.name}}"

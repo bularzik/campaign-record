@@ -100,8 +100,10 @@ test.describe("hub timeline links", () => {
 
   test("clicking an image chip opens an image popout", async () => {
     const gmHub = gmPage.locator("#campaign-hub");
-    // click the chip body, not its inner action anchors
-    await gmHub.locator(".link-chip", { hasText: "mystery-man.svg" }).locator("i").first().click();
+    // Click the thumbnail (chip body) — it delegates to the span's openLink action.
+    // The chip's only <i> elements are inside action anchors (eye/remove), so
+    // clicking those would fire those actions, not open the popout.
+    await gmHub.locator(".link-chip", { hasText: "mystery-man.svg" }).locator("img.link-thumb").click();
     const popout = gmPage.locator(".image-popout, .app.image-popout, .application.image-popout");
     await expect(popout).toBeVisible({ timeout: 10_000 });
     // Close via the popout's own header button: Escape would close every open
@@ -134,7 +136,9 @@ test.describe("hub timeline links", () => {
       gmPage, "E2E Links Other Group", "E2E Links Other NPC", "campaign-record.npc"
     );
     const dropSelector = `#campaign-hub .timeline-group[data-group-id="${ids.groupId}"] [data-drop-timepoint]`;
-    await dispatchDrop(gmPage, dropSelector, { kind: "campaign-record.record", uuid: otherIds.pageUuid });
+    await dispatchDrop(gmPage, dropSelector, {
+      kind: "campaign-record.record", type: "JournalEntryPage", uuid: otherIds.pageUuid
+    });
     await expect(gmPage.locator("#campaign-hub .link-chip", { hasText: "E2E Links Other NPC" }))
       .toBeVisible({ timeout: 10_000 });
   });

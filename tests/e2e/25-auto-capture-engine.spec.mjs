@@ -58,14 +58,15 @@ test.describe("auto-capture engine", () => {
       return seen.includes(true);
     }, ids);
     expect(cap, "scene activation fired updateScene with active:true").toBe(true);
+    // Membership is a link on the timepoint (not a set stored on the Place
+    // page); timepointsForRecord is the module's reverse lookup for this.
     await expect.poll(
-      () => page.evaluate(({ groupId, sceneUuid }) => {
+      () => page.evaluate(async ({ groupId, sceneUuid }) => {
+        const { timepointsForRecord } = await import("/modules/campaign-record/scripts/data/timepoints.mjs");
         const g = game.journal.get(groupId);
         const place = g.pages.find((p) => p.type === "campaign-record.place" && p.system.scene === sceneUuid);
-        if (!place) return null;
-        const tps = g.getFlag("campaign-record", "group")?.timepoints ?? [];
-        const attached = [...(place.system.timepoints ?? [])];
-        return attached.length > 0 && tps.some((t) => attached.includes(t.id));
+        if (!place) return false;
+        return timepointsForRecord(g, place.uuid).length > 0;
       }, ids),
       { timeout: 15_000 }
     ).toBe(true);
@@ -78,7 +79,8 @@ test.describe("auto-capture engine", () => {
       globalThis.__e2eCombatId = combat.id;
     }, ids);
 
-    const encounter = await pollTruthy(page, () => page.evaluate(() => {
+    const encounter = await pollTruthy(page, () => page.evaluate(async () => {
+      const { timepointsForRecord } = await import("/modules/campaign-record/scripts/data/timepoints.mjs");
       const combat = game.combats.get(globalThis.__e2eCombatId);
       const uuid = combat?.getFlag("campaign-record", "encounterUuid");
       if (!uuid) return null;
@@ -89,7 +91,9 @@ test.describe("auto-capture engine", () => {
         scene: e.system.scene,
         rows: e.system.combatants.length,
         goblinCount: e.system.combatants.find((c) => c.name.includes("Goblin"))?.count ?? 0,
-        attached: [...(e.system.timepoints ?? [])].length
+        // Membership is a link on the timepoint (not a set stored on the
+        // Encounter page); timepointsForRecord is the module's reverse lookup.
+        attached: e.parent ? timepointsForRecord(e.parent, e.uuid).length : 0
       };
     }));
     expect(encounter.type).toBe("campaign-record.encounter");

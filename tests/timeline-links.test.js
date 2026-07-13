@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   LINKABLE_TYPES, LINK_ICONS, isImagePath, filenameFromSrc,
-  withLink, withoutLink, classifyDropData, displayLink
+  withLink, withoutLink, classifyDropData, displayLink, recordDragPayload
 } from "../scripts/logic/timeline-links.mjs";
 
 describe("isImagePath", () => {
@@ -114,5 +114,53 @@ describe("displayLink", () => {
       id: "l2", name: "map.png", icon: LINK_ICONS.image, kind: "image",
       src: "assets/map.png", img: "assets/map.png", showPlayers: false
     });
+  });
+});
+
+describe("recordDragPayload", () => {
+  it("carries the internal routing key plus Foundry's document shape", () => {
+    expect(recordDragPayload("JournalEntry.g1.JournalEntryPage.p1")).toEqual({
+      kind: "campaign-record.record",
+      type: "JournalEntryPage",
+      uuid: "JournalEntry.g1.JournalEntryPage.p1"
+    });
+  });
+});
+
+import { timepointIdsWithLink } from "../scripts/logic/timeline-links.mjs";
+
+describe("timepointIdsWithLink", () => {
+  const tps = [
+    { id: "t1", links: [{ id: "l1", uuid: "JournalEntry.g.JournalEntryPage.p1" }] },
+    { id: "t2", links: [] },
+    { id: "t3", links: [{ id: "l2", uuid: "JournalEntry.g.JournalEntryPage.p1" }, { id: "l3", uuid: "Actor.x" }] },
+    { id: "t4" }
+  ];
+  it("returns ids of timepoints whose links reference the uuid", () => {
+    expect(timepointIdsWithLink(tps, "JournalEntry.g.JournalEntryPage.p1")).toEqual(["t1", "t3"]);
+  });
+  it("returns empty when nothing matches", () => {
+    expect(timepointIdsWithLink(tps, "Actor.none")).toEqual([]);
+  });
+});
+
+import { recordLinkMigrationEntries } from "../scripts/logic/timeline-links.mjs";
+
+describe("recordLinkMigrationEntries", () => {
+  it("emits one link entry per (page, timepoint) membership", () => {
+    const pages = [
+      { uuid: "JournalEntry.g.JournalEntryPage.p1", name: "Natick", timepointIds: ["t1", "t2"] },
+      { uuid: "JournalEntry.g.JournalEntryPage.p2", name: "Strahd", timepointIds: [] },
+      { uuid: "JournalEntry.g.JournalEntryPage.p3", name: "Vault", timepointIds: ["t2"] }
+    ];
+    expect(recordLinkMigrationEntries(pages)).toEqual([
+      { timepointId: "t1", link: { uuid: "JournalEntry.g.JournalEntryPage.p1", name: "Natick", type: "JournalEntryPage" } },
+      { timepointId: "t2", link: { uuid: "JournalEntry.g.JournalEntryPage.p1", name: "Natick", type: "JournalEntryPage" } },
+      { timepointId: "t2", link: { uuid: "JournalEntry.g.JournalEntryPage.p3", name: "Vault", type: "JournalEntryPage" } }
+    ]);
+  });
+
+  it("returns empty for no memberships", () => {
+    expect(recordLinkMigrationEntries([{ uuid: "x", name: "x", timepointIds: [] }])).toEqual([]);
   });
 });

@@ -94,3 +94,33 @@ export function displayLink(link, { isGM, doc }) {
     uuid: link.uuid, img: doc.img ?? null
   };
 }
+
+/**
+ * Drag payload for a record row. `type`+`uuid` is Foundry's standard document
+ * drop shape (so a drop into a journal becomes an @UUID content link); `kind`
+ * is the internal key the timeline drop handler checks first.
+ */
+export function recordDragPayload(uuid) {
+  return { kind: "campaign-record.record", type: "JournalEntryPage", uuid };
+}
+
+/** Ids of timepoints whose links reference this document uuid. */
+export function timepointIdsWithLink(timepoints, uuid) {
+  return (timepoints ?? [])
+    .filter((tp) => (tp.links ?? []).some((l) => l.uuid === uuid))
+    .map((tp) => tp.id);
+}
+
+/**
+ * Flatten record→timepoint memberships into link-add operations for the v3
+ * migration. addLink dedupes, so re-running is safe.
+ */
+export function recordLinkMigrationEntries(pages) {
+  const entries = [];
+  for (const page of pages ?? []) {
+    for (const timepointId of page.timepointIds ?? []) {
+      entries.push({ timepointId, link: { uuid: page.uuid, name: page.name, type: "JournalEntryPage" } });
+    }
+  }
+  return entries;
+}

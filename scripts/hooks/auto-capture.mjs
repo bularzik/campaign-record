@@ -1,7 +1,7 @@
 import { isGroup } from "../data/groups.mjs";
 import { setTargetGroup, getTargetGroup } from "../settings/auto-target.mjs";
 import { MODULE_ID, typeId, ENCOUNTER_FLAG, DEPARTED_FLAG } from "../constants.mjs";
-import { addTimepoint, attachRecord, getTimepoints } from "../data/timepoints.mjs";
+import { addTimepoint, addLink, getTimepoints, timepointsForRecord } from "../data/timepoints.mjs";
 import { matchPlaceForScene, pickLatestTimepoint, collapseParticipants, mergeParticipants, summarizeOutcome } from "../logic/auto-capture.mjs";
 
 const PLACE_TYPE = typeId("place");
@@ -65,11 +65,11 @@ export async function ensurePlaceForScene(group, scene, { createTimepoint }) {
       { name: scene.name, type: PLACE_TYPE, system: { scene: scene.uuid } }
     ]);
   }
-  const attached = [...(place.system.timepoints ?? [])];
+  const attached = timepointsForRecord(group, place.uuid);
   let timepointId = createTimepoint ? null : pickLatestTimepoint(attached, getTimepoints(group));
   if (!timepointId) {
     const tp = await addTimepoint(group, scene.name);
-    await attachRecord(place, tp.id);
+    await addLink(group, tp.id, { uuid: place.uuid, name: place.name, type: "JournalEntryPage" });
     timepointId = tp.id;
   }
   return { place, timepointId };
@@ -110,7 +110,7 @@ export function registerAutoCapture() {
         system: { scene: scene.uuid, combatants }
       }
     ]);
-    await attachRecord(encounter, timepointId);
+    await addLink(group, timepointId, { uuid: encounter.uuid, name: encounter.name, type: "JournalEntryPage" });
     await combat.setFlag(MODULE_ID, ENCOUNTER_FLAG, encounter.uuid);
   });
 
