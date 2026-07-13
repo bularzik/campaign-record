@@ -270,9 +270,7 @@ export class ImportWizard extends HandlebarsApplicationMixin(ApplicationV2) {
         if (!plan.pages[i].timepoint) continue;
         const tp = await Timepoints.addTimepoint(group, plan.pages[i].timepoint);
         const page = created[i];
-        // Text pages have no system.timepoints; they attach as document links.
-        if (page?.system?.schema?.fields?.timepoints) await Timepoints.attachRecord(page, tp.id);
-        else if (page) await Timepoints.addLink(group, tp.id, {
+        if (page) await Timepoints.addLink(group, tp.id, {
           uuid: page.uuid, name: page.name, type: "JournalEntryPage"
         });
         timepoints++;

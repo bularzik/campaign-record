@@ -58,12 +58,7 @@ function groupSnapshot(group, includeGM) {
     .map(pageSnapshot).filter(Boolean);
   const timeline = Timepoints.getTimepoints(group).map((tp) => ({
     label: tp.label,
-    items: [
-      ...Timepoints.recordsAtTimepoint(group, tp.id, game.user)
-        .filter((p) => includeGM || p.system?.hidden !== true)
-        .map((p) => p.name),
-      ...snapshotLinkNames(tp, includeGM)
-    ]
+    items: snapshotLinkNames(tp, includeGM)
   }));
   return { name: group.name, timeline, records: pages };
 }
