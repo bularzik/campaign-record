@@ -63,8 +63,6 @@ function toIndexEntry(group, page) {
     shortType,
     icon: recordIcon(shortType),
     typeLabel,
-    // Core text pages have no timepoints SetField, so they can't be dragged onto the timeline.
-    canAttach: shortType !== "journal",
     image: page.system?.image || null,
     tags: [...(page.system?.tags ?? [])],
     subtitle: recordSubtitle(page),
