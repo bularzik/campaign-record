@@ -119,7 +119,10 @@ export function resolveLinks(timepoint, user) {
       if (link.src) return displayLink(link, { isGM: user.isGM });
       const doc = fromUuidSync(link.uuid);
       // Compendium index entries lack testUserPermission; GMs pass regardless.
-      const permitted = user.isGM || doc?.testUserPermission?.(user, "LIMITED") === true;
+      // A GM-hidden Campaign Record page must never surface to players through a
+      // link; isRecordVisible is a no-op for non-record docs (no system.hidden).
+      const permitted = user.isGM
+        || (doc?.testUserPermission?.(user, "LIMITED") === true && isRecordVisible(user, doc));
       return displayLink(link, {
         isGM: user.isGM,
         doc: doc ? { permitted, name: doc.name, img: doc.img ?? doc.thumb ?? null } : null
