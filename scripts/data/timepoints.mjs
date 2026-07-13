@@ -50,27 +50,6 @@ export async function moveTimepoint(group, id, position) {
 
 export async function deleteTimepoint(group, id) {
   await setTimepoints(group, getTimepoints(group).filter((t) => t.id !== id));
-  const updates = group.pages
-    .filter((p) => p.system?.timepoints?.has?.(id) && p.canUserModify(game.user, "update"))
-    .map((p) => ({ _id: p.id, "system.timepoints": [...p.system.timepoints].filter((t) => t !== id) }));
-  if (!updates.length) return;
-  try {
-    await group.updateEmbeddedDocuments("JournalEntryPage", updates);
-  } catch (error) {
-    console.warn("campaign-record | failed to detach deleted timepoint from pages", group.uuid, error);
-  }
-}
-
-export async function attachRecord(page, timepointId) {
-  const next = new Set(page.system.timepoints ?? []);
-  next.add(timepointId);
-  await page.update({ "system.timepoints": [...next] });
-}
-
-export async function detachRecord(page, timepointId) {
-  const next = new Set(page.system.timepoints ?? []);
-  next.delete(timepointId);
-  await page.update({ "system.timepoints": [...next] });
 }
 
 async function updateTimepoint(group, timepointId, patch) {
@@ -131,9 +110,3 @@ export function resolveLinks(timepoint, user) {
     .filter(Boolean);
 }
 
-/** Records of a group attached to a timepoint, filtered by user visibility. */
-export function recordsAtTimepoint(group, timepointId, user) {
-  return group.pages.filter(
-    (p) => p.system?.timepoints?.has?.(timepointId) && isRecordVisible(user, p)
-  );
-}
