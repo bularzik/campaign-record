@@ -84,27 +84,48 @@ test.describe("hub timeline", () => {
     await expect(labels.first()).toHaveText("Session 2", { timeout: 10_000 });
   });
 
-  test("attaching a record shows its chip on both clients; detach removes it", async () => {
+  test("attaching a record shows its link chip on both clients; removeLink removes it", async () => {
     await gmPage.evaluate(async ({ groupId, pageId }) => {
-      const { getTimepoints, attachRecord } = await import("/modules/campaign-record/scripts/data/timepoints.mjs");
+      const { getTimepoints, addLink } = await import("/modules/campaign-record/scripts/data/timepoints.mjs");
       const group = game.journal.get(groupId);
-      await attachRecord(group.pages.get(pageId), getTimepoints(group)[0].id);
+      const page = group.pages.get(pageId);
+      await addLink(group, getTimepoints(group)[0].id, { uuid: page.uuid, name: page.name, type: "JournalEntryPage" });
     }, ids);
 
-    await expect(gmPage.locator("#campaign-hub .record-chip", { hasText: "E2E Timeline NPC" }))
+    await expect(gmPage.locator("#campaign-hub .record-chip.link-chip", { hasText: "E2E Timeline NPC" }))
       .toBeVisible({ timeout: 10_000 });
-    await expect(playerPage.locator("#campaign-hub .record-chip", { hasText: "E2E Timeline NPC" }))
+    await expect(playerPage.locator("#campaign-hub .record-chip.link-chip", { hasText: "E2E Timeline NPC" }))
       .toBeVisible({ timeout: 10_000 });
 
     // The shared test world can contain real campaign groups with their own
-    // attached record chips (see the file-level comment); scope the click to
+    // attached link chips (see the file-level comment); scope the click to
     // our group's section so it doesn't hit a stray chip elsewhere in the hub.
-    await groupSection(gmPage).locator('.record-chip [data-action="detachRecord"]').click();
-    await expect(gmPage.locator("#campaign-hub .record-chip", { hasText: "E2E Timeline NPC" }))
+    await groupSection(gmPage).locator('.link-chip [data-action="removeLink"]').click();
+    await expect(gmPage.locator("#campaign-hub .record-chip.link-chip", { hasText: "E2E Timeline NPC" }))
       .toHaveCount(0, { timeout: 10_000 });
   });
 
-  test("drop handlers: record attach, cross-group guards, malformed payload no-op", async () => {
+  test("record drag payload resolves to an @UUID content link (Bug 1: Foundry document drop shape)", async () => {
+    // The hub drags records with recordDragPayload(uuid), which must carry
+    // Foundry's standard {type, uuid} document shape so a drop onto ANY
+    // ProseMirror editor (not just our own timepoint drop targets) inserts a
+    // real content link via core's ProseMirrorContentLinkPlugin. That plugin
+    // calls exactly TextEditor.implementation.getContentLink(data) on drop, so
+    // exercising that same call is a faithful, non-flaky proxy for "dragging
+    // a record into a journal editor inserts @UUID[...]{Name}" without having
+    // to simulate a pixel-accurate native drag onto core's Journal sheet DOM.
+    const link = await gmPage.evaluate(async ({ pageUuid }) => {
+      const { recordDragPayload } = await import("/modules/campaign-record/scripts/logic/timeline-links.mjs");
+      const data = recordDragPayload(pageUuid);
+      return foundry.applications.ux.TextEditor.implementation.getContentLink(data);
+    }, { pageUuid: ids.pageUuid });
+
+    expect(link).toContain("@UUID[");
+    expect(link).toContain(ids.pageUuid);
+    expect(link).toContain("E2E Timeline NPC");
+  });
+
+  test("drop handlers: record link-attach, cross-group guards, malformed payload no-op", async () => {
     await openTimeline(gmPage);
     const dropSelector = `#campaign-hub .timeline-group[data-group-id="${ids.groupId}"] [data-drop-timepoint]`;
 
@@ -120,13 +141,16 @@ test.describe("hub timeline", () => {
         { selector, payload }
       );
 
-    const isAttached = (groupId, pageId, timepointId) =>
+    // The old attach model stored membership on the record page
+    // (page.system.timepoints); links now live on the timepoint itself.
+    const linkFor = (groupId, timepointId, uuid) =>
       gmPage.evaluate(
-        ({ groupId, pageId, timepointId }) => {
-          const page = game.journal.get(groupId).pages.get(pageId);
-          return !!page.system?.timepoints?.has?.(timepointId);
+        async ({ groupId, timepointId, uuid }) => {
+          const { getTimepoints } = await import("/modules/campaign-record/scripts/data/timepoints.mjs");
+          const tp = getTimepoints(game.journal.get(groupId)).find((t) => t.id === timepointId);
+          return tp?.links?.find((l) => l.uuid === uuid) ?? null;
         },
-        { groupId, pageId, timepointId }
+        { groupId, timepointId, uuid }
       );
 
     const timepointOrder = (groupId) =>
@@ -140,26 +164,29 @@ test.describe("hub timeline", () => {
       dropSelector
     );
 
-    // 1. Same-group record attach via drop.
-    await dispatchDrop(dropSelector, { kind: "campaign-record.record", uuid: ids.pageUuid });
-    await expect.poll(() => isAttached(ids.groupId, ids.pageId, timepointId), { timeout: 10_000 })
-      .toBe(true);
+    // 1. Same-group record drop attaches as a link (Foundry's document shape:
+    // {type, uuid} is required for classifyDropData to recognize the drop).
+    await dispatchDrop(dropSelector, { kind: "campaign-record.record", type: "JournalEntryPage", uuid: ids.pageUuid });
+    await expect.poll(() => linkFor(ids.groupId, timepointId, ids.pageUuid), { timeout: 10_000 })
+      .not.toBeNull();
+    await expect(gmPage.locator("#campaign-hub .record-chip.link-chip", { hasText: "E2E Timeline NPC" }))
+      .toBeVisible({ timeout: 10_000 });
 
+    const attachedLink = await linkFor(ids.groupId, timepointId, ids.pageUuid);
     await gmPage.evaluate(
-      async ({ groupId, pageId, timepointId }) => {
-        const { detachRecord } = await import("/modules/campaign-record/scripts/data/timepoints.mjs");
-        const group = game.journal.get(groupId);
-        await detachRecord(group.pages.get(pageId), timepointId);
+      async ({ groupId, timepointId, linkId }) => {
+        const { removeLink } = await import("/modules/campaign-record/scripts/data/timepoints.mjs");
+        await removeLink(game.journal.get(groupId), timepointId, linkId);
       },
-      { groupId: ids.groupId, pageId: ids.pageId, timepointId }
+      { groupId: ids.groupId, timepointId, linkId: attachedLink.id }
     );
-    await expect.poll(() => isAttached(ids.groupId, ids.pageId, timepointId)).toBe(false);
+    await expect.poll(() => linkFor(ids.groupId, timepointId, ids.pageUuid)).toBeNull();
 
     // 2. Cross-group record drop attaches as a link instead of warning.
     const otherIds = await createGroupWithPage(
       gmPage, "E2E Timeline Other", "E2E Timeline Other NPC", "campaign-record.npc"
     );
-    await dispatchDrop(dropSelector, { kind: "campaign-record.record", uuid: otherIds.pageUuid });
+    await dispatchDrop(dropSelector, { kind: "campaign-record.record", type: "JournalEntryPage", uuid: otherIds.pageUuid });
     await expect(gmPage.locator("#campaign-hub .link-chip", { hasText: "E2E Timeline Other NPC" }))
       .toBeVisible({ timeout: 10_000 });
 
@@ -175,37 +202,52 @@ test.describe("hub timeline", () => {
 
     // 4. Malformed payload is a no-op (JSON.parse throws, caught and swallowed).
     await expect(dispatchDrop(dropSelector, "not json")).resolves.toBeUndefined();
-    await expect.poll(() => isAttached(ids.groupId, ids.pageId, timepointId)).toBe(false);
+    await expect.poll(() => linkFor(ids.groupId, timepointId, ids.pageUuid)).toBeNull();
     expect(await timepointOrder(ids.groupId)).toEqual(orderBefore);
+
+    // 5. A plain (non-campaign-record) journal text page, dropped via Foundry's
+    // native document drag shape (no "kind" wrapper — as if dragged straight
+    // from the core Journal sidebar), also attaches as a link chip.
+    const plainDrop = await gmPage.evaluate(async () => {
+      const [journal] = await JournalEntry.createDocuments([{ name: "E2E Timeline Drop Journal" }]);
+      const [plainPage] = await journal.createEmbeddedDocuments("JournalEntryPage", [
+        { name: "E2E Timeline Drop Page", type: "text", text: { content: "<p>hi</p>" } }
+      ]);
+      return { journalId: journal.id, pageUuid: plainPage.uuid };
+    });
+    await dispatchDrop(dropSelector, { type: "JournalEntryPage", uuid: plainDrop.pageUuid });
+    await expect(gmPage.locator("#campaign-hub .record-chip.link-chip", { hasText: "E2E Timeline Drop Page" }))
+      .toBeVisible({ timeout: 10_000 });
+    await gmPage.evaluate((id) => game.journal.get(id)?.delete(), plainDrop.journalId);
   });
 
-  test("player never sees a hidden attached record's chip; GM still does", async () => {
-    const timepointId = await gmPage.evaluate(async ({ groupId, pageId }) => {
-      const { getTimepoints, attachRecord } = await import("/modules/campaign-record/scripts/data/timepoints.mjs");
+  test("player never sees a hidden attached record's link chip; GM still does", async () => {
+    const { timepointId, linkId } = await gmPage.evaluate(async ({ groupId, pageId }) => {
+      const { getTimepoints, addLink } = await import("/modules/campaign-record/scripts/data/timepoints.mjs");
       const { setRecordHidden } = await import("/modules/campaign-record/scripts/data/groups.mjs");
       const group = game.journal.get(groupId);
       const page = group.pages.get(pageId);
       const tp = getTimepoints(group)[0];
-      await attachRecord(page, tp.id);
+      const link = await addLink(group, tp.id, { uuid: page.uuid, name: page.name, type: "JournalEntryPage" });
       await setRecordHidden(page, true);
-      return tp.id;
+      return { timepointId: tp.id, linkId: link.id };
     }, { groupId: ids.groupId, pageId: ids.pageId });
 
-    await expect(gmPage.locator("#campaign-hub .record-chip", { hasText: "E2E Timeline NPC" }))
+    await expect(gmPage.locator("#campaign-hub .record-chip.link-chip", { hasText: "E2E Timeline NPC" }))
       .toBeVisible({ timeout: 10_000 });
-    await expect(playerPage.locator("#campaign-hub .record-chip", { hasText: "E2E Timeline NPC" }))
+    await expect(playerPage.locator("#campaign-hub .record-chip.link-chip", { hasText: "E2E Timeline NPC" }))
       .toHaveCount(0, { timeout: 10_000 });
 
-    await gmPage.evaluate(async ({ groupId, pageId, timepointId }) => {
-      const { detachRecord } = await import("/modules/campaign-record/scripts/data/timepoints.mjs");
+    await gmPage.evaluate(async ({ groupId, pageId, timepointId, linkId }) => {
+      const { removeLink } = await import("/modules/campaign-record/scripts/data/timepoints.mjs");
       const { setRecordHidden } = await import("/modules/campaign-record/scripts/data/groups.mjs");
       const group = game.journal.get(groupId);
       const page = group.pages.get(pageId);
       await setRecordHidden(page, false);
-      await detachRecord(page, timepointId);
-    }, { groupId: ids.groupId, pageId: ids.pageId, timepointId });
+      await removeLink(group, timepointId, linkId);
+    }, { groupId: ids.groupId, pageId: ids.pageId, timepointId, linkId });
 
-    await expect(gmPage.locator("#campaign-hub .record-chip", { hasText: "E2E Timeline NPC" }))
+    await expect(gmPage.locator("#campaign-hub .record-chip.link-chip", { hasText: "E2E Timeline NPC" }))
       .toHaveCount(0, { timeout: 10_000 });
   });
 
