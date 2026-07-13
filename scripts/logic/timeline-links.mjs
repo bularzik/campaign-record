@@ -94,3 +94,12 @@ export function displayLink(link, { isGM, doc }) {
     uuid: link.uuid, img: doc.img ?? null
   };
 }
+
+/**
+ * Drag payload for a record row. `type`+`uuid` is Foundry's standard document
+ * drop shape (so a drop into a journal becomes an @UUID content link); `kind`
+ * is the internal key the timeline drop handler checks first.
+ */
+export function recordDragPayload(uuid) {
+  return { kind: "campaign-record.record", type: "JournalEntryPage", uuid };
+}

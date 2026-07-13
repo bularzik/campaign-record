@@ -9,7 +9,7 @@ import { buildSortMenu } from "../../logic/sort-menu.mjs";
 import { collectRecords, isIndexablePage, getScopedGroups, toSearchRecord } from "./hub-data.mjs";
 import { createIndex, indexRecord, removeRecord, search } from "../../logic/search-index.mjs";
 import { hasGroupFlag, isRecordVisible } from "../../logic/visibility.mjs";
-import { classifyDropData, filenameFromSrc } from "../../logic/timeline-links.mjs";
+import { classifyDropData, filenameFromSrc, recordDragPayload } from "../../logic/timeline-links.mjs";
 import { classifyLinkTarget } from "../../logic/record-links.mjs";
 import * as Timepoints from "../../data/timepoints.mjs";
 import { ImportWizard } from "../import-wizard.mjs";
@@ -523,10 +523,7 @@ export function HubMixin(Base) {
           groupId: tpRow.closest("[data-group-id]").dataset.groupId
         }));
       } else if (recordRow) {
-        event.dataTransfer.setData("text/plain", JSON.stringify({
-          kind: "campaign-record.record",
-          uuid: recordRow.dataset.uuid
-        }));
+        event.dataTransfer.setData("text/plain", JSON.stringify(recordDragPayload(recordRow.dataset.uuid)));
       }
     }
 

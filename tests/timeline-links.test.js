@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   LINKABLE_TYPES, LINK_ICONS, isImagePath, filenameFromSrc,
-  withLink, withoutLink, classifyDropData, displayLink
+  withLink, withoutLink, classifyDropData, displayLink, recordDragPayload
 } from "../scripts/logic/timeline-links.mjs";
 
 describe("isImagePath", () => {
@@ -113,6 +113,16 @@ describe("displayLink", () => {
     expect(gm).toEqual({
       id: "l2", name: "map.png", icon: LINK_ICONS.image, kind: "image",
       src: "assets/map.png", img: "assets/map.png", showPlayers: false
+    });
+  });
+});
+
+describe("recordDragPayload", () => {
+  it("carries the internal routing key plus Foundry's document shape", () => {
+    expect(recordDragPayload("JournalEntry.g1.JournalEntryPage.p1")).toEqual({
+      kind: "campaign-record.record",
+      type: "JournalEntryPage",
+      uuid: "JournalEntry.g1.JournalEntryPage.p1"
     });
   });
 });
