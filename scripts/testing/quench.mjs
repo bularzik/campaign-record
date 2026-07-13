@@ -2,7 +2,7 @@ import { createGroup, isGroup, setRecordHidden } from "../data/groups.mjs";
 import { RECORD_TYPES, typeId } from "../constants.mjs";
 import {
   getTimepoints, addTimepoint, renameTimepoint, moveTimepoint, deleteTimepoint,
-  addLink, removeLink, toggleLinkShowPlayers, resolveLinks
+  addLink, removeLink, toggleLinkShowPlayers, resolveLinks, timepointsForRecord
 } from "../data/timepoints.mjs";
 import { isRecordVisible } from "../logic/visibility.mjs";
 
@@ -293,7 +293,7 @@ Hooks.on("quenchReady", (quench) => {
           assert.notEqual(first.timepointId, second.timepointId, "new timepoint each time");
           assert.equal(first.place.type, "campaign-record.place");
           assert.equal(first.place.system.scene, scene.uuid);
-          assert.ok(first.place.system.timepoints.has(second.timepointId));
+          assert.ok(timepointsForRecord(group, first.place.uuid).includes(second.timepointId));
         });
 
         it("combatStart creates an Encounter attached to the Place timepoint", async function () {
@@ -310,7 +310,7 @@ Hooks.on("quenchReady", (quench) => {
           const encounter = await fromUuid(encounterUuid);
           assert.equal(encounter.type, "campaign-record.encounter");
           assert.equal(encounter.system.scene, scene.uuid);
-          assert.ok(encounter.system.timepoints.has(timepointId), "attached to latest timepoint");
+          assert.ok(timepointsForRecord(group, encounter.uuid).includes(timepointId), "attached to latest timepoint");
           assert.equal(encounter.system.combatants[0].count, 2, "collapsed by actor");
           await combat.delete();
           await actor.delete();
