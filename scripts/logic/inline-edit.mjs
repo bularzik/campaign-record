@@ -78,3 +78,19 @@ export function hasInlineFocus(root, active = document.activeElement) {
     active.isContentEditable === true
   );
 }
+
+/**
+ * Like hasInlineFocus, but for ANY editable control in `root` — not only the
+ * inline-edit view. The hub uses this to defer pane re-renders while the user
+ * is editing a mounted record in any mode (inline view, the edit sheet, or a
+ * core text/journal page), so a remote update or auto-save doesn't tear the
+ * active editor out from under the caret.
+ */
+export function hasEditableFocus(root, active = document.activeElement) {
+  if (!root || !active || !root.contains(active)) return false;
+  return (
+    !!active.matches?.("input, select, textarea") ||
+    !!active.closest("prose-mirror") ||
+    active.isContentEditable === true
+  );
+}

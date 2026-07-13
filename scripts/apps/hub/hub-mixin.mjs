@@ -3,7 +3,7 @@ import { getTargetGroup, setTargetGroup } from "../../settings/auto-target.mjs";
 import {
   MODULE_ID, RAIL_SETTING, INLINE_EDIT_SETTING, SNIPPETS_SETTING, RECORD_TYPES, typeId, GROUP_SHEET_CLASS
 } from "../../constants.mjs";
-import { hasInlineFocus, shouldShowEditToggle } from "../../logic/inline-edit.mjs";
+import { hasEditableFocus, shouldShowEditToggle } from "../../logic/inline-edit.mjs";
 import { buildDoctypeFilter } from "../../logic/doctype-filter.mjs";
 import { buildSortMenu } from "../../logic/sort-menu.mjs";
 import { collectRecords, isIndexablePage, getScopedGroups, toSearchRecord } from "./hub-data.mjs";
@@ -95,12 +95,14 @@ export function HubMixin(Base) {
     }
 
     async navigateToRecord(uuid, { mode = "view", pushHistory = true } = {}) {
+      this.#commitPaneEditors();
       this.state.view = { uuid, mode };
       if (pushHistory) pushEntry(this.#history, { kind: "record", uuid });
       await this.render();
     }
 
     async navigateToIndex({ pushHistory = true } = {}) {
+      this.#commitPaneEditors();
       this.state.view = null;
       if (pushHistory) pushEntry(this.#history, { kind: "index" });
       await this.render();
@@ -181,7 +183,7 @@ export function HubMixin(Base) {
     async render(options = {}, _options = {}) {
       if (typeof options === "boolean") options = { force: options, ..._options };
       const mount = this.rendered ? this.element?.querySelector(".record-pane-mount") : null;
-      if (mount && hasInlineFocus(mount)) {
+      if (mount && hasEditableFocus(mount)) {
         this.#deferredRender = foundry.utils.mergeObject(this.#deferredRender ?? {}, options, {
           inplace: false
         });
@@ -193,10 +195,40 @@ export function HubMixin(Base) {
     #flushDeferredRender() {
       if (!this.#deferredRender) return;
       const mount = this.element?.querySelector(".record-pane-mount");
-      if (mount && hasInlineFocus(mount)) return;
+      if (mount && hasEditableFocus(mount)) return;
       const options = this.#deferredRender;
       this.#deferredRender = null;
       this.render(options);
+    }
+
+    /**
+     * Commit every pane-mounted editor through its own save control (hidden by
+     * CSS) so edits persist without the visible Save buttons. Clicking the
+     * editor's save reuses core's commit path — correct for collaborative
+     * editors — which fires the change event the sheet's submitOnChange saves.
+     * A no-op for inline-view editors (no save button; they auto-save already).
+     */
+    #commitPaneEditors() {
+      const mount = this.element?.querySelector(".record-pane-mount");
+      for (const el of mount?.querySelectorAll("prose-mirror") ?? []) {
+        el.querySelector('button[data-action="save"]')?.click();
+      }
+    }
+
+    /**
+     * Auto-commit a pane editor when focus leaves it, so nothing is lost even
+     * though the manual Save buttons are hidden. Focus moving within the same
+     * editor (e.g. to its toolbar) is ignored.
+     */
+    #bindPaneCommit(mount) {
+      for (const el of mount.querySelectorAll("prose-mirror")) {
+        if (el.dataset.crCommitBound) continue;
+        el.dataset.crCommitBound = "1";
+        el.addEventListener("focusout", (event) => {
+          if (el.contains(event.relatedTarget)) return;
+          el.querySelector('button[data-action="save"]')?.click();
+        });
+      }
     }
 
     #searchIndex = null;
@@ -262,6 +294,7 @@ export function HubMixin(Base) {
     }
 
     _onClose(options) {
+      this.#commitPaneEditors();
       this.#searchIndex = null;
       this.#teardownHooks();
       this.#pane.close();
@@ -822,7 +855,9 @@ export function HubMixin(Base) {
       if (mount && this.state.view) {
         const page = this.#resolveViewedPage();
         if (page) {
-          this.#pane.mount(mount, page, this.state.view.mode).catch((error) => {
+          this.#pane.mount(mount, page, this.state.view.mode)
+            .then(() => this.#bindPaneCommit(mount))
+            .catch((error) => {
             console.error("campaign-record | failed to render record pane", error);
             ui.notifications.warn(game.i18n.localize("CAMPAIGNRECORD.Hub.RecordUnavailable"));
             this.navigateToIndex({ pushHistory: false });
