@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { computeInlineEdit, createDebouncedSaver, hasInlineFocus } from "../scripts/logic/inline-edit.mjs";
-import { shouldShowEditToggle, hasEditableFocus } from "../scripts/logic/inline-edit.mjs";
+import { shouldShowEditToggle } from "../scripts/logic/inline-edit.mjs";
 
 describe("shouldShowEditToggle", () => {
   it("hides the toggle for an inline-editable typed entry in view mode", () => {
@@ -170,35 +170,5 @@ describe("hasInlineFocus", () => {
     const root = makeRoot();
     const active = makeActive({ inSection: false, isTyping: true });
     expect(hasInlineFocus(root, active)).toBe(false);
-  });
-});
-
-describe("hasEditableFocus", () => {
-  const makeRoot = ({ containsActive = true } = {}) => ({ contains: () => containsActive });
-  const makeActive = ({ isTyping = false, inProseMirror = false, contentEditable = false } = {}) => ({
-    matches: (selector) => (isTyping ? selector === "input, select, textarea" : false),
-    closest: (selector) => (selector === "prose-mirror" && inProseMirror ? {} : null),
-    isContentEditable: contentEditable
-  });
-
-  it("returns false when root or active is missing", () => {
-    expect(hasEditableFocus(null, makeActive({ isTyping: true }))).toBe(false);
-    expect(hasEditableFocus(makeRoot(), null)).toBe(false);
-  });
-
-  it("returns false when active is outside root", () => {
-    expect(hasEditableFocus(makeRoot({ containsActive: false }), makeActive({ isTyping: true }))).toBe(false);
-  });
-
-  // The whole point of this variant: it fires for editors with NO inline-edit
-  // wrapper (the edit sheet and core text/journal pages), unlike hasInlineFocus.
-  it("returns true for any editor, without requiring an inline-edit section", () => {
-    expect(hasEditableFocus(makeRoot(), makeActive({ inProseMirror: true }))).toBe(true);
-    expect(hasEditableFocus(makeRoot(), makeActive({ isTyping: true }))).toBe(true);
-    expect(hasEditableFocus(makeRoot(), makeActive({ contentEditable: true }))).toBe(true);
-  });
-
-  it("returns false for a non-editable focused element", () => {
-    expect(hasEditableFocus(makeRoot(), makeActive({}))).toBe(false);
   });
 });

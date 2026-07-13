@@ -694,17 +694,6 @@
   display: none;
 }
 
-/* Pane editors auto-commit on blur (hub #bindPaneCommit) and the sheet saves on
-   change, so the manual Save controls are hidden for a clean editor: the footer
-   "Save Changes" button and the ProseMirror toolbar's own save (floppy icon,
-   left of "Source HTML"). Hidden — not removed — so #bindPaneCommit can still
-   click the toolbar button to commit through core's own save path. Scoped to
-   the pane; journal sheets opened normally keep both controls. */
-.record-pane-mount .form-footer,
-.record-pane-mount prose-mirror button[data-action="save"] {
-  display: none;
-}
-
 /* Narrow left-index rows: icon + name only. */
 .campaign-hub .hub-index .record-row {
   grid-template-columns: 2rem minmax(0, 1fr);
