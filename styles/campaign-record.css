@@ -694,6 +694,16 @@
   display: none;
 }
 
+/* Hide the redundant footer "Save Changes" button in the pane. The sheet saves
+   on change (submitOnChange) and the editor's own toolbar Save commits prose,
+   so this manual submit adds nothing. Pure CSS — no re-render guard — so hub
+   controls keep working while editing. The toolbar Save stays visible; it is
+   the editor's real commit control. Scoped to the pane; normal journal sheets
+   keep their footer. */
+.record-pane-mount .form-footer {
+  display: none;
+}
+
 /* Narrow left-index rows: icon + name only. */
 .campaign-hub .hub-index .record-row {
   grid-template-columns: 2rem minmax(0, 1fr);
