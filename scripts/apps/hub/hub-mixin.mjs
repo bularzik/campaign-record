@@ -543,20 +543,6 @@ export function HubMixin(Base) {
         if (data.groupId !== groupId) return; // no cross-group reordering
         return Timepoints.moveTimepoint(group, data.id, Number(target.dataset.position));
       }
-      if (data.kind === "campaign-record.record") {
-        const page = await fromUuid(data.uuid);
-        if (!page) return;
-        if (page.parent.id !== groupId) {
-          // Cross-group records attach as document links instead of warning.
-          return this.#dropLink(group, timepointId, {
-            uuid: page.uuid, name: page.name, type: "JournalEntryPage"
-          });
-        }
-        if (!page.system?.schema?.fields?.timepoints) {
-          return ui.notifications.warn(game.i18n.localize("CAMPAIGNRECORD.Hub.CannotAttach"));
-        }
-        return Timepoints.attachRecord(page, timepointId);
-      }
       const drop = classifyDropData(data, event.dataTransfer.getData("text/uri-list"));
       if (!drop) {
         return ui.notifications.warn(game.i18n.localize("CAMPAIGNRECORD.Hub.CannotAttach"));
@@ -565,12 +551,6 @@ export function HubMixin(Base) {
         const doc = await fromUuid(drop.uuid);
         if (!doc) {
           return ui.notifications.warn(game.i18n.localize("CAMPAIGNRECORD.Hub.CannotAttach"));
-        }
-        // A same-group record page dropped via Foundry drag data uses the
-        // record-attachment path so it stays a first-class record chip.
-        if (doc.documentName === "JournalEntryPage" && doc.parent?.id === groupId
-            && doc.system?.schema?.fields?.timepoints) {
-          return Timepoints.attachRecord(doc, timepointId);
         }
         return this.#dropLink(group, timepointId, { uuid: drop.uuid, name: doc.name, type: drop.type });
       }
