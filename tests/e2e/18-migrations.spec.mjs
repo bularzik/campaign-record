@@ -129,6 +129,12 @@ test.describe("schema migrations", () => {
     });
     expect(result.plain).toBe("campaign-record.GroupHubSheet");
     expect(result.manual).toBe("core.JournalEntrySheet");
-    expect(result.version).toBe(2);
+    // Migrations run to completion: v2 stamps the sheet flag, then v3 (record
+    // memberships → links) advances the stored schema to its current value.
+    const current = await page.evaluate(async () => {
+      const { SCHEMA_VERSION } = await import("/modules/campaign-record/scripts/constants.mjs");
+      return SCHEMA_VERSION;
+    });
+    expect(result.version).toBe(current);
   });
 });
