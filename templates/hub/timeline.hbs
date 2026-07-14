@@ -12,7 +12,7 @@
     <ol class="timepoints{{#unless @root.showDateColumn}} manual{{/unless}}{{#if @root.showDateColumn}} with-dates{{/if}}">
       {{#each this.timepoints}}
       <li class="timepoint" data-timepoint-id="{{this.id}}" data-position="{{this.position}}"
-          {{#unless @root.showDateColumn}}data-drag-timepoint data-drop-timepoint draggable="true"{{/unless}}>
+          data-drop-timepoint {{#unless @root.showDateColumn}}data-drag-timepoint draggable="true"{{/unless}}>
         {{#if @root.showDateColumn}}<div class="timepoint-date">{{this.dateLabel}}</div>{{/if}}
         <div class="timepoint-body">
           <div class="timepoint-head">

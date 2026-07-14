@@ -74,4 +74,13 @@ describe("orderTimepoints", () => {
     orderTimepoints(tps, "campaign");
     expect(tps).toEqual(copy);
   });
+
+  it("campaign mode orders multiple undated timepoints among themselves by createdAt, before dated ones", () => {
+    const mixed = [
+      { id: "dated", label: "Dated", sort: 100000, createdAt: 15, campaignDate: { year: 1492, month: 6, day: 20, hour: null, minute: null } },
+      { id: "undated-late", label: "Undated Late", sort: 200000, createdAt: 40, campaignDate: null },
+      { id: "undated-early", label: "Undated Early", sort: 300000, createdAt: 5, campaignDate: null }
+    ];
+    expect(orderTimepoints(mixed, "campaign").map((t) => t.id)).toEqual(["undated-early", "undated-late", "dated"]);
+  });
 });
