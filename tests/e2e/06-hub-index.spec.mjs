@@ -140,8 +140,11 @@ test.describe("hub index", () => {
     });
     // Off: no snippet element rendered.
     await expect(hub.locator(".record-snippets")).toHaveCount(0);
-    // Turn snippets ON by clicking the toggle (exercises data-action="toggleSnippets").
-    await hub.locator(".snippets-toggle input").click();
+    // Turn snippets ON via the settings menu (PR #15 moved the toggle there
+    // from an inline .snippets-toggle checkbox into a data-action button).
+    await hub.locator(".hub-settings-trigger").click();
+    await hub.locator('[data-action="toggleSnippets"]').click();
+    await hub.locator(".hub-settings-trigger").click();
     // On: snippet element appears for the matched row.
     await expect(hub.locator(".record-snippets .hit-snippet").first()).toBeVisible({ timeout: 10_000 });
   });

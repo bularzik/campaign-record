@@ -619,7 +619,12 @@
 .record-pane-mount prose-mirror {
   --min-height: 12rem;
   flex: 1 1 auto;
-  min-height: 0;
+  /* Consume --min-height as the floor (core does the same via
+     `prose-mirror { min-height: var(--min-height) }`). A literal `min-height: 0`
+     here overrides that floor, so when the flex chain can't hand the editor a
+     definite height it collapses .editor-container/.editor-content to 0 and the
+     editor becomes uninteractable. */
+  min-height: var(--min-height);
 }
 
 .campaign-record-content.inline-edit .form-group.stacked > label,
