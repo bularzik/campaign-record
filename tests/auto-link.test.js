@@ -1,6 +1,11 @@
 // tests/auto-link.test.js
 import { describe, it, expect } from "vitest";
-import { tokenizeHtml, extractWords, diffAddedWordFlags } from "../scripts/logic/auto-link.mjs";
+import {
+  tokenizeHtml,
+  extractWords,
+  diffAddedWordFlags,
+  autoLinkAdded
+} from "../scripts/logic/auto-link.mjs";
 
 describe("tokenizeHtml", () => {
   it("classifies text, tags, anchors, shorthand links and code; round-trips losslessly", () => {
@@ -57,5 +62,45 @@ describe("diffAddedWordFlags", () => {
 
   it("flags everything when baseline is empty", () => {
     expect(diffAddedWordFlags([], ["a", "b"])).toEqual([true, true]);
+  });
+});
+
+const cand = (name, uuid) => ({ name, uuid });
+// Longest-first, as the caller guarantees.
+const CANDS = [cand("Waterdeep Harbor", "u:wh"), cand("Gandalf", "u:g"),
+               cand("Frodo", "u:f"), cand("Waterdeep", "u:w")];
+
+describe("autoLinkAdded", () => {
+  it("links a newly added name, preserving typed casing as the label", () => {
+    const out = autoLinkAdded("We met.", "We met gandalf.", CANDS);
+    expect(out).toBe("We met @UUID[u:g]{gandalf}.");
+  });
+
+  it("leaves a baseline mention untouched but links a new occurrence of the same name", () => {
+    const out = autoLinkAdded("We met Gandalf.", "We met Gandalf. Gandalf grinned.", CANDS);
+    expect(out).toBe("We met Gandalf. @UUID[u:g]{Gandalf} grinned.");
+  });
+
+  it("matches whole words only (no 'Frodo' inside 'Frodos')", () => {
+    expect(autoLinkAdded("", "Frodos bag", CANDS)).toBe("Frodos bag");
+  });
+
+  it("prefers the longest candidate name", () => {
+    expect(autoLinkAdded("", "at Waterdeep Harbor now", CANDS))
+      .toBe("at @UUID[u:wh]{Waterdeep Harbor} now");
+  });
+
+  it("does not link inside an existing link, and is idempotent", () => {
+    const linked = "met @UUID[u:g]{Gandalf} today";
+    expect(autoLinkAdded("met today", linked, CANDS)).toBe(linked);
+  });
+
+  it("links every added occurrence", () => {
+    expect(autoLinkAdded("", "Frodo and Frodo", CANDS))
+      .toBe("@UUID[u:f]{Frodo} and @UUID[u:f]{Frodo}");
+  });
+
+  it("returns input unchanged when there are no candidates", () => {
+    expect(autoLinkAdded("", "Gandalf", [])).toBe("Gandalf");
   });
 });

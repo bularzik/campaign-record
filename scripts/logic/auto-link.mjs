@@ -86,3 +86,68 @@ export function diffAddedWordFlags(baseWords, newWords) {
   }
   return added;
 }
+
+/**
+ * Wrap newly-added mentions of candidate names as @UUID content links.
+ * `candidates` must be pre-sorted longest-name-first; each match claims its
+ * words so shorter/overlapping names can't double-link the same text.
+ */
+export function autoLinkAdded(baselineHtml, newHtml, candidates) {
+  if (!candidates?.length) return newHtml;
+  const segs = tokenizeHtml(newHtml);
+  const newWords = extractWords(segs);
+  if (!newWords.length) return newHtml;
+  const added = diffAddedWordFlags(
+    extractWords(tokenizeHtml(baselineHtml)).map((w) => w.text),
+    newWords.map((w) => w.text)
+  );
+
+  const claimed = new Array(newWords.length).fill(false);
+  const edits = [];
+  for (const c of candidates) {
+    const parts = c.name.trim().split(/\s+/).map((p) => p.toLowerCase()).filter(Boolean);
+    if (!parts.length) continue;
+    for (let k = 0; k + parts.length <= newWords.length; k++) {
+      let ok = true;
+      for (let p = 0; p < parts.length; p++) {
+        const w = newWords[k + p];
+        if (
+          claimed[k + p] ||
+          !added[k + p] ||
+          w.segIndex !== newWords[k].segIndex ||
+          w.text.toLowerCase() !== parts[p]
+        ) {
+          ok = false;
+          break;
+        }
+      }
+      if (!ok) continue;
+      const first = newWords[k];
+      const last = newWords[k + parts.length - 1];
+      edits.push({
+        segIndex: first.segIndex,
+        start: first.start,
+        end: last.end,
+        uuid: c.uuid,
+        label: segs[first.segIndex].raw.slice(first.start, last.end)
+      });
+      for (let p = 0; p < parts.length; p++) claimed[k + p] = true;
+    }
+  }
+  if (!edits.length) return newHtml;
+
+  const bySeg = new Map();
+  for (const e of edits) {
+    if (!bySeg.has(e.segIndex)) bySeg.set(e.segIndex, []);
+    bySeg.get(e.segIndex).push(e);
+  }
+  for (const [segIndex, list] of bySeg) {
+    list.sort((x, y) => y.start - x.start); // right-to-left keeps offsets valid
+    let raw = segs[segIndex].raw;
+    for (const e of list) {
+      raw = raw.slice(0, e.start) + `@UUID[${e.uuid}]{${e.label}}` + raw.slice(e.end);
+    }
+    segs[segIndex].raw = raw;
+  }
+  return segs.map((s) => s.raw).join("");
+}
