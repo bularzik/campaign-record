@@ -36,6 +36,17 @@
         {{localize "CAMPAIGNRECORD.Hub.Snippets"}}
       </button>
       <hr>
+      <div class="hub-order-group" role="group" aria-label="{{localize "CAMPAIGNRECORD.Hub.OrderBy"}}">
+        <span class="hub-order-title">{{localize "CAMPAIGNRECORD.Hub.OrderBy"}}</span>
+        {{#each orderOptions}}
+        <button type="button" role="menuitemradio" data-action="setTimelineOrder" data-order="{{this.value}}"
+                aria-checked="{{#if this.selected}}true{{else}}false{{/if}}">
+          <i class="fa-solid {{#if this.selected}}fa-circle-dot{{else}}fa-circle{{/if}}"></i>
+          {{this.label}}
+        </button>
+        {{/each}}
+      </div>
+      <hr>
       <label class="hub-auto-target">
         {{localize "CAMPAIGNRECORD.Hub.AutoTargetLabel"}}
         <select name="auto-target-select">

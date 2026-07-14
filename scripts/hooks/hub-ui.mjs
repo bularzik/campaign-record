@@ -1,4 +1,4 @@
-import { MODULE_ID, RAIL_SETTING, INLINE_EDIT_SETTING, SNIPPETS_SETTING } from "../constants.mjs";
+import { MODULE_ID, RAIL_SETTING, INLINE_EDIT_SETTING, SNIPPETS_SETTING, TIMELINE_ORDER_SETTING } from "../constants.mjs";
 import { CampaignHub } from "../apps/hub/campaign-hub.mjs";
 import { GroupHubSheet } from "../apps/hub/group-hub-sheet.mjs";
 import { BaseRecordSheet } from "../sheets/base-record-sheet.mjs";
@@ -61,6 +61,22 @@ export function registerHubSettings() {
         if (!app.rendered) continue;
         if (app instanceof BaseRecordSheet || app instanceof CampaignHub || app instanceof GroupHubSheet) {
           app.render();
+        }
+      }
+    }
+  });
+
+  game.settings.register(MODULE_ID, TIMELINE_ORDER_SETTING, {
+    scope: "client",
+    config: false,
+    type: String,
+    default: "manual",
+    onChange: () => {
+      // Reorders the timeline and refreshes the settings-menu radios.
+      for (const app of foundry.applications.instances.values()) {
+        if (!app.rendered) continue;
+        if (app instanceof CampaignHub || app instanceof GroupHubSheet) {
+          app.render({ parts: ["header", "timeline"] });
         }
       }
     }

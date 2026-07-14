@@ -42,7 +42,7 @@ export function recordIcon(shortType) {
 }
 
 /** Structural schema version of world data written by this module. */
-export const SCHEMA_VERSION = 3;
+export const SCHEMA_VERSION = 4;
 export const SCHEMA_SETTING = "schemaVersion";
 
 /** Client setting: record views are editable in place with auto-save. */
@@ -53,6 +53,9 @@ export const RAIL_SETTING = "recordRailCollapsed";
 
 /** Client setting: expand Index rows with search-match snippets. */
 export const SNIPPETS_SETTING = "hubSnippets";
+
+/** Client setting: timeline order mode — "manual" | "created" | "campaign". */
+export const TIMELINE_ORDER_SETTING = "timelineOrder";
 
 /** Registered sheet id (scope.ClassName) that opens groups in the Campaign Hub. */
 export const GROUP_SHEET_CLASS = `${MODULE_ID}.GroupHubSheet`;

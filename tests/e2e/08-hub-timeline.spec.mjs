@@ -281,4 +281,47 @@ test.describe("hub timeline", () => {
       await gmPage.evaluate((id) => game.journal.get(id)?.delete(), journalId);
     }
   });
+
+  test("stores a campaign date and shows it in the date column", async () => {
+    const tpId = await gmPage.evaluate(async (groupId) => {
+      const { addTimepoint, editTimepoint, getTimepoints } =
+        await import("/modules/campaign-record/scripts/data/timepoints.mjs");
+      const group = game.journal.get(groupId);
+      const tp = await addTimepoint(group, "Dated point");
+      await editTimepoint(group, tp.id, {
+        campaignDate: { year: 1492, month: 6, day: 15, hour: 14, minute: 30 }
+      });
+      const stored = getTimepoints(group).find((t) => t.id === tp.id);
+      if (stored.campaignDate.day !== 15) throw new Error("campaign date not stored");
+      await game.settings.set("campaign-record", "timelineOrder", "campaign");
+      return tp.id;
+    }, ids.groupId);
+
+    try {
+      await openTimeline(gmPage);
+      const dateEl = groupSection(gmPage).locator(`.timepoint[data-timepoint-id="${tpId}"] .timepoint-date`);
+      await expect(dateEl).toBeVisible({ timeout: 10_000 });
+      const dateText = await dateEl.innerText();
+      expect(dateText).toContain("1492");
+      expect(dateText).toContain("15");
+    } finally {
+      await gmPage.evaluate(() => game.settings.set("campaign-record", "timelineOrder", "manual"));
+    }
+  });
+
+  test("order toggle shows the date column outside manual mode and hides it in manual", async () => {
+    await gmPage.evaluate(() => game.settings.set("campaign-record", "timelineOrder", "manual"));
+    await openTimeline(gmPage);
+    await expect(groupSection(gmPage).locator(".timepoints.with-dates")).toHaveCount(0, { timeout: 10_000 });
+    expect(await groupSection(gmPage).locator(".timepoint-date").count()).toBe(0);
+
+    await gmPage.evaluate(() => game.settings.set("campaign-record", "timelineOrder", "created"));
+    try {
+      await openTimeline(gmPage);
+      await expect(groupSection(gmPage).locator(".timepoints.with-dates")).not.toHaveCount(0, { timeout: 10_000 });
+      expect(await groupSection(gmPage).locator(".timepoint-date").count()).toBeGreaterThan(0);
+    } finally {
+      await gmPage.evaluate(() => game.settings.set("campaign-record", "timelineOrder", "manual"));
+    }
+  });
 });

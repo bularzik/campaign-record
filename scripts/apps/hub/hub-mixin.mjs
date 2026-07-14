@@ -1,7 +1,8 @@
 import { getGroups } from "../../data/groups.mjs";
 import { getTargetGroup, setTargetGroup } from "../../settings/auto-target.mjs";
 import {
-  MODULE_ID, RAIL_SETTING, INLINE_EDIT_SETTING, SNIPPETS_SETTING, RECORD_TYPES, typeId, GROUP_SHEET_CLASS
+  MODULE_ID, RAIL_SETTING, INLINE_EDIT_SETTING, SNIPPETS_SETTING, RECORD_TYPES, typeId, GROUP_SHEET_CLASS,
+  TIMELINE_ORDER_SETTING
 } from "../../constants.mjs";
 import { hasInlineFocus, shouldShowEditToggle } from "../../logic/inline-edit.mjs";
 import { buildDoctypeFilter } from "../../logic/doctype-filter.mjs";
@@ -13,6 +14,9 @@ import { hasGroupFlag, isRecordVisible } from "../../logic/visibility.mjs";
 import { classifyDropData, filenameFromSrc, recordDragPayload } from "../../logic/timeline-links.mjs";
 import { classifyLinkTarget } from "../../logic/record-links.mjs";
 import * as Timepoints from "../../data/timepoints.mjs";
+import { getCalendarMonths, calendarBounds, hasCalendar, formatCampaignDate } from "../../logic/campaign-calendar.mjs";
+import { parseCampaignDateInput, formatCreateDate } from "../../logic/campaign-date.mjs";
+import { orderTimepoints } from "../../logic/timeline-sort.mjs";
 import { ImportWizard } from "../import-wizard.mjs";
 import { exportGroupDialog } from "../export-dialog.mjs";
 import { RecordPane } from "./record-pane.mjs";
@@ -51,8 +55,9 @@ export function HubMixin(Base) {
         exportGroup: HubBase.#onExportGroup,
         clearFilters: HubBase.#onClearFilters,
         toggleSnippets: HubBase.#onToggleSnippets,
+        setTimelineOrder: HubBase.#onSetTimelineOrder,
         addTimepoint: HubBase.#onAddTimepoint,
-        renameTimepoint: HubBase.#onRenameTimepoint,
+        editTimepoint: HubBase.#onEditTimepoint,
         deleteTimepoint: HubBase.#onDeleteTimepoint,
         openLink: HubBase.#onOpenLink,
         removeLink: HubBase.#onRemoveLink,
@@ -396,16 +401,22 @@ export function HubMixin(Base) {
     }
 
     #timelineGroups() {
+      const mode = game.settings.get(MODULE_ID, TIMELINE_ORDER_SETTING);
       return getScopedGroups(this.groupScopeId).map((group) => {
         const canEdit = group.canUserModify(game.user, "update");
+        const ordered = orderTimepoints(Timepoints.getTimepoints(group), mode);
         return {
           id: group.id,
           name: group.name,
           canEdit,
-          timepoints: Timepoints.getTimepoints(group).map((tp, i) => ({
+          manualMode: mode === "manual",
+          timepoints: ordered.map((tp, i) => ({
             ...tp,
             position: i,
             canEdit,
+            dateLabel: mode === "campaign"
+              ? formatCampaignDate(tp.campaignDate)
+              : formatCreateDate(tp.createdAt),
             links: Timepoints.resolveLinks(tp, game.user).map((entry) => ({
               ...entry,
               broken: entry.kind === "broken",
@@ -417,16 +428,68 @@ export function HubMixin(Base) {
       });
     }
 
-    static async #promptLabel(titleKey, initial = "", okKey = "CAMPAIGNRECORD.Create") {
+    /**
+     * Prompt for a timepoint's label and optional campaign date. `initial` may
+     * carry `{ label, campaignDate }`. Returns `{ label, campaignDate }` or null
+     * when cancelled / on an invalid date (a warning is shown for the latter).
+     */
+    static async #promptTimepoint(initial = {}, { titleKey, okKey = "CAMPAIGNRECORD.Create" } = {}) {
+      const label = initial.label ?? "";
+      const cd = initial.campaignDate ?? null;
+      const months = getCalendarMonths();
+      const bounds = calendarBounds();
+      const esc = foundry.utils.escapeHTML;
+
+      const monthOptions = months.map((m) =>
+        `<option value="${m.index}"${cd && cd.month === m.index ? " selected" : ""}>${esc(m.name)}</option>`
+      ).join("");
+      const timeValue = cd && cd.hour != null
+        ? `${String(cd.hour).padStart(2, "0")}:${String(cd.minute ?? 0).padStart(2, "0")}` : "";
+
+      const dateFields = hasCalendar() ? `
+        <fieldset class="cr-campaign-date">
+          <legend>${game.i18n.localize("CAMPAIGNRECORD.Hub.CampaignDate")}</legend>
+          <div class="form-group">
+            <label>${game.i18n.localize("CAMPAIGNRECORD.Hub.CampaignYear")}</label>
+            <input type="number" name="year" value="${cd ? cd.year : ""}" step="1">
+          </div>
+          <div class="form-group">
+            <label>${game.i18n.localize("CAMPAIGNRECORD.Hub.CampaignMonth")}</label>
+            <select name="month"><option value="">—</option>${monthOptions}</select>
+          </div>
+          <div class="form-group">
+            <label>${game.i18n.localize("CAMPAIGNRECORD.Hub.CampaignDay")}</label>
+            <input type="number" name="day" value="${cd ? cd.day : ""}" min="1" step="1">
+          </div>
+          <div class="form-group">
+            <label>${game.i18n.localize("CAMPAIGNRECORD.Hub.CampaignTime")}</label>
+            <input type="text" name="time" value="${esc(timeValue)}" placeholder="HH:MM">
+          </div>
+        </fieldset>` : `<p class="notes">${game.i18n.localize("CAMPAIGNRECORD.Hub.CampaignDateUnavailable")}</p>`;
+
       return foundry.applications.api.DialogV2.prompt({
         window: { title: titleKey },
         content: `<div class="form-group">
-          <label>${game.i18n.localize("CAMPAIGNRECORD.Hub.TimepointLabel")}</label>
-          <input type="text" name="label" value="${foundry.utils.escapeHTML(initial)}" required autofocus>
-        </div>`,
+            <label>${game.i18n.localize("CAMPAIGNRECORD.Hub.TimepointLabel")}</label>
+            <input type="text" name="label" value="${esc(label)}" required autofocus>
+          </div>${dateFields}`,
         ok: {
           label: okKey,
-          callback: (event, button) => button.form.elements.label.value.trim()
+          callback: (event, button) => {
+            const form = button.form.elements;
+            const newLabel = form.label.value.trim();
+            if (!newLabel) return null;
+            if (!hasCalendar()) return { label: newLabel, campaignDate: undefined };
+            const { components, error } = parseCampaignDateInput({
+              year: form.year.value, month: form.month.value,
+              day: form.day.value, time: form.time.value
+            }, bounds);
+            if (error) {
+              ui.notifications.warn(game.i18n.localize(error));
+              return null;
+            }
+            return { label: newLabel, campaignDate: components };
+          }
         },
         rejectClose: false
       });
@@ -437,21 +500,23 @@ export function HubMixin(Base) {
       if (!group) return;
       const raw = Number(target.dataset.position);
       const position = target.dataset.position != null && Number.isInteger(raw) ? raw : null;
-      const label = await HubBase.#promptLabel("CAMPAIGNRECORD.Hub.AddTimepoint");
-      if (!label) return;
-      await Timepoints.addTimepoint(group, label, position);
+      const result = await HubBase.#promptTimepoint({}, { titleKey: "CAMPAIGNRECORD.Hub.AddTimepoint" });
+      if (!result) return;
+      await Timepoints.addTimepoint(group, result.label, position, result.campaignDate ?? null);
     }
 
-    static async #onRenameTimepoint(event, target) {
+    static async #onEditTimepoint(event, target) {
       const group = game.journal.get(target.closest("[data-group-id]").dataset.groupId);
       if (!group) return;
       const id = target.closest("[data-timepoint-id]").dataset.timepointId;
-      const current = Timepoints.getTimepoints(group).find((t) => t.id === id)?.label ?? "";
-      const label = await HubBase.#promptLabel(
-        "CAMPAIGNRECORD.Hub.RenameTimepoint", current, "CAMPAIGNRECORD.Hub.Rename"
+      const current = Timepoints.getTimepoints(group).find((t) => t.id === id);
+      if (!current) return;
+      const result = await HubBase.#promptTimepoint(
+        { label: current.label, campaignDate: current.campaignDate ?? null },
+        { titleKey: "CAMPAIGNRECORD.Hub.EditTimepoint", okKey: "CAMPAIGNRECORD.Hub.Save" }
       );
-      if (!label) return;
-      await Timepoints.renameTimepoint(group, id, label);
+      if (!result) return;
+      await Timepoints.editTimepoint(group, id, { label: result.label, campaignDate: result.campaignDate });
     }
 
     static async #onDeleteTimepoint(event, target) {
@@ -506,6 +571,13 @@ export function HubMixin(Base) {
       const current = game.settings.get(MODULE_ID, SNIPPETS_SETTING);
       await game.settings.set(MODULE_ID, SNIPPETS_SETTING, !current);
       await this.render({ parts: ["header", "index"] });
+    }
+
+    static async #onSetTimelineOrder(event, target) {
+      const order = target.dataset.order;
+      if (!["manual", "created", "campaign"].includes(order)) return;
+      // The setting's onChange re-renders header + timeline for every open hub.
+      await game.settings.set(MODULE_ID, TIMELINE_ORDER_SETTING, order);
     }
 
     #onTimelineDragStart(event) {
@@ -616,8 +688,15 @@ export function HubMixin(Base) {
       );
       context.sortMenuOpen = this.state.sortMenuOpen;
       context.timelineGroups = this.#timelineGroups();
+      context.showDateColumn = game.settings.get(MODULE_ID, TIMELINE_ORDER_SETTING) !== "manual";
       context.inlineEditing = game.settings.get(MODULE_ID, INLINE_EDIT_SETTING);
       context.settingsMenuOpen = this.state.settingsMenuOpen;
+      const orderMode = game.settings.get(MODULE_ID, TIMELINE_ORDER_SETTING);
+      context.orderOptions = ["manual", "created", "campaign"].map((value) => ({
+        value,
+        label: game.i18n.localize(`CAMPAIGNRECORD.Hub.Order.${value}`),
+        selected: orderMode === value
+      }));
       const target = getTargetGroup();
       context.autoTargetNoneSelected = !target;
       context.autoTargetOptions = getGroups().map((g) => ({
