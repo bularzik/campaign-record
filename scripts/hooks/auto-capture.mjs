@@ -150,25 +150,36 @@ export function registerAutoCapture() {
     await ensurePlaceForScene(group, scene, { createTimepoint: true });
   });
 
-  // GM begins combat → create an Encounter on the scene's Place timepoint.
+  // GM begins combat → create an Encounter and attach it to a timepoint.
   Hooks.on("combatStart", async (combat) => {
     if (game.user !== game.users.activeGM) return;
-    // Foundry v13 creates combats UNLINKED (combat.scene === null) by default;
-    // the tracker only links a combat to a scene via an explicit menu toggle.
-    // Fall back to the active scene — the same scene the map-activation flow
-    // keyed the Place/timepoint to — so the Encounter attaches to that Place.
-    const scene = combat.scene ?? game.scenes?.active ?? null;
-    if (!scene) return;
     const group = getTargetGroup();
     if (!group) return;
-    const { timepointId } = await ensurePlaceForScene(group, scene, { createTimepoint: false });
+    // Foundry v13 creates combats UNLINKED (combat.scene === null) by default;
+    // the tracker only links a combat to a scene via an explicit menu toggle.
+    // Fall back to the active scene — the scene the map-activation flow keyed
+    // the Place/timepoint to. With no scene at all (theater of the mind), file
+    // the Encounter onto a fresh dated timepoint instead.
+    const scene = combat.scene ?? game.scenes?.active ?? null;
     const combatants = collapseParticipants(combatParticipants(combat));
+
+    let timepointId;
+    let name;
+    let system;
+    if (scene) {
+      ({ timepointId } = await ensurePlaceForScene(group, scene, { createTimepoint: false }));
+      name = game.i18n.format("CAMPAIGNRECORD.AutoCapture.EncounterName", { scene: scene.name });
+      system = { scene: scene.uuid, combatants };
+    } else {
+      name = game.i18n.format("CAMPAIGNRECORD.AutoCapture.EncounterNameNoScene", {
+        date: new Date().toLocaleDateString()
+      });
+      timepointId = (await addTimepoint(group, name)).id;
+      system = { combatants };
+    }
+
     const [encounter] = await group.createEmbeddedDocuments("JournalEntryPage", [
-      {
-        name: game.i18n.format("CAMPAIGNRECORD.AutoCapture.EncounterName", { scene: scene.name }),
-        type: typeId("encounter"),
-        system: { scene: scene.uuid, combatants }
-      }
+      { name, type: typeId("encounter"), system }
     ]);
     await addLink(group, timepointId, { uuid: encounter.uuid, name: encounter.name, type: "JournalEntryPage" });
     await combat.setFlag(MODULE_ID, ENCOUNTER_FLAG, encounter.uuid);

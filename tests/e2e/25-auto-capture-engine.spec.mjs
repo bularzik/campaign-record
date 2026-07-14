@@ -130,6 +130,58 @@ test.describe("auto-capture engine", () => {
       { timeout: 15_000 }
     ).toContain("Died");
   });
+
+  test("theater of the mind: no active scene -> new dated timepoint + scene-less Encounter", async () => {
+    // --- setup: fresh target group + one actor; ensure NO active scene ---
+    const ids = await page.evaluate(async (P) => {
+      const { createGroup } = await import("/modules/campaign-record/scripts/data/groups.mjs");
+      const group = await createGroup(`${P} TotM Target`);
+      await game.settings.set("campaign-record", "autoCaptureTargetGroup", group.id);
+      const actorType = Actor.TYPES.find((t) => t !== "base") ?? Actor.TYPES[0];
+      const bandit = await Actor.create({ name: `${P} Bandit`, type: actorType });
+      // Deactivate any active scene so game.scenes.active resolves to null.
+      for (const s of game.scenes) if (s.active) await s.update({ active: false });
+      return { groupId: group.id, banditId: bandit.id };
+    }, P);
+
+    // Timepoint count before, so we can prove a NEW one is created.
+    const before = await page.evaluate(async ({ groupId }) => {
+      const { getTimepoints } = await import("/modules/campaign-record/scripts/data/timepoints.mjs");
+      return getTimepoints(game.journal.get(groupId)).length;
+    }, ids);
+
+    // --- COMBAT START with no scene -> scene-less Encounter on a fresh timepoint ---
+    await page.evaluate(async ({ banditId }) => {
+      const combat = await Combat.create({}); // unlinked; no active scene => theater of the mind
+      await combat.createEmbeddedDocuments("Combatant", [{ actorId: banditId }]);
+      await combat.startCombat();
+      globalThis.__e2eTotMCombatId = combat.id;
+    }, ids);
+
+    const enc = await pollTruthy(page, () => page.evaluate(async ({ groupId }) => {
+      const { getTimepoints, timepointsForRecord } =
+        await import("/modules/campaign-record/scripts/data/timepoints.mjs");
+      const combat = game.combats.get(globalThis.__e2eTotMCombatId);
+      const uuid = combat?.getFlag("campaign-record", "encounterUuid");
+      if (!uuid) return null;
+      const e = fromUuidSync(uuid);
+      if (!e) return null;
+      const g = game.journal.get(groupId);
+      return {
+        type: e.type,
+        scene: e.system.scene ?? null,
+        name: e.name,
+        tpCount: getTimepoints(g).length,
+        attached: e.parent ? timepointsForRecord(e.parent, e.uuid).length : 0
+      };
+    }, ids));
+
+    expect(enc.type).toBe("campaign-record.encounter");
+    expect(enc.scene, "scene-less encounter has no scene").toBeFalsy();
+    expect(enc.name, "encounter named 'Combat on <date>'").toContain("Combat on");
+    expect(enc.tpCount, "a brand-new timepoint was created").toBe(before + 1);
+    expect(enc.attached, "encounter attached to the new timepoint").toBeGreaterThan(0);
+  });
 });
 
 /** Poll an async producer until it returns a truthy value, then return it. */
