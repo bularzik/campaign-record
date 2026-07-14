@@ -6,6 +6,7 @@ import {
 import { hasInlineFocus, shouldShowEditToggle } from "../../logic/inline-edit.mjs";
 import { buildDoctypeFilter } from "../../logic/doctype-filter.mjs";
 import { buildSortMenu } from "../../logic/sort-menu.mjs";
+import { buildNewRecordGroupField } from "../../logic/new-record-form.mjs";
 import { collectRecords, isIndexablePage, getScopedGroups, toSearchRecord } from "./hub-data.mjs";
 import { createIndex, indexRecord, removeRecord, search } from "../../logic/search-index.mjs";
 import { hasGroupFlag, isRecordVisible } from "../../logic/visibility.mjs";
@@ -343,9 +344,14 @@ export function HubMixin(Base) {
       const typeOptions = RECORD_TYPES.map((t) =>
         `<option value="${typeId(t)}">${game.i18n.localize(`TYPES.JournalEntryPage.${typeId(t)}`)}</option>`
       ).join("") + `<option value="text">${game.i18n.localize("CAMPAIGNRECORD.Hub.JournalPage")}</option>`;
-      const groupOptions = groups.map((g) =>
-        `<option value="${g.id}" ${g.id === current ? "selected" : ""}>${foundry.utils.escapeHTML(g.name)}</option>`
+      const groupField = buildNewRecordGroupField(groups, current);
+      const groupOptions = groupField.options.map((o) =>
+        `<option value="${o.value}" ${o.selected ? "selected" : ""}>${foundry.utils.escapeHTML(o.label)}</option>`
       ).join("");
+      const groupFormGroup = groupField.showGroupPicker
+        ? `<div class="form-group"><label>${game.i18n.localize("CAMPAIGNRECORD.Hub.GroupPicker")}</label>
+            <select name="group">${groupOptions}</select></div>`
+        : "";
       const result = await foundry.applications.api.DialogV2.prompt({
         window: { title: "CAMPAIGNRECORD.Hub.NewRecord" },
         content: `
@@ -353,14 +359,13 @@ export function HubMixin(Base) {
             <input type="text" name="name" required autofocus></div>
           <div class="form-group"><label>${game.i18n.localize("CAMPAIGNRECORD.Hub.RecordType")}</label>
             <select name="type">${typeOptions}</select></div>
-          <div class="form-group"><label>${game.i18n.localize("CAMPAIGNRECORD.Hub.GroupPicker")}</label>
-            <select name="group">${groupOptions}</select></div>`,
+          ${groupFormGroup}`,
         ok: {
           label: "CAMPAIGNRECORD.Create",
           callback: (event, button) => ({
             name: button.form.elements.name.value.trim(),
             type: button.form.elements.type.value,
-            groupId: button.form.elements.group.value
+            groupId: button.form.elements.group?.value ?? this.groupScopeId
           })
         },
         rejectClose: false
