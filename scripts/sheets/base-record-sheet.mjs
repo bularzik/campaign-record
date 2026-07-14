@@ -5,6 +5,7 @@ import { exportRecordDialog } from "../apps/export-dialog.mjs";
 import { MODULE_ID, INLINE_EDIT_SETTING, GROUP_SHEET_CLASS } from "../constants.mjs";
 import { computeInlineEdit, createDebouncedSaver, hasInlineFocus } from "../logic/inline-edit.mjs";
 import { setBaseline } from "../logic/auto-link-baseline.mjs";
+import { sceneUuidFromContentLink, resolveSceneClickAction } from "../logic/scene-link.mjs";
 
 const { JournalEntryPageHandlebarsSheet } = foundry.applications.sheets.journal;
 const TextEditorImpl = foundry.applications.ux.TextEditor.implementation;
@@ -103,6 +104,22 @@ export class BaseRecordSheet extends JournalEntryPageHandlebarsSheet {
       });
       this.element.addEventListener("change", (event) => this.#onInlineChange(event));
     }
+    if (!this.element.dataset.crSceneLinkBound) {
+      this.element.dataset.crSceneLinkBound = "1";
+      // Capture phase so stopImmediatePropagation pre-empts Foundry's
+      // body-delegated (bubble-phase) content-link handler. Delegated on the
+      // persistent root, so it survives inner re-renders. Bound only to
+      // Campaign Record sheets — ordinary journals keep Foundry's default.
+      this.element.addEventListener("click", (event) => {
+        const uuid = sceneUuidFromContentLink(event.target);
+        if (!uuid) return;
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        this.#onSceneLinkClick(uuid).catch((error) => {
+          console.warn("campaign-record | scene-link activation failed", error);
+        });
+      }, { capture: true });
+    }
   }
 
   /**
@@ -138,6 +155,38 @@ export class BaseRecordSheet extends JournalEntryPageHandlebarsSheet {
       ui.notifications.warn(game.i18n.localize("CAMPAIGNRECORD.Warning.InlineSaveFailed"));
       this.render();
     });
+  }
+
+  /**
+   * Custom activation for scene content links on Campaign Record sheets:
+   * load the scene for users who can view it; otherwise pop up its image
+   * locally (never shared, so auto-capture never files it as media).
+   */
+  async #onSceneLinkClick(uuid) {
+    const scene = await fromUuid(uuid);
+    if (!scene) return; // broken link — nothing to do
+    // Prefer Foundry's own viewability getter when the running build exposes
+    // it; fall back to an explicit permission check. VERIFY against the live
+    // v13 build (see Step 6) — do not assume `canView` exists.
+    const canView = game.user.isGM
+      || scene.canView === true
+      // `canView` is the v13 getter; the testUserPermission fallback only runs
+      // on builds that lack it. LIMITED is the minimum ownership to view a scene.
+      || scene.testUserPermission?.(game.user, "LIMITED") === true;
+    const action = resolveSceneClickAction({
+      canView,
+      backgroundSrc: scene.background?.src,
+      thumb: scene.thumb,
+      name: scene.name
+    });
+    if (action.kind === "view") return scene.view();
+    if (action.kind === "image") {
+      return new foundry.applications.apps.ImagePopout({
+        src: action.src,
+        window: { title: action.title }
+      }).render(true);
+    }
+    ui.notifications.warn(game.i18n.localize("CAMPAIGNRECORD.Warning.SceneNoImage"));
   }
 
   /**

@@ -84,11 +84,15 @@ test.describe("campaign hub shell", () => {
     await expect(hub.locator(".record-group-header")).toHaveCount(0); // default sort = name
 
     await hub.locator('.sort-summary').click();
-    await hub.locator('.sort-menu input[name="sort-select"][value="type"]').check();
+    // Use click(), not check(): selecting the radio fires a `change` handler
+    // that re-renders the index part and detaches this very node, so check()'s
+    // post-action "is it checked" verification would poll a dead node forever.
+    // Assert on the outcome (grouped headers) instead.
+    await hub.locator('.sort-menu input[name="sort-select"][value="type"]').click();
     await expect(hub.locator(".record-group-header").first()).toBeVisible();
 
     await hub.locator('.sort-summary').click();
-    await hub.locator('.sort-menu input[name="sort-select"][value="name"]').check();
+    await hub.locator('.sort-menu input[name="sort-select"][value="name"]').click();
     await expect(hub.locator(".record-group-header")).toHaveCount(0);
 
     await deleteGroupsByPrefix(page, "E2E Hub Sort");
