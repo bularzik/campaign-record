@@ -54,6 +54,7 @@ export function HubMixin(Base) {
         exportGroup: HubBase.#onExportGroup,
         clearFilters: HubBase.#onClearFilters,
         toggleSnippets: HubBase.#onToggleSnippets,
+        setTimelineOrder: HubBase.#onSetTimelineOrder,
         addTimepoint: HubBase.#onAddTimepoint,
         editTimepoint: HubBase.#onEditTimepoint,
         deleteTimepoint: HubBase.#onDeleteTimepoint,
@@ -567,6 +568,13 @@ export function HubMixin(Base) {
       await this.render({ parts: ["header", "index"] });
     }
 
+    static async #onSetTimelineOrder(event, target) {
+      const order = target.dataset.order;
+      if (!["manual", "created", "campaign"].includes(order)) return;
+      // The setting's onChange re-renders header + timeline for every open hub.
+      await game.settings.set(MODULE_ID, TIMELINE_ORDER_SETTING, order);
+    }
+
     #onTimelineDragStart(event) {
       const tpRow = event.target.closest("[data-drag-timepoint]");
       const recordRow = event.target.closest("[data-drag-record]");
@@ -678,6 +686,12 @@ export function HubMixin(Base) {
       context.showDateColumn = game.settings.get(MODULE_ID, TIMELINE_ORDER_SETTING) !== "manual";
       context.inlineEditing = game.settings.get(MODULE_ID, INLINE_EDIT_SETTING);
       context.settingsMenuOpen = this.state.settingsMenuOpen;
+      const orderMode = game.settings.get(MODULE_ID, TIMELINE_ORDER_SETTING);
+      context.orderOptions = ["manual", "created", "campaign"].map((value) => ({
+        value,
+        label: game.i18n.localize(`CAMPAIGNRECORD.Hub.Order.${value}`),
+        selected: orderMode === value
+      }));
       const target = getTargetGroup();
       context.autoTargetNoneSelected = !target;
       context.autoTargetOptions = getGroups().map((g) => ({

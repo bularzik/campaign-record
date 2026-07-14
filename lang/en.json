@@ -89,6 +89,8 @@
       "ToggleShowPlayers": "Toggle player visibility of this image",
       "ToggleThumbnails": "Toggle thumbnail view",
       "ToggleInlineEdit": "Toggle inline editing",
+      "OrderBy": "Timeline order",
+      "Order": { "manual": "Manual", "created": "Create date", "campaign": "Campaign date" },
       "Back": "Back",
       "Forward": "Forward",
       "ToggleRail": "Toggle entry list",
