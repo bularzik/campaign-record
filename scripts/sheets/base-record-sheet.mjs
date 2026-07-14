@@ -115,7 +115,9 @@ export class BaseRecordSheet extends JournalEntryPageHandlebarsSheet {
         if (!uuid) return;
         event.preventDefault();
         event.stopImmediatePropagation();
-        this.#onSceneLinkClick(uuid);
+        this.#onSceneLinkClick(uuid).catch((error) => {
+          console.warn("campaign-record | scene-link activation failed", error);
+        });
       }, { capture: true });
     }
   }
@@ -168,6 +170,8 @@ export class BaseRecordSheet extends JournalEntryPageHandlebarsSheet {
     // v13 build (see Step 6) — do not assume `canView` exists.
     const canView = game.user.isGM
       || scene.canView === true
+      // `canView` is the v13 getter; the testUserPermission fallback only runs
+      // on builds that lack it. LIMITED is the minimum ownership to view a scene.
       || scene.testUserPermission?.(game.user, "LIMITED") === true;
     const action = resolveSceneClickAction({
       canView,

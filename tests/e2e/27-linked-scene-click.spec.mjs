@@ -77,8 +77,11 @@ test.describe("linked-scene content-link click", () => {
       const linkUuid = link.dataset.uuid;
 
       link.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
-      // Give the async handler (fromUuid + scene.view()) time to settle.
-      await new Promise((r) => setTimeout(r, 800));
+      // Poll for the async handler (fromUuid + scene.view()) to settle.
+      const settleBy = Date.now() + 5000;
+      while (Date.now() < settleBy && canvas?.scene?.id !== sceneId) {
+        await new Promise((r) => setTimeout(r, 50));
+      }
 
       // Any Scene config sheet open would mean core's default handler leaked
       // through instead of being pre-empted.
