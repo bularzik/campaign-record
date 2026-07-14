@@ -54,6 +54,9 @@ export const RAIL_SETTING = "recordRailCollapsed";
 /** Client setting: expand Index rows with search-match snippets. */
 export const SNIPPETS_SETTING = "hubSnippets";
 
+/** Client setting: timeline order mode — "manual" | "created" | "campaign". */
+export const TIMELINE_ORDER_SETTING = "timelineOrder";
+
 /** Registered sheet id (scope.ClassName) that opens groups in the Campaign Hub. */
 export const GROUP_SHEET_CLASS = `${MODULE_ID}.GroupHubSheet`;
 
