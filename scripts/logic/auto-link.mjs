@@ -38,3 +38,19 @@ export function tokenizeHtml(html) {
   if (i > textStart) segs.push({ type: "text", raw: html.slice(textStart) });
   return segs;
 }
+
+const WORD_RE = /[\p{L}\p{N}][\p{L}\p{N}'’-]*/gu;
+
+/** Ordered visible words from "text" segments, with their in-segment offsets. */
+export function extractWords(segs) {
+  const words = [];
+  segs.forEach((seg, segIndex) => {
+    if (seg.type !== "text") return;
+    WORD_RE.lastIndex = 0;
+    let m;
+    while ((m = WORD_RE.exec(seg.raw))) {
+      words.push({ text: m[0], segIndex, start: m.index, end: m.index + m[0].length });
+    }
+  });
+  return words;
+}

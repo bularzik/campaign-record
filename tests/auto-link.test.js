@@ -1,6 +1,6 @@
 // tests/auto-link.test.js
 import { describe, it, expect } from "vitest";
-import { tokenizeHtml } from "../scripts/logic/auto-link.mjs";
+import { tokenizeHtml, extractWords } from "../scripts/logic/auto-link.mjs";
 
 describe("tokenizeHtml", () => {
   it("classifies text, tags, anchors, shorthand links and code; round-trips losslessly", () => {
@@ -18,5 +18,20 @@ describe("tokenizeHtml", () => {
 
   it("returns a single text segment for plain prose", () => {
     expect(tokenizeHtml("Just words")).toEqual([{ type: "text", raw: "Just words" }]);
+  });
+});
+
+describe("extractWords", () => {
+  it("lists words from text segments only, with segment offsets, skipping links/tags", () => {
+    const segs = tokenizeHtml("<p>Met @UUID[x]{Frodo} today</p>");
+    const words = extractWords(segs);
+    expect(words.map((w) => w.text)).toEqual(["Met", "today"]);
+    const met = words[0];
+    expect(segs[met.segIndex].raw.slice(met.start, met.end)).toBe("Met");
+  });
+
+  it("treats apostrophes and hyphens as intra-word", () => {
+    expect(extractWords(tokenizeHtml("Al'Akbar half-elf")).map((w) => w.text))
+      .toEqual(["Al'Akbar", "half-elf"]);
   });
 });
