@@ -153,7 +153,11 @@ export function registerAutoCapture() {
   // GM begins combat → create an Encounter on the scene's Place timepoint.
   Hooks.on("combatStart", async (combat) => {
     if (game.user !== game.users.activeGM) return;
-    const scene = combat.scene;
+    // Foundry v13 creates combats UNLINKED (combat.scene === null) by default;
+    // the tracker only links a combat to a scene via an explicit menu toggle.
+    // Fall back to the active scene — the same scene the map-activation flow
+    // keyed the Place/timepoint to — so the Encounter attaches to that Place.
+    const scene = combat.scene ?? game.scenes?.active ?? null;
     if (!scene) return;
     const group = getTargetGroup();
     if (!group) return;

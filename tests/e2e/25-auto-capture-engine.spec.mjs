@@ -72,8 +72,11 @@ test.describe("auto-capture engine", () => {
     ).toBe(true);
 
     // --- COMBAT START -> Encounter attached to the Place's timepoint, collapsed roster ---
-    await page.evaluate(async ({ sceneId, goblinId }) => {
-      const combat = await Combat.create({ scene: sceneId });
+    // Create the combat UNLINKED (no scene) — the Foundry v13 default when a GM
+    // clicks "Create Encounter" in the tracker. The engine must fall back to the
+    // active scene, so the Encounter still lands on the activated scene's Place.
+    await page.evaluate(async ({ goblinId }) => {
+      const combat = await Combat.create({});
       await combat.createEmbeddedDocuments("Combatant", [{ actorId: goblinId }, { actorId: goblinId }]);
       await combat.startCombat();
       globalThis.__e2eCombatId = combat.id;
