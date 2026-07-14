@@ -103,4 +103,19 @@ describe("autoLinkAdded", () => {
   it("returns input unchanged when there are no candidates", () => {
     expect(autoLinkAdded("", "Gandalf", [])).toBe("Gandalf");
   });
+
+  it("does not match a multi-word name split by non-whitespace (sentence break)", () => {
+    // Only the two-word candidate is offered, so the correct result is no link:
+    // "Waterdeep" and "Harbor" are separated by ". ", not just whitespace.
+    expect(
+      autoLinkAdded("", "We reached Waterdeep. Harbor seals were resting.", [
+        { name: "Waterdeep Harbor", uuid: "u:wh" }
+      ])
+    ).toBe("We reached Waterdeep. Harbor seals were resting.");
+  });
+
+  it("is truly idempotent: f(f(x)) === f(x)", () => {
+    const once = autoLinkAdded("", "met gandalf and Frodo", CANDS);
+    expect(autoLinkAdded("", once, CANDS)).toBe(once);
+  });
 });

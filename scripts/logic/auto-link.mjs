@@ -120,6 +120,16 @@ export function autoLinkAdded(baselineHtml, newHtml, candidates) {
           ok = false;
           break;
         }
+        // For multi-word names, the characters strictly between the previous
+        // matched word and this one must be whitespace-only — otherwise a name
+        // whose words straddle a sentence/clause break would be falsely matched.
+        if (p > 0) {
+          const gap = segs[w.segIndex].raw.slice(newWords[k + p - 1].end, w.start);
+          if (!/^\s*$/.test(gap)) {
+            ok = false;
+            break;
+          }
+        }
       }
       if (!ok) continue;
       const first = newWords[k];
