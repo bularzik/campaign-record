@@ -319,6 +319,7 @@
     "AutoCapture": {
       "NoGMForTarget": "No GM is connected, so the auto-capture target could not be changed.",
       "EncounterName": "Combat at {scene}",
+      "EncounterNameNoScene": "Combat on {date}",
       "SharedMediaName": "Shared media — {label}",
       "Died": "Died",
       "Injured": "Injured",
