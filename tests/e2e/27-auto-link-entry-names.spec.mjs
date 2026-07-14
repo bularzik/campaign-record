@@ -71,8 +71,12 @@ test.describe("auto-link entry names on save", () => {
   // first edit's content — needed to prove the baseline mention survives.
   const typeAppended = async (text) => {
     const editor = descriptionEditor();
-    await editor.click();
+    // An empty ProseMirror .editor-content collapses to zero height, so
+    // Playwright treats it as "not visible" and .click() times out. Focus it
+    // programmatically instead, then collapse the caret to the end so a second
+    // edit appends to (rather than clobbers) the first edit's content.
     await editor.evaluate((el) => {
+      el.focus();
       const range = document.createRange();
       range.selectNodeContents(el);
       range.collapse(false);
