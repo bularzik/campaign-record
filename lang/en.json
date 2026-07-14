@@ -183,7 +183,8 @@
       "SchemaNewer": "Campaign Record: this world's data (schema {stored}) was written by a newer module version than the one installed (schema {current}). Entries are read-only until you update the module.",
       "ReadOnly": "Campaign Record is read-only: the world's data schema is newer than the installed module.",
       "MigrationFailed": "Campaign Record: migrating world data to schema {version} failed — see the console. The migration will retry on next load.",
-      "InlineSaveFailed": "Saving your change failed — see the console for details."
+      "InlineSaveFailed": "Saving your change failed — see the console for details.",
+      "SceneNoImage": "This scene has no image to show."
     },
     "Common": {
       "FIELDS": {
