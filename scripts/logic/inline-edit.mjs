@@ -27,32 +27,42 @@ export function shouldShowEditToggle({ canEdit, inViewMode, inlineEditableView }
 /**
  * Debounced field saver. schedule() saves quietly (render suppressed) after
  * `delay` ms of inactivity; flush() saves immediately with a normal render.
- * A value identical to the last saved one is skipped.
+ * schedule() skips a value identical to the last save of either kind, but
+ * flush() dedups only against the last COMMITTED (non-quiet) save — so a
+ * quiet autosave never suppresses the committed save that follows it (e.g.
+ * on focusout), which is what lets passive viewers/hooks that only react to
+ * committed saves catch up.
  */
 export function createDebouncedSaver({ save, delay = 2000 }) {
   let timer = null;
-  let lastValue = null;
-  const commit = (value, quiet) => {
-    if (value === lastValue) return;
+  let lastValue = null; // last value persisted by ANY save (quiet or committed)
+  let lastCommitted = null; // last value persisted by a COMMITTED (rendered) save
+  const doSave = (value, quiet) => {
     lastValue = value;
+    if (!quiet) lastCommitted = value;
     save(value, { quiet });
   };
   return {
     /** Record the persisted value so unchanged content never saves. */
     prime(value) {
       lastValue = value;
+      lastCommitted = value;
     },
     schedule(getValue) {
       if (timer) clearTimeout(timer);
       timer = setTimeout(() => {
         timer = null;
-        commit(getValue(), true);
+        const value = getValue();
+        if (value === lastValue) return;
+        doSave(value, true);
       }, delay);
     },
     flush(getValue) {
       if (timer) clearTimeout(timer);
       timer = null;
-      commit(getValue(), false);
+      const value = getValue();
+      if (value === lastCommitted) return;
+      doSave(value, false);
     },
     cancel() {
       if (timer) clearTimeout(timer);

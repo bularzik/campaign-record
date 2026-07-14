@@ -101,6 +101,25 @@ describe("createDebouncedSaver", () => {
     vi.advanceTimersByTime(5000);
     expect(save).not.toHaveBeenCalled();
   });
+
+  it("still commits a flush after a quiet autosave persisted the same value (regression)", () => {
+    // A quiet autosave (e.g. 2s idle pause) must not suppress the committed
+    // save that follows on focusout — the auto-link hook only reacts to
+    // committed (render:true) saves, so typing a name, pausing, then
+    // clicking away must still fire a committed save even though nothing
+    // changed since the quiet autosave.
+    const save = vi.fn();
+    const saver = createDebouncedSaver({ save, delay: 2000 });
+    saver.prime("");
+    saver.schedule(() => "hello");
+    vi.advanceTimersByTime(2000);
+    expect(save).toHaveBeenCalledTimes(1);
+    expect(save).toHaveBeenNthCalledWith(1, "hello", { quiet: true });
+
+    saver.flush(() => "hello");
+    expect(save).toHaveBeenCalledTimes(2);
+    expect(save).toHaveBeenNthCalledWith(2, "hello", { quiet: false });
+  });
 });
 
 describe("hasInlineFocus", () => {

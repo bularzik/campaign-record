@@ -4,6 +4,7 @@ import { promptSelectScene } from "../apps/scene-picker.mjs";
 import { exportRecordDialog } from "../apps/export-dialog.mjs";
 import { MODULE_ID, INLINE_EDIT_SETTING, GROUP_SHEET_CLASS } from "../constants.mjs";
 import { computeInlineEdit, createDebouncedSaver, hasInlineFocus } from "../logic/inline-edit.mjs";
+import { setBaseline } from "../logic/auto-link-baseline.mjs";
 
 const { JournalEntryPageHandlebarsSheet } = foundry.applications.sheets.journal;
 const TextEditorImpl = foundry.applications.ux.TextEditor.implementation;
@@ -83,6 +84,13 @@ export class BaseRecordSheet extends JournalEntryPageHandlebarsSheet {
 
   _onRender(context, options) {
     super._onRender(context, options);
+    // Snapshot the pre-edit prose as the auto-link diff baseline. Quiet inline
+    // autosaves render:false, so they never reach here and never pollute it.
+    for (const field of ["system.description", "system.gmNotes", "system.rewards", "system.distribution"]) {
+      if (foundry.utils.hasProperty(this.document, field)) {
+        setBaseline(this.document.uuid, field, foundry.utils.getProperty(this.document, field) ?? "");
+      }
+    }
     new foundry.applications.ux.DragDrop.implementation({
       dropSelector: ".campaign-record-drop",
       callbacks: { drop: this.#onDrop.bind(this) }

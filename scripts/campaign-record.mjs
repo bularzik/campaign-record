@@ -1,6 +1,7 @@
 import "./testing/quench.mjs";
 import { registerDataModels } from "./data/registration.mjs";
 import { registerUpdateGuards } from "./hooks/guards.mjs";
+import { registerAutoLink } from "./hooks/auto-link.mjs";
 import { registerDirectoryUI } from "./hooks/directory.mjs";
 import { registerHubUI, registerHubKeybinding, registerHubSettings } from "./hooks/hub-ui.mjs";
 import { ensureRecordsFolder } from "./data/groups.mjs";
@@ -18,6 +19,7 @@ Hooks.once("init", () => {
   registerSheets();
   registerPartials();
   registerUpdateGuards();
+  registerAutoLink();
   registerDirectoryUI();
   registerHubUI();
   registerHubKeybinding();
