@@ -1,10 +1,66 @@
 import { isGroup } from "../data/groups.mjs";
 import { setTargetGroup, getTargetGroup } from "../settings/auto-target.mjs";
-import { MODULE_ID, typeId, ENCOUNTER_FLAG, DEPARTED_FLAG } from "../constants.mjs";
+import { MODULE_ID, typeId, ENCOUNTER_FLAG, DEPARTED_FLAG, AUTO_MEDIA_FLAG, MEDIA_CAPTURE_SETTING } from "../constants.mjs";
 import { addTimepoint, addLink, getTimepoints, timepointsForRecord } from "../data/timepoints.mjs";
-import { matchPlaceForScene, pickLatestTimepoint, collapseParticipants, mergeParticipants, summarizeOutcome } from "../logic/auto-capture.mjs";
+import { matchPlaceForScene, pickLatestTimepoint, pickNewestTimepoint, collapseParticipants, mergeParticipants, summarizeOutcome, appendGalleryImage } from "../logic/auto-capture.mjs";
 
 const PLACE_TYPE = typeId("place");
+const MEDIA_TYPE = typeId("media");
+
+/** The auto-created gallery page for a timepoint in this group, or null. */
+function findAutoGallery(group, timepointId) {
+  return group.pages.find(
+    (p) => p.type === MEDIA_TYPE && p.getFlag(MODULE_ID, AUTO_MEDIA_FLAG) === timepointId
+  ) ?? null;
+}
+
+/**
+ * File a GM-shared image/video into the target group's newest-timepoint
+ * gallery. Creates a first timepoint on an empty timeline, and creates the
+ * gallery (with a single timeline link) the first time media lands on a
+ * timepoint; later shares append to that gallery, deduped by src.
+ */
+async function doCaptureSharedMedia(src, caption) {
+  if (!src) return;
+  if (!game.settings.get(MODULE_ID, MEDIA_CAPTURE_SETTING)) return;
+  const group = getTargetGroup();
+  if (!group) return;
+
+  let tp = pickNewestTimepoint(getTimepoints(group));
+  if (!tp) tp = await addTimepoint(group, new Date().toLocaleDateString());
+
+  const entry = { id: foundry.utils.randomID(), src, caption: caption ?? "" };
+  const gallery = findAutoGallery(group, tp.id);
+  if (gallery) {
+    const { images, added } = appendGalleryImage(gallery.system.toObject().images, entry);
+    if (added) await gallery.update({ "system.images": images });
+    return;
+  }
+
+  const name = game.i18n.format("CAMPAIGNRECORD.AutoCapture.SharedMediaName", { label: tp.label });
+  const [page] = await group.createEmbeddedDocuments("JournalEntryPage", [
+    {
+      name,
+      type: MEDIA_TYPE,
+      system: { images: [entry] },
+      flags: { [MODULE_ID]: { [AUTO_MEDIA_FLAG]: tp.id } }
+    }
+  ]);
+  await addLink(group, tp.id, { uuid: page.uuid, name: page.name, type: "JournalEntryPage" });
+}
+
+// Serializes captures per client so rapid back-to-back shares can't race
+// findAutoGallery against a still-pending gallery create for the same
+// timepoint (which would otherwise produce duplicate galleries/links).
+let captureQueue = Promise.resolve();
+
+/** Queue a shared-media capture so it never overlaps a prior in-flight one. */
+export function captureSharedMedia(src, caption) {
+  captureQueue = captureQueue
+    .then(() => doCaptureSharedMedia(src, caption))
+    .catch((err) => console.error("campaign-record | shared-media capture failed", err));
+  return captureQueue;
+}
 
 /** Every place page in a group whose scene is set. */
 function placesOf(group) {
@@ -144,4 +200,21 @@ export function registerAutoCapture() {
     });
     await encounter.update({ "system.outcome": outcome });
   });
+
+  // GM shows players an image/video via Foundry's native "Show Players" →
+  // file it onto the newest timepoint. shareImage fires no hook and the
+  // socket emit doesn't echo to the sender, so wrap the prototype method
+  // (the button calls `this.shareImage()` with no args); the sharing GM
+  // captures on their own client (single-writer, no relay).
+  const ImagePopout = foundry.applications.apps.ImagePopout;
+  const originalShareImage = ImagePopout.prototype.shareImage;
+  ImagePopout.prototype.shareImage = function (options = {}) {
+    const result = originalShareImage.call(this, options);
+    if (game.user.isGM) {
+      const src = options.image ?? this.options?.src;
+      const caption = options.caption || this.options?.caption || options.title || this.options?.window?.title || "";
+      captureSharedMedia(src, caption);
+    }
+    return result;
+  };
 }

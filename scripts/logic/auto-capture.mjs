@@ -74,3 +74,30 @@ export function summarizeOutcome(state, labels) {
   if (fled.length) parts.push(`${labels.fled}: ${countedNames(fled)}`);
   return parts.length ? parts.join(" · ") : labels.none;
 }
+
+/** The timepoint with the greatest sort, or null when there are none. */
+export function pickNewestTimepoint(timepoints) {
+  let best = null;
+  for (const tp of timepoints) if (best === null || tp.sort > best.sort) best = tp;
+  return best;
+}
+
+const VIDEO_EXTENSIONS = ["webm", "mp4", "m4v", "ogv", "mov"];
+
+/** True when a source path is a video by file extension (case-insensitive). */
+export function isVideoSrc(src) {
+  if (typeof src !== "string") return false;
+  const clean = src.split("?")[0].split("#")[0];
+  const dot = clean.lastIndexOf(".");
+  if (dot < 0) return false;
+  return VIDEO_EXTENSIONS.includes(clean.slice(dot + 1).toLowerCase());
+}
+
+/**
+ * Append an image to a gallery, deduped by src. Returns { images, added };
+ * added is false (and images unchanged) when src is already present.
+ */
+export function appendGalleryImage(images, entry) {
+  if (images.some((i) => i.src === entry.src)) return { images, added: false };
+  return { images: [...images, entry], added: true };
+}

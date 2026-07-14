@@ -1,4 +1,5 @@
 import { MODULE_ID, typeId } from "../constants.mjs";
+import { isVideoSrc } from "../logic/auto-capture.mjs";
 import { NpcSheet } from "./npc-sheet.mjs";
 import { PlaceSheet } from "./place-sheet.mjs";
 import { QuestSheet } from "./quest-sheet.mjs";
@@ -57,6 +58,7 @@ export function registerSheets() {
 }
 
 export function registerPartials() {
+  Handlebars.registerHelper("crIsVideo", (src) => isVideoSrc(src));
   return foundry.applications.handlebars.loadTemplates({
     "campaign-record.common-edit": "modules/campaign-record/templates/partials/common-edit.hbs",
     "campaign-record.common-view": "modules/campaign-record/templates/partials/common-view.hbs",

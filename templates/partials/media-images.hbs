@@ -3,7 +3,11 @@
   <ol data-rows="images">
     {{#each system.images}}
     <li data-row-id="{{this.id}}" class="media-image-row">
+      {{#if (crIsVideo this.src)}}
+      <video src="{{this.src}}" muted></video>
+      {{else}}
       <img src="{{this.src}}" alt="{{this.caption}}">
+      {{/if}}
       <input type="text" data-row-field="caption" value="{{this.caption}}"
              placeholder="{{localize "CAMPAIGNRECORD.Media.CaptionPlaceholder"}}">
       {{#if @root.isGM}}

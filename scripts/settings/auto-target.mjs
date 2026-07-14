@@ -1,4 +1,4 @@
-import { MODULE_ID, AUTO_TARGET_SETTING, AUTO_TARGET_ACTION } from "../constants.mjs";
+import { MODULE_ID, AUTO_TARGET_SETTING, AUTO_TARGET_ACTION, MEDIA_CAPTURE_SETTING } from "../constants.mjs";
 import { SOCKET_NAME } from "../presenter/socket.mjs";
 import { getGroups } from "../data/groups.mjs";
 import { resolveTargetGroup } from "../logic/auto-capture.mjs";
@@ -17,6 +17,15 @@ export function registerAutoTargetSetting() {
         }
       }
     }
+  });
+
+  game.settings.register(MODULE_ID, MEDIA_CAPTURE_SETTING, {
+    name: "CAMPAIGNRECORD.Settings.AutoCaptureSharedMedia.Name",
+    hint: "CAMPAIGNRECORD.Settings.AutoCaptureSharedMedia.Hint",
+    scope: "world",
+    config: true,
+    type: Boolean,
+    default: true
   });
 }
 

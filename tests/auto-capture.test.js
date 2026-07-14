@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { resolveTargetGroup, collapseParticipants, mergeParticipants, matchPlaceForScene, pickLatestTimepoint, summarizeOutcome } from "../scripts/logic/auto-capture.mjs";
+import { resolveTargetGroup, collapseParticipants, mergeParticipants, matchPlaceForScene, pickLatestTimepoint, summarizeOutcome, pickNewestTimepoint, isVideoSrc, appendGalleryImage } from "../scripts/logic/auto-capture.mjs";
 
 describe("resolveTargetGroup", () => {
   const groups = [{ id: "a" }, { id: "b" }];
@@ -109,5 +109,42 @@ describe("summarizeOutcome", () => {
     }, labels);
     expect(s).toContain("Died: Orc");
     expect(s).not.toContain("Fled");
+  });
+});
+
+describe("pickNewestTimepoint", () => {
+  it("returns the timepoint with the greatest sort", () => {
+    const tps = [{ id: "a", sort: 100 }, { id: "c", sort: 300 }, { id: "b", sort: 200 }];
+    expect(pickNewestTimepoint(tps)).toEqual({ id: "c", sort: 300 });
+  });
+  it("returns null for an empty list", () => {
+    expect(pickNewestTimepoint([])).toBe(null);
+  });
+});
+
+describe("isVideoSrc", () => {
+  it("recognizes common video extensions case-insensitively", () => {
+    expect(isVideoSrc("path/to/clip.webm")).toBe(true);
+    expect(isVideoSrc("HANDOUT.MP4")).toBe(true);
+    expect(isVideoSrc("worlds/x/scene.m4v?123")).toBe(true);
+  });
+  it("returns false for images and non-strings", () => {
+    expect(isVideoSrc("art/map.webp")).toBe(false);
+    expect(isVideoSrc("no-extension")).toBe(false);
+    expect(isVideoSrc(null)).toBe(false);
+  });
+});
+
+describe("appendGalleryImage", () => {
+  it("appends a new entry and reports added", () => {
+    const { images, added } = appendGalleryImage([{ id: "1", src: "a.webp" }], { id: "2", src: "b.mp4" });
+    expect(added).toBe(true);
+    expect(images).toEqual([{ id: "1", src: "a.webp" }, { id: "2", src: "b.mp4" }]);
+  });
+  it("dedups by src and reports not added", () => {
+    const existing = [{ id: "1", src: "a.webp" }];
+    const { images, added } = appendGalleryImage(existing, { id: "9", src: "a.webp" });
+    expect(added).toBe(false);
+    expect(images).toBe(existing);
   });
 });
