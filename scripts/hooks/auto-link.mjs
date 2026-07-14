@@ -48,6 +48,7 @@ function buildCandidates(page) {
 export function registerAutoLink() {
   Hooks.on("preUpdateJournalEntryPage", (page, changes, options) => {
     if (options?.render === false) return;
+    if (!FIELDS.some((f) => foundry.utils.hasProperty(changes, f))) return;
     const candidates = buildCandidates(page);
     if (!candidates.length) return;
     for (const field of FIELDS) {
