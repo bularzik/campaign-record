@@ -1,7 +1,8 @@
 import { getGroups } from "../../data/groups.mjs";
 import { getTargetGroup, setTargetGroup } from "../../settings/auto-target.mjs";
 import {
-  MODULE_ID, RAIL_SETTING, INLINE_EDIT_SETTING, SNIPPETS_SETTING, RECORD_TYPES, typeId, GROUP_SHEET_CLASS
+  MODULE_ID, RAIL_SETTING, INLINE_EDIT_SETTING, SNIPPETS_SETTING, RECORD_TYPES, typeId, GROUP_SHEET_CLASS,
+  TIMELINE_ORDER_SETTING
 } from "../../constants.mjs";
 import { hasInlineFocus, shouldShowEditToggle } from "../../logic/inline-edit.mjs";
 import { buildDoctypeFilter } from "../../logic/doctype-filter.mjs";
@@ -12,8 +13,9 @@ import { hasGroupFlag, isRecordVisible } from "../../logic/visibility.mjs";
 import { classifyDropData, filenameFromSrc, recordDragPayload } from "../../logic/timeline-links.mjs";
 import { classifyLinkTarget } from "../../logic/record-links.mjs";
 import * as Timepoints from "../../data/timepoints.mjs";
-import { getCalendarMonths, calendarBounds, hasCalendar } from "../../logic/campaign-calendar.mjs";
-import { parseCampaignDateInput } from "../../logic/campaign-date.mjs";
+import { getCalendarMonths, calendarBounds, hasCalendar, formatCampaignDate } from "../../logic/campaign-calendar.mjs";
+import { parseCampaignDateInput, formatCreateDate } from "../../logic/campaign-date.mjs";
+import { orderTimepoints } from "../../logic/timeline-sort.mjs";
 import { ImportWizard } from "../import-wizard.mjs";
 import { exportGroupDialog } from "../export-dialog.mjs";
 import { RecordPane } from "./record-pane.mjs";
@@ -393,16 +395,22 @@ export function HubMixin(Base) {
     }
 
     #timelineGroups() {
+      const mode = game.settings.get(MODULE_ID, TIMELINE_ORDER_SETTING);
       return getScopedGroups(this.groupScopeId).map((group) => {
         const canEdit = group.canUserModify(game.user, "update");
+        const ordered = orderTimepoints(Timepoints.getTimepoints(group), mode);
         return {
           id: group.id,
           name: group.name,
           canEdit,
-          timepoints: Timepoints.getTimepoints(group).map((tp, i) => ({
+          manualMode: mode === "manual",
+          timepoints: ordered.map((tp, i) => ({
             ...tp,
             position: i,
             canEdit,
+            dateLabel: mode === "campaign"
+              ? formatCampaignDate(tp.campaignDate)
+              : formatCreateDate(tp.createdAt),
             links: Timepoints.resolveLinks(tp, game.user).map((entry) => ({
               ...entry,
               broken: entry.kind === "broken",
@@ -667,6 +675,7 @@ export function HubMixin(Base) {
       );
       context.sortMenuOpen = this.state.sortMenuOpen;
       context.timelineGroups = this.#timelineGroups();
+      context.showDateColumn = game.settings.get(MODULE_ID, TIMELINE_ORDER_SETTING) !== "manual";
       context.inlineEditing = game.settings.get(MODULE_ID, INLINE_EDIT_SETTING);
       context.settingsMenuOpen = this.state.settingsMenuOpen;
       const target = getTargetGroup();

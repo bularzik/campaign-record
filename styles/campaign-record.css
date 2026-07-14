@@ -261,6 +261,34 @@
   flex: 1;
 }
 
+/* Date-ordered timeline: right-justified date column + one continuous divider. */
+.campaign-hub .timepoints.with-dates {
+  position: relative;
+  border-left: none;
+}
+.campaign-hub .timepoints.with-dates::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: var(--cr-date-col-width, 7rem);
+  width: 2px;
+  background: var(--color-border-light-primary, #7a7971);
+}
+.campaign-hub .timepoints.with-dates .timepoint {
+  display: grid;
+  grid-template-columns: var(--cr-date-col-width, 7rem) 1fr;
+  column-gap: 0.75rem;
+  margin-left: 0;
+}
+.campaign-hub .timepoint-date {
+  text-align: right;
+  padding-right: 0.5rem;
+  align-self: start;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-dark-secondary, #4b4a44);
+}
+
 .campaign-hub .timepoint-head button {
   width: auto;
   line-height: 1;

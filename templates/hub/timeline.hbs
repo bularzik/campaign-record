@@ -9,37 +9,42 @@
   {{#each timelineGroups}}
   <section class="timeline-group" data-group-id="{{this.id}}">
     {{#if @root.allSelected}}<h3>{{this.name}}</h3>{{/if}}
-    <ol class="timepoints">
+    <ol class="timepoints{{#unless @root.showDateColumn}} manual{{/unless}}{{#if @root.showDateColumn}} with-dates{{/if}}">
       {{#each this.timepoints}}
       <li class="timepoint" data-timepoint-id="{{this.id}}" data-position="{{this.position}}"
-          data-drag-timepoint data-drop-timepoint draggable="true">
-        <div class="timepoint-head">
-          <span class="timepoint-label">{{this.label}}</span>
-          {{#if this.canEdit}}
-          <button type="button" data-action="addTimepoint" data-position="{{this.position}}"
-                  data-tooltip="CAMPAIGNRECORD.Hub.InsertBefore"><i class="fa-solid fa-arrow-up"></i></button>
-          <button type="button" data-action="renameTimepoint"
-                  data-tooltip="CAMPAIGNRECORD.Hub.RenameTimepoint"><i class="fa-solid fa-pen"></i></button>
-          <button type="button" data-action="deleteTimepoint"
-                  data-tooltip="CAMPAIGNRECORD.Hub.DeleteTimepoint"><i class="fa-solid fa-trash"></i></button>
-          {{/if}}
-        </div>
-        <div class="timepoint-records">
-          {{#each this.links}}
-          <span class="record-chip link-chip{{#if this.broken}} broken{{/if}}"
-                data-link-id="{{this.id}}" data-action="openLink" data-name="{{this.name}}"
-                {{#if this.uuid}}data-uuid="{{this.uuid}}"{{/if}}
-                {{#if this.src}}data-src="{{this.src}}"{{/if}}>
-            {{#if this.thumb}}<img class="link-thumb" src="{{this.thumb}}" alt="">{{else}}<i class="{{this.icon}}"></i>{{/if}}
-            {{this.name}}
-            {{#if this.canToggleVisibility}}
-            <a data-action="toggleLinkShowPlayers" data-tooltip="CAMPAIGNRECORD.Hub.ToggleShowPlayers"><i class="fa-solid {{#if this.showPlayers}}fa-eye{{else}}fa-eye-slash{{/if}}"></i></a>
+          {{#unless @root.showDateColumn}}data-drag-timepoint data-drop-timepoint draggable="true"{{/unless}}>
+        {{#if @root.showDateColumn}}<div class="timepoint-date">{{this.dateLabel}}</div>{{/if}}
+        <div class="timepoint-body">
+          <div class="timepoint-head">
+            <span class="timepoint-label">{{this.label}}</span>
+            {{#if this.canEdit}}
+            {{#unless @root.showDateColumn}}
+            <button type="button" data-action="addTimepoint" data-position="{{this.position}}"
+                    data-tooltip="CAMPAIGNRECORD.Hub.InsertBefore"><i class="fa-solid fa-arrow-up"></i></button>
+            {{/unless}}
+            <button type="button" data-action="editTimepoint"
+                    data-tooltip="CAMPAIGNRECORD.Hub.EditTimepoint"><i class="fa-solid fa-pen"></i></button>
+            <button type="button" data-action="deleteTimepoint"
+                    data-tooltip="CAMPAIGNRECORD.Hub.DeleteTimepoint"><i class="fa-solid fa-trash"></i></button>
             {{/if}}
-            {{#if ../canEdit}}
-            <a data-action="removeLink" data-tooltip="CAMPAIGNRECORD.Hub.RemoveLink"><i class="fa-solid fa-xmark"></i></a>
-            {{/if}}
-          </span>
-          {{/each}}
+          </div>
+          <div class="timepoint-records">
+            {{#each this.links}}
+            <span class="record-chip link-chip{{#if this.broken}} broken{{/if}}"
+                  data-link-id="{{this.id}}" data-action="openLink" data-name="{{this.name}}"
+                  {{#if this.uuid}}data-uuid="{{this.uuid}}"{{/if}}
+                  {{#if this.src}}data-src="{{this.src}}"{{/if}}>
+              {{#if this.thumb}}<img class="link-thumb" src="{{this.thumb}}" alt="">{{else}}<i class="{{this.icon}}"></i>{{/if}}
+              {{this.name}}
+              {{#if this.canToggleVisibility}}
+              <a data-action="toggleLinkShowPlayers" data-tooltip="CAMPAIGNRECORD.Hub.ToggleShowPlayers"><i class="fa-solid {{#if this.showPlayers}}fa-eye{{else}}fa-eye-slash{{/if}}"></i></a>
+              {{/if}}
+              {{#if ../canEdit}}
+              <a data-action="removeLink" data-tooltip="CAMPAIGNRECORD.Hub.RemoveLink"><i class="fa-solid fa-xmark"></i></a>
+              {{/if}}
+            </span>
+            {{/each}}
+          </div>
         </div>
       </li>
       {{else}}
