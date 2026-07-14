@@ -18,7 +18,7 @@ async function setTimepoints(group, timepoints) {
   await group.setFlag(MODULE_ID, GROUP_FLAG, { timepoints });
 }
 
-export async function addTimepoint(group, label, position = null) {
+export async function addTimepoint(group, label, position = null, campaignDate = null) {
   // Concurrent edits to a group's timepoints are last-write-wins on the whole
   // flag array (accepted: the array is small and edits are rare).
   if (!Number.isInteger(position)) position = null;
@@ -27,15 +27,24 @@ export async function addTimepoint(group, label, position = null) {
   const tp = {
     id: foundry.utils.randomID(),
     label,
-    sort: sortKeyBetween(tps[i - 1]?.sort ?? null, tps[i]?.sort ?? null)
+    sort: sortKeyBetween(tps[i - 1]?.sort ?? null, tps[i]?.sort ?? null),
+    createdAt: Date.now(),
+    campaignDate: campaignDate ?? null
   };
   await setTimepoints(group, [...tps, tp]);
   return tp;
 }
 
+/** Update a timepoint's label and/or campaign date. Only provided keys change. */
+export async function editTimepoint(group, id, { label, campaignDate } = {}) {
+  const patch = {};
+  if (label !== undefined) patch.label = label;
+  if (campaignDate !== undefined) patch.campaignDate = campaignDate;
+  if (Object.keys(patch).length) await updateTimepoint(group, id, patch);
+}
+
 export async function renameTimepoint(group, id, label) {
-  const tps = getTimepoints(group).map((t) => (t.id === id ? { ...t, label } : t));
-  await setTimepoints(group, tps);
+  await editTimepoint(group, id, { label });
 }
 
 export async function moveTimepoint(group, id, position) {

@@ -1,7 +1,7 @@
 import { createGroup, isGroup, setRecordHidden } from "../data/groups.mjs";
 import { RECORD_TYPES, typeId } from "../constants.mjs";
 import {
-  getTimepoints, addTimepoint, renameTimepoint, moveTimepoint, deleteTimepoint,
+  getTimepoints, addTimepoint, renameTimepoint, editTimepoint, moveTimepoint, deleteTimepoint,
   addLink, removeLink, toggleLinkShowPlayers, resolveLinks, timepointsForRecord
 } from "../data/timepoints.mjs";
 import { isRecordVisible } from "../logic/visibility.mjs";
@@ -109,6 +109,20 @@ Hooks.on("quenchReady", (quench) => {
           await moveTimepoint(group, b.id, 0);
           assert.deepEqual(getTimepoints(group).map((t) => t.label),
             ["Session 2", "Session 1", "Flashback"]);
+        });
+
+        it("stamps createdAt on add and stores a campaign date via editTimepoint", async () => {
+          const tp = await addTimepoint(group, "Dated");
+          let stored = getTimepoints(group).find((t) => t.id === tp.id);
+          assert.ok(Number.isFinite(stored.createdAt), "createdAt is set");
+          assert.equal(stored.campaignDate, null);
+
+          await editTimepoint(group, tp.id, {
+            campaignDate: { year: 1492, month: 6, day: 15, hour: null, minute: null }
+          });
+          stored = getTimepoints(group).find((t) => t.id === tp.id);
+          assert.equal(stored.campaignDate.day, 15);
+          assert.equal(stored.label, "Dated", "label unchanged when only date edited");
         });
 
         it("adds document links with dedupe and removes them", async () => {
