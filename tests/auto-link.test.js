@@ -1,6 +1,6 @@
 // tests/auto-link.test.js
 import { describe, it, expect } from "vitest";
-import { tokenizeHtml, extractWords } from "../scripts/logic/auto-link.mjs";
+import { tokenizeHtml, extractWords, diffAddedWordFlags } from "../scripts/logic/auto-link.mjs";
 
 describe("tokenizeHtml", () => {
   it("classifies text, tags, anchors, shorthand links and code; round-trips losslessly", () => {
@@ -33,5 +33,29 @@ describe("extractWords", () => {
   it("treats apostrophes and hyphens as intra-word", () => {
     expect(extractWords(tokenizeHtml("Al'Akbar half-elf")).map((w) => w.text))
       .toEqual(["Al'Akbar", "half-elf"]);
+  });
+});
+
+describe("diffAddedWordFlags", () => {
+  it("flags only inserted words", () => {
+    const base = ["we", "met", "gandalf"];
+    const next = ["we", "met", "gandalf", "then", "frodo", "joined"];
+    expect(diffAddedWordFlags(base, next)).toEqual([false, false, false, true, true, true]);
+  });
+
+  it("flags a new occurrence of a word already present elsewhere", () => {
+    const base = ["we", "met", "gandalf"];
+    const next = ["we", "met", "gandalf", "gandalf", "grinned"];
+    // LCS keeps the first three; the 4th 'gandalf' and 'grinned' are added.
+    expect(diffAddedWordFlags(base, next)).toEqual([false, false, false, true, true]);
+  });
+
+  it("is case-insensitive when aligning", () => {
+    expect(diffAddedWordFlags(["Gandalf"], ["gandalf", "smiled"]))
+      .toEqual([false, true]);
+  });
+
+  it("flags everything when baseline is empty", () => {
+    expect(diffAddedWordFlags([], ["a", "b"])).toEqual([true, true]);
   });
 });
