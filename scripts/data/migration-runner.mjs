@@ -58,6 +58,25 @@ export const MIGRATIONS = [
       }
     }
   }
+  ,{
+    version: 4,
+    // Timepoints gained a real-world createdAt and an in-world campaignDate.
+    // True creation time is unrecoverable, so stamp existing timepoints with
+    // the migration time; campaignDate stays unset. Idempotent: a group whose
+    // timepoints all already carry createdAt is skipped.
+    async run() {
+      const now = Date.now();
+      for (const group of getGroups()) {
+        const flag = group.getFlag(MODULE_ID, GROUP_FLAG);
+        const tps = flag?.timepoints;
+        if (!Array.isArray(tps) || !tps.length) continue;
+        if (tps.every((t) => Number.isFinite(t.createdAt))) continue;
+        const stamped = tps.map((t) =>
+          Number.isFinite(t.createdAt) ? t : { ...t, createdAt: now });
+        await group.setFlag(MODULE_ID, GROUP_FLAG, { ...flag, timepoints: stamped });
+      }
+    }
+  }
 ];
 
 export function registerSchemaSetting() {
