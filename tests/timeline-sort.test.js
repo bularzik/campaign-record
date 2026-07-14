@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { SORT_GAP, sortKeyBetween, sortTimepoints } from "../scripts/logic/timeline-sort.mjs";
+import { SORT_GAP, sortKeyBetween, sortTimepoints, orderTimepoints } from "../scripts/logic/timeline-sort.mjs";
 
 describe("sortKeyBetween", () => {
   it("returns 0 for an empty timeline", () => {
@@ -42,5 +42,36 @@ describe("sortTimepoints", () => {
     const sorted = sortTimepoints(input);
     expect(sorted.map((t) => t.id)).toEqual(["a", "b", "c"]);
     expect(input).toEqual(copy);
+  });
+});
+
+describe("orderTimepoints", () => {
+  const tps = [
+    { id: "a", label: "A", sort: 300000, createdAt: 30, campaignDate: { year: 1492, month: 6, day: 20, hour: null, minute: null } },
+    { id: "b", label: "B", sort: 100000, createdAt: 10, campaignDate: null },
+    { id: "c", label: "C", sort: 200000, createdAt: 20, campaignDate: { year: 1492, month: 6, day: 15, hour: null, minute: null } }
+  ];
+
+  it("manual mode preserves sort-key order", () => {
+    expect(orderTimepoints(tps, "manual").map((t) => t.id)).toEqual(["b", "c", "a"]);
+  });
+
+  it("created mode orders by createdAt ascending, tie-broken by sort key", () => {
+    const tie = [
+      { id: "x", label: "X", sort: 200000, createdAt: 5, campaignDate: null },
+      { id: "y", label: "Y", sort: 100000, createdAt: 5, campaignDate: null }
+    ];
+    expect(orderTimepoints(tie, "created").map((t) => t.id)).toEqual(["y", "x"]);
+    expect(orderTimepoints(tps, "created").map((t) => t.id)).toEqual(["b", "c", "a"]);
+  });
+
+  it("campaign mode floats undated to the top (by createdAt), then dated ascending", () => {
+    expect(orderTimepoints(tps, "campaign").map((t) => t.id)).toEqual(["b", "c", "a"]);
+  });
+
+  it("does not mutate its input", () => {
+    const copy = tps.map((t) => ({ ...t }));
+    orderTimepoints(tps, "campaign");
+    expect(tps).toEqual(copy);
   });
 });
