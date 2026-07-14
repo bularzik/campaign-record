@@ -316,10 +316,12 @@ test.describe("hub timeline", () => {
     expect(await groupSection(gmPage).locator(".timepoint-date").count()).toBe(0);
 
     await gmPage.evaluate(() => game.settings.set("campaign-record", "timelineOrder", "created"));
-    await openTimeline(gmPage);
-    await expect(groupSection(gmPage).locator(".timepoints.with-dates")).not.toHaveCount(0, { timeout: 10_000 });
-    expect(await groupSection(gmPage).locator(".timepoint-date").count()).toBeGreaterThan(0);
-
-    await gmPage.evaluate(() => game.settings.set("campaign-record", "timelineOrder", "manual"));
+    try {
+      await openTimeline(gmPage);
+      await expect(groupSection(gmPage).locator(".timepoints.with-dates")).not.toHaveCount(0, { timeout: 10_000 });
+      expect(await groupSection(gmPage).locator(".timepoint-date").count()).toBeGreaterThan(0);
+    } finally {
+      await gmPage.evaluate(() => game.settings.set("campaign-record", "timelineOrder", "manual"));
+    }
   });
 });
