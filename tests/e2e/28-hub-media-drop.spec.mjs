@@ -42,42 +42,56 @@ test.describe("hub media drag-and-drop upload", () => {
       const { addTimepoint } = await import("/modules/campaign-record/scripts/data/timepoints.mjs");
       const group = await createGroup(`${P} Gallery`);
       await game.settings.set("campaign-record", "autoCaptureTargetGroup", group.id);
-      const tp = await addTimepoint(group, `${P} TP1`);
+      // Two timepoints: TP1 (older) and TP2 (newer, created after TP1), so the
+      // "lands on the newest timepoint" assertion can't be satisfied merely
+      // because the group happens to have only one timepoint.
+      const tp1 = await addTimepoint(group, `${P} TP1`);
+      const tp2 = await addTimepoint(group, `${P} TP2`);
       const { CampaignHub } = await import("/modules/campaign-record/scripts/apps/hub/campaign-hub.mjs");
       CampaignHub.open();
-      return { groupId: group.id, tpId: tp.id };
+      return { groupId: group.id, tp1Id: tp1.id, tp2Id: tp2.id };
     }, P);
     await page.waitForSelector("#campaign-hub .window-content");
 
     await dropFile(page, "#campaign-hub .window-content", "drop-gallery.png");
 
-    await expect.poll(() => page.evaluate(({ groupId, tpId }) => {
+    await expect.poll(() => page.evaluate(({ groupId, tp2Id }) => {
       const g = game.journal.get(groupId);
       const gallery = g.pages.find(
         (p) => p.type === "campaign-record.media"
-          && p.getFlag("campaign-record", "autoMediaTimepoint") === tpId
+          && p.getFlag("campaign-record", "autoMediaTimepoint") === tp2Id
       );
       return gallery?.system.images.length ?? 0;
     }, ids), { timeout: 15_000 }).toBe(1);
 
     // the stored src points at the uploaded copy, not a local path
-    const src = await page.evaluate(({ groupId, tpId }) => {
+    const src = await page.evaluate(({ groupId, tp2Id }) => {
       const g = game.journal.get(groupId);
       const gallery = g.pages.find(
-        (p) => p.getFlag("campaign-record", "autoMediaTimepoint") === tpId
+        (p) => p.getFlag("campaign-record", "autoMediaTimepoint") === tp2Id
       );
       return gallery.system.images[0].src;
     }, ids);
     expect(src).toContain(`campaign-record-media/${ids.groupId}/`);
     expect(src).toContain("drop-gallery.png");
 
-    // gallery is linked to the timepoint
-    const linked = await page.evaluate(async ({ groupId, tpId }) => {
+    // gallery is linked to the newest timepoint (TP2), never the older TP1
+    const [linkedToTp2, linkedToTp1, tp1GalleryExists] = await page.evaluate(async ({ groupId, tp1Id, tp2Id }) => {
       const { getTimepoints } = await import("/modules/campaign-record/scripts/data/timepoints.mjs");
       const g = game.journal.get(groupId);
-      return getTimepoints(g).find((t) => t.id === tpId).links.length;
+      const timepoints = getTimepoints(g);
+      const tp1Gallery = g.pages.find(
+        (p) => p.type === "campaign-record.media" && p.getFlag("campaign-record", "autoMediaTimepoint") === tp1Id
+      );
+      return [
+        (timepoints.find((t) => t.id === tp2Id).links ?? []).length,
+        (timepoints.find((t) => t.id === tp1Id).links ?? []).length,
+        Boolean(tp1Gallery)
+      ];
     }, ids);
-    expect(linked).toBe(1);
+    expect(linkedToTp2).toBe(1);
+    expect(linkedToTp1).toBe(0);
+    expect(tp1GalleryExists).toBe(false);
   });
 
   test("drop lands in the open media entry", async () => {
@@ -114,13 +128,13 @@ test.describe("hub media drag-and-drop upload", () => {
       const { addTimepoint } = await import("/modules/campaign-record/scripts/data/timepoints.mjs");
       const group = await createGroup(`${P} Row`);
       const tpOld = await addTimepoint(group, `${P} Older`);
-      await addTimepoint(group, `${P} Newest`);
+      const tpNewest = await addTimepoint(group, `${P} Newest`);
       const { CampaignHub } = await import("/modules/campaign-record/scripts/apps/hub/campaign-hub.mjs");
       const hub = CampaignHub.open();
       await hub.navigateToIndex();
       hub.state.groupId = group.id;
       await hub.render();
-      return { groupId: group.id, tpOldId: tpOld.id };
+      return { groupId: group.id, tpOldId: tpOld.id, tpNewestId: tpNewest.id };
     }, P);
     await page.waitForSelector(`#campaign-hub [data-drop-timepoint][data-timepoint-id="${ids.tpOldId}"]`);
 
@@ -149,5 +163,13 @@ test.describe("hub media drag-and-drop upload", () => {
     }, ids);
     expect(link.src).toContain("drop-row.png");
     expect(link.showPlayers).toBe(false);
+
+    // the newest timepoint must not have picked up the link instead
+    const newestLinks = await page.evaluate(async ({ groupId, tpNewestId }) => {
+      const { getTimepoints } = await import("/modules/campaign-record/scripts/data/timepoints.mjs");
+      const g = game.journal.get(groupId);
+      return (getTimepoints(g).find((t) => t.id === tpNewestId).links ?? []).length;
+    }, ids);
+    expect(newestLinks).toBe(0);
   });
 });
