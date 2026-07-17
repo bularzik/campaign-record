@@ -42,5 +42,6 @@
   },
   "url": "https://github.com/bularzik/campaign-record",
   "manifest": "https://github.com/bularzik/campaign-record/releases/latest/download/module.json",
-  "download": "https://github.com/bularzik/campaign-record/releases/latest/download/module.zip"
+  "download": "https://github.com/bularzik/campaign-record/releases/latest/download/module.zip",
+  "changelog": "https://raw.githubusercontent.com/bularzik/campaign-record/main/CHANGELOG.md"
 }

@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
 import {
   classifyCommit, formatVersionEntry, formatChangelog, compareSemver
 } from "../scripts/logic/changelog.mjs";
@@ -96,5 +97,30 @@ describe("compareSemver", () => {
     expect(compareSemver("1.2.10", "1.2.9")).toBeGreaterThan(0);
     expect(compareSemver("1.2.0", "1.10.0")).toBeLessThan(0);
     expect(compareSemver("1.3.0", "1.3.0")).toBe(0);
+  });
+});
+
+describe("committed changelog state", () => {
+  const changelog = readFileSync(new URL("../CHANGELOG.md", import.meta.url), "utf8");
+  const moduleJson = JSON.parse(readFileSync(new URL("../module.json", import.meta.url), "utf8"));
+  const headings = [...changelog.matchAll(/^## \[(\d+\.\d+\.\d+)\] - \d{4}-\d{2}-\d{2}$/gm)].map((m) => m[1]);
+
+  it("module.json links the raw changelog on main", () => {
+    expect(moduleJson.changelog).toBe(
+      "https://raw.githubusercontent.com/bularzik/campaign-record/main/CHANGELOG.md"
+    );
+  });
+  it("head entry matches module.json version", () => {
+    expect(headings[0]).toBe(moduleJson.version);
+  });
+  it("every ## heading is a well-formed version entry", () => {
+    const rawHeadings = changelog.split("\n").filter((l) => l.startsWith("## "));
+    expect(rawHeadings.length).toBe(headings.length);
+    expect(headings.length).toBeGreaterThanOrEqual(22);
+  });
+  it("entries are strictly descending by version", () => {
+    for (let i = 1; i < headings.length; i++) {
+      expect(compareSemver(headings[i - 1], headings[i])).toBeGreaterThan(0);
+    }
   });
 });
