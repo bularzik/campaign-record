@@ -159,9 +159,12 @@ describe("mergeGalleryImages", () => {
   });
 
   it("dedupes against existing images by src", () => {
-    const r = mergeGalleryImages([e("a.png")], [e("a.png"), e("b.png")]);
+    const existing = [e("a.png")];
+    const r = mergeGalleryImages(existing, [e("a.png"), e("b.png")]);
     expect(r.images.map((i) => i.src)).toEqual(["a.png", "b.png"]);
     expect(r.added).toBe(1);
+    expect(existing).toEqual([e("a.png")]);
+    expect(r.images).not.toBe(existing);
   });
 
   it("dedupes duplicates within the incoming batch", () => {
