@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { resolveTargetGroup, collapseParticipants, mergeParticipants, matchPlaceForScene, pickLatestTimepoint, summarizeOutcome, pickNewestTimepoint, isVideoSrc, appendGalleryImage } from "../scripts/logic/auto-capture.mjs";
+import { resolveTargetGroup, collapseParticipants, mergeParticipants, matchPlaceForScene, pickLatestTimepoint, summarizeOutcome, pickNewestTimepoint, isVideoSrc, appendGalleryImage, mergeGalleryImages } from "../scripts/logic/auto-capture.mjs";
 
 describe("resolveTargetGroup", () => {
   const groups = [{ id: "a" }, { id: "b" }];
@@ -146,5 +146,34 @@ describe("appendGalleryImage", () => {
     const { images, added } = appendGalleryImage(existing, { id: "9", src: "a.webp" });
     expect(added).toBe(false);
     expect(images).toBe(existing);
+  });
+});
+
+describe("mergeGalleryImages", () => {
+  const e = (src) => ({ id: src, src, caption: "" });
+
+  it("appends new entries and reports the count added", () => {
+    const r = mergeGalleryImages([e("a.png")], [e("b.png"), e("c.png")]);
+    expect(r.images.map((i) => i.src)).toEqual(["a.png", "b.png", "c.png"]);
+    expect(r.added).toBe(2);
+  });
+
+  it("dedupes against existing images by src", () => {
+    const r = mergeGalleryImages([e("a.png")], [e("a.png"), e("b.png")]);
+    expect(r.images.map((i) => i.src)).toEqual(["a.png", "b.png"]);
+    expect(r.added).toBe(1);
+  });
+
+  it("dedupes duplicates within the incoming batch", () => {
+    const r = mergeGalleryImages([], [e("a.png"), e("a.png")]);
+    expect(r.images.map((i) => i.src)).toEqual(["a.png"]);
+    expect(r.added).toBe(1);
+  });
+
+  it("returns existing unchanged with added 0 for an empty batch", () => {
+    const existing = [e("a.png")];
+    const r = mergeGalleryImages(existing, []);
+    expect(r.images).toEqual(existing);
+    expect(r.added).toBe(0);
   });
 });
