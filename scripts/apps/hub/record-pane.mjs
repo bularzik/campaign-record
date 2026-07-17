@@ -20,7 +20,10 @@ export class RecordPane {
     let sheet = this.#sheets.get(key);
     if (!sheet) {
       const inHubGroup = page.parent?.getFlag("core", "sheetClass") === GROUP_SHEET_CLASS;
-      const cls = (page.type === "text" && inHubGroup) ? TextPageSheet : page._getSheetClass();
+      const isMarkdown = page.text?.format === CONST.JOURNAL_ENTRY_PAGE_FORMATS.MARKDOWN;
+      const cls = (page.type === "text" && inHubGroup && !isMarkdown)
+        ? TextPageSheet
+        : page._getSheetClass();
       sheet = new cls({
         id: `campaign-record-pane-${page.id}-${mode}`,
         document: page,
