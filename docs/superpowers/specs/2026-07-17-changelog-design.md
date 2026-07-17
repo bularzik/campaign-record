@@ -70,9 +70,14 @@ tag. Since the generator derives entries only from tags, a bumped-but-untagged
 version would otherwise have no entry to commit; the generator handles this by
 synthesizing a pending entry for `module.json`'s version whenever it isn't
 among the tag versions, dated the day of generation, with commits classified
-from `<lastTag>..HEAD`. Tagging that commit later doesn't change the entry's
-content — the same range now resolves as a proper tag-to-tag walk — it just
-makes the entry permanent. A stale or missing entry fails the release, and the
+from `<lastTag>..HEAD`. Tagging that commit later keeps the entry stable
+provided the release commit uses a skipped type (the existing
+`chore: bump version…` convention) and lands the same day — then the
+tag-to-tag walk resolves to the same content and a regenerate-after-tag is
+a no-op. A `feat:`/`fix:`-titled release commit or a cross-midnight tag
+would shift that entry on the next regenerate; harmless (the gate and
+meta-test check headings, not dates/bullets), but keep release commits
+`chore:`. A stale or missing entry fails the release, and the
 local meta-test (below) catches it even earlier.
 
 ### 5. Tests
