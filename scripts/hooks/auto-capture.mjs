@@ -104,6 +104,8 @@ export function registerMediaDropSocket() {
   game.socket.on(SOCKET_NAME, (payload) => {
     if (payload?.action !== DROP_MEDIA_ACTION) return;
     if (game.user !== game.users.activeGM) return;
+    // src is caller-trusted beyond shape: module sockets carry no
+    // authenticated sender (same trust model as the presenter socket).
     if (typeof payload.src !== "string" || !payload.src) return;
     const group = game.journal.get(payload.groupId);
     if (!group || !isGroup(group)) return;

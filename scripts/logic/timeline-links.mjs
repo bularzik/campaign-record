@@ -66,6 +66,7 @@ export function classifyDropData(data, uriList = "", files = []) {
     const accepted = [];
     const rejected = [];
     for (const f of files) {
+      // Duplicates media-drop.mjs's isMediaFilename: importing it back would cycle.
       if (isImagePath(f.name) || isVideoSrc(f.name)) accepted.push(f);
       else rejected.push(f.name);
     }
