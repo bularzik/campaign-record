@@ -15,26 +15,30 @@ function findAutoGallery(group, timepointId) {
 }
 
 /**
- * File a GM-shared image/video into the target group's newest-timepoint
- * gallery. Creates a first timepoint on an empty timeline, and creates the
- * gallery (with a single timeline link) the first time media lands on a
- * timepoint; later shares append to that gallery, deduped by src.
+ * File a media entry into a group's timepoint gallery. timepointId null →
+ * newest timepoint (created date-labeled when the timeline is empty; an
+ * unknown explicit id is a no-op). Creates the gallery page (flagged with
+ * the timepoint id) and its single timeline link on first use; later
+ * filings append, deduped by src.
+ * @param {JournalEntry} group
+ * @param {{id:string,src:string,caption:string}} entry
+ * @param {string|null} timepointId
+ * @returns {Promise<{added:boolean,gallery:JournalEntryPage|null,timepointId:string|null}>}
  */
-async function doCaptureSharedMedia(src, caption) {
-  if (!src) return;
-  if (!game.settings.get(MODULE_ID, MEDIA_CAPTURE_SETTING)) return;
-  const group = getTargetGroup();
-  if (!group) return;
+export async function fileMediaToTimepoint(group, entry, timepointId = null) {
+  let tp = timepointId
+    ? getTimepoints(group).find((t) => t.id === timepointId)
+    : pickNewestTimepoint(getTimepoints(group));
+  if (!tp) {
+    if (timepointId) return { added: false, gallery: null, timepointId: null };
+    tp = await addTimepoint(group, new Date().toLocaleDateString());
+  }
 
-  let tp = pickNewestTimepoint(getTimepoints(group));
-  if (!tp) tp = await addTimepoint(group, new Date().toLocaleDateString());
-
-  const entry = { id: foundry.utils.randomID(), src, caption: caption ?? "" };
   const gallery = findAutoGallery(group, tp.id);
   if (gallery) {
     const { images, added } = appendGalleryImage(gallery.system.toObject().images, entry);
     if (added) await gallery.update({ "system.images": images });
-    return;
+    return { added, gallery, timepointId: tp.id };
   }
 
   const name = game.i18n.format("CAMPAIGNRECORD.AutoCapture.SharedMediaName", { label: tp.label });
@@ -47,19 +51,37 @@ async function doCaptureSharedMedia(src, caption) {
     }
   ]);
   await addLink(group, tp.id, { uuid: page.uuid, name: page.name, type: "JournalEntryPage" });
+  return { added: true, gallery: page, timepointId: tp.id };
 }
 
-// Serializes captures per client so rapid back-to-back shares can't race
-// findAutoGallery against a still-pending gallery create for the same
+/**
+ * File a GM-shared image/video into the target group's newest-timepoint
+ * gallery (Show Players capture).
+ */
+async function doCaptureSharedMedia(src, caption) {
+  if (!src) return;
+  if (!game.settings.get(MODULE_ID, MEDIA_CAPTURE_SETTING)) return;
+  const group = getTargetGroup();
+  if (!group) return;
+  await fileMediaToTimepoint(group, { id: foundry.utils.randomID(), src, caption: caption ?? "" });
+}
+
+// Serializes gallery filings per client so rapid back-to-back writes can't
+// race findAutoGallery against a still-pending gallery create for the same
 // timepoint (which would otherwise produce duplicate galleries/links).
-let captureQueue = Promise.resolve();
+let mediaQueue = Promise.resolve();
+
+/** Queue a gallery-filing task so it never overlaps a prior in-flight one. */
+export function queueMediaTask(task) {
+  mediaQueue = mediaQueue
+    .then(task)
+    .catch((err) => console.error("campaign-record | media filing failed", err));
+  return mediaQueue;
+}
 
 /** Queue a shared-media capture so it never overlaps a prior in-flight one. */
 export function captureSharedMedia(src, caption) {
-  captureQueue = captureQueue
-    .then(() => doCaptureSharedMedia(src, caption))
-    .catch((err) => console.error("campaign-record | shared-media capture failed", err));
-  return captureQueue;
+  return queueMediaTask(() => doCaptureSharedMedia(src, caption));
 }
 
 /** Every place page in a group whose scene is set. */
