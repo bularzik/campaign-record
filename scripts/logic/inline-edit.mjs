@@ -25,6 +25,16 @@ export function shouldShowEditToggle({ canEdit, inViewMode, inlineEditableView }
 }
 
 /**
+ * Should the hub treat the viewed page as inline-editable (drives whether the
+ * pane shows an always-open editor vs. a view + edit-toggle)? Records and plain
+ * text/journal pages both qualify; both are protected from mid-edit teardown.
+ */
+export function isInlineEditableView({ enabled, canEdit, type, inGroup }) {
+  if (!(enabled && canEdit && inGroup)) return false;
+  return type === "text" || (typeof type === "string" && type.startsWith("campaign-record."));
+}
+
+/**
  * Debounced field saver. schedule() saves quietly (render suppressed) after
  * `delay` ms of inactivity; flush() saves immediately with a normal render.
  * schedule() skips a value identical to the last save of either kind, but

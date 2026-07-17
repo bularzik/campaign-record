@@ -4,7 +4,7 @@ import {
   MODULE_ID, RAIL_SETTING, INLINE_EDIT_SETTING, SNIPPETS_SETTING, RECORD_TYPES, typeId, GROUP_SHEET_CLASS,
   TIMELINE_ORDER_SETTING
 } from "../../constants.mjs";
-import { hasActiveEditorFocus, shouldShowEditToggle } from "../../logic/inline-edit.mjs";
+import { hasActiveEditorFocus, shouldShowEditToggle, isInlineEditableView } from "../../logic/inline-edit.mjs";
 import { renderPartsForChange } from "../../logic/hub-render.mjs";
 import { buildDoctypeFilter } from "../../logic/doctype-filter.mjs";
 import { buildSortMenu } from "../../logic/sort-menu.mjs";
@@ -847,11 +847,12 @@ export function HubMixin(Base) {
       context.canGoForward = canGoForward(this.#history);
       if (this.state.view && viewedPage) {
         const canEdit = viewedPage.canUserModify(game.user, "update");
-        const inlineEditableView =
-          game.settings.get(MODULE_ID, INLINE_EDIT_SETTING) &&
-          canEdit &&
-          viewedPage.type.startsWith(`${MODULE_ID}.`) &&
-          viewedPage.parent?.getFlag("core", "sheetClass") === GROUP_SHEET_CLASS;
+        const inlineEditableView = isInlineEditableView({
+          enabled: game.settings.get(MODULE_ID, INLINE_EDIT_SETTING),
+          canEdit,
+          type: viewedPage.type,
+          inGroup: viewedPage.parent?.getFlag("core", "sheetClass") === GROUP_SHEET_CLASS
+        });
         context.view = {
           name: viewedPage.name,
           editing: this.state.view.mode === "edit",

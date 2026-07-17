@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { JSDOM } from "jsdom";
 import { computeInlineEdit, createDebouncedSaver, hasActiveEditorFocus } from "../scripts/logic/inline-edit.mjs";
 import { shouldShowEditToggle } from "../scripts/logic/inline-edit.mjs";
+import { isInlineEditableView } from "../scripts/logic/inline-edit.mjs";
 
 describe("shouldShowEditToggle", () => {
   it("hides the toggle for an inline-editable typed entry in view mode", () => {
@@ -147,5 +148,27 @@ describe("hasActiveEditorFocus", () => {
   });
   it("is false with no active element", () => {
     expect(hasActiveEditorFocus(root('<input>'), null)).toBe(false);
+  });
+});
+
+describe("isInlineEditableView", () => {
+  const base = { enabled: true, canEdit: true, inGroup: true };
+  it("is true for a record type in a hub group with the setting on", () => {
+    expect(isInlineEditableView({ ...base, type: "campaign-record.npc" })).toBe(true);
+  });
+  it("is true for a text page in a hub group with the setting on", () => {
+    expect(isInlineEditableView({ ...base, type: "text" })).toBe(true);
+  });
+  it("is false when the setting is off", () => {
+    expect(isInlineEditableView({ ...base, enabled: false, type: "text" })).toBe(false);
+  });
+  it("is false when the user cannot edit", () => {
+    expect(isInlineEditableView({ ...base, canEdit: false, type: "text" })).toBe(false);
+  });
+  it("is false outside a hub group", () => {
+    expect(isInlineEditableView({ ...base, inGroup: false, type: "text" })).toBe(false);
+  });
+  it("is false for an unrelated page type", () => {
+    expect(isInlineEditableView({ ...base, type: "image" })).toBe(false);
   });
 });
