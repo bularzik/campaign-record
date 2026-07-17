@@ -41,7 +41,9 @@ export class BaseRecordSheet extends JournalEntryPageHandlebarsSheet {
     const system = this.document.system;
     context.page = this.document;
     context.system = system;
-    context.systemFields = system.schema.fields;
+    // Plain text/journal pages have a schemaless `system`; TextPageSheet reuses
+    // this context builder and only needs `page`/`enriched`/`inlineEdit`.
+    context.systemFields = system?.schema?.fields ?? {};
     context.isGM = game.user.isGM;
     context.inlineEdit = computeInlineEdit({
       enabled: game.settings.get(MODULE_ID, INLINE_EDIT_SETTING),
@@ -50,11 +52,11 @@ export class BaseRecordSheet extends JournalEntryPageHandlebarsSheet {
       inGroup: this.document.parent?.getFlag("core", "sheetClass") === GROUP_SHEET_CLASS
     });
     context.enriched = {
-      description: await TextEditorImpl.enrichHTML(system.description, {
+      description: await TextEditorImpl.enrichHTML(system?.description ?? "", {
         relativeTo: this.document
       }),
       gmNotes: game.user.isGM
-        ? await TextEditorImpl.enrichHTML(system.gmNotes, { relativeTo: this.document })
+        ? await TextEditorImpl.enrichHTML(system?.gmNotes ?? "", { relativeTo: this.document })
         : ""
     };
     return context;
