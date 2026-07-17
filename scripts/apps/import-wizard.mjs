@@ -333,28 +333,28 @@ async function uploadInlineImages(html, group, warnings) {
   const imgs = [...doc.body.querySelectorAll('img[src^="data:"]')];
   if (!imgs.length) return { html, images: [] };
 
-  const uploadedByUri = new Map(); // data-URI -> stored path (dedupe within doc)
+  const uploadedByUri = new Map(); // data-URI -> stored path or null (dedupe within doc)
   const images = [];
-  let unsupported = 0;
+  let uploadFailed = false;
   let n = 0;
   for (const img of imgs) {
     const uri = img.getAttribute("src");
-    let path = uploadedByUri.get(uri);
-    if (path === undefined) {
+    if (!uploadedByUri.has(uri)) {
       const result = await dataUriToFile(uri, `import-${Date.now()}-${++n}`);
+      let path = null;
       if (result.skipped) {
-        unsupported++;
-        path = null;
+        warnings.push(game.i18n.format("CAMPAIGNRECORD.Import.ImageTypeUnsupported", { type: result.skipped }));
       } else {
         try {
           path = await uploadHubMedia(group, result.file);
         } catch (error) {
           console.warn("campaign-record | inline image upload failed", error);
-          path = null;
+          uploadFailed = true;
         }
       }
       uploadedByUri.set(uri, path);
     }
+    const path = uploadedByUri.get(uri);
     if (path) {
       img.setAttribute("src", path);
       const caption = (img.getAttribute("alt") ?? "").trim();
@@ -364,11 +364,7 @@ async function uploadInlineImages(html, group, warnings) {
     }
   }
 
-  if (unsupported) {
-    warnings.push(game.i18n.format("CAMPAIGNRECORD.Import.ImageTypeUnsupported", { type: "image" }));
-  }
-  const failed = imgs.length - images.length - unsupported;
-  if (failed > 0) warnings.push(game.i18n.localize("CAMPAIGNRECORD.Import.ImagesDropped"));
+  if (uploadFailed) warnings.push(game.i18n.localize("CAMPAIGNRECORD.Import.ImagesDropped"));
 
   // Dedupe refs by src so the same image inline twice yields one gallery entry.
   const seen = new Set();
