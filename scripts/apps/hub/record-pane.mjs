@@ -1,3 +1,6 @@
+import { TextPageSheet } from "../../sheets/text-page-sheet.mjs";
+import { GROUP_SHEET_CLASS } from "../../constants.mjs";
+
 /**
  * Owns the frameless page-sheet instances embedded in a hub's record pane.
  * Mirrors core JournalEntrySheet.getPageSheet(): real registered sheets,
@@ -16,7 +19,8 @@ export class RecordPane {
     }
     let sheet = this.#sheets.get(key);
     if (!sheet) {
-      const cls = page._getSheetClass();
+      const inHubGroup = page.parent?.getFlag("core", "sheetClass") === GROUP_SHEET_CLASS;
+      const cls = (page.type === "text" && inHubGroup) ? TextPageSheet : page._getSheetClass();
       sheet = new cls({
         id: `campaign-record-pane-${page.id}-${mode}`,
         document: page,

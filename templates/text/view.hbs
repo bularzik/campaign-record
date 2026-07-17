@@ -1,0 +1,7 @@
+<section class="campaign-record-content text-page-view{{#if inlineEdit}} inline-edit{{/if}}">
+  {{#if inlineEdit}}
+  <prose-mirror name="text.content" value="{{page.text.content}}" collaborate data-inline-prose data-document-uuid="{{page.uuid}}"></prose-mirror>
+  {{else}}
+  <div class="text-page-content">{{{enriched.content}}}</div>
+  {{/if}}
+</section>
