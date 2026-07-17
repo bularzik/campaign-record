@@ -15,6 +15,11 @@ jobs:
       - name: Verify tag matches module version
         run: |
           test "v$(jq -r .version module.json)" = "${GITHUB_REF_NAME}"
+      - name: Verify changelog has an entry for this version
+        run: |
+          version="$(jq -r .version module.json)"
+          grep -qE "^## \[${version}\] " CHANGELOG.md \
+            || { echo "::error::CHANGELOG.md has no entry for ${version} — run 'npm run changelog' and commit"; exit 1; }
       - name: Pin download URL to this release
         run: |
           jq --arg tag "${GITHUB_REF_NAME}" \
@@ -25,7 +30,7 @@ jobs:
         # imports ./testing/quench.mjs, so excluding it would break the shipped module.
         # vendor/ holds the mammoth (docx import) and docx (export) bundles that
         # vendor-loader.mjs fetches at runtime; omitting it 404s the importer.
-        run: zip -r module.zip module.json README.md LICENSE scripts templates styles lang vendor
+        run: zip -r module.zip module.json README.md CHANGELOG.md LICENSE scripts templates styles lang vendor
       - name: Verify required runtime assets are packaged
         # Fail the release instead of shipping a zip that 404s at runtime.
         run: |
@@ -36,6 +41,7 @@ jobs:
             lang/en.json
             vendor/mammoth.browser.min.js
             vendor/docx.iife.js
+            CHANGELOG.md
           )
           for f in "${required[@]}"; do
             unzip -l module.zip | grep -qE "[[:space:]]${f}$" || { echo "::error::missing $f in module.zip"; exit 1; }
