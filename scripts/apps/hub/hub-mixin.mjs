@@ -13,6 +13,10 @@ import { createIndex, indexRecord, removeRecord, search } from "../../logic/sear
 import { hasGroupFlag, isRecordVisible } from "../../logic/visibility.mjs";
 import { classifyDropData, filenameFromSrc, recordDragPayload } from "../../logic/timeline-links.mjs";
 import { classifyLinkTarget } from "../../logic/record-links.mjs";
+import { resolveDropTarget } from "../../logic/media-drop.mjs";
+import { isVideoSrc } from "../../logic/auto-capture.mjs";
+import { fileMediaToTimepoint, queueMediaTask, relayDroppedMedia } from "../../hooks/auto-capture.mjs";
+import { uploadHubMedia } from "./media-upload.mjs";
 import * as Timepoints from "../../data/timepoints.mjs";
 import { getCalendarMonths, calendarBounds, hasCalendar, formatCampaignDate } from "../../logic/campaign-calendar.mjs";
 import { parseCampaignDateInput, formatCreateDate } from "../../logic/campaign-date.mjs";
@@ -594,6 +598,26 @@ export function HubMixin(Base) {
       }
     }
 
+    /** All hub drops enter here: OS media files branch off; everything else keeps the timeline path. */
+    async #onHubDrop(event) {
+      let data;
+      try {
+        data = JSON.parse(event.dataTransfer.getData("text/plain")) ?? {};
+      } catch {
+        data = {};
+      }
+      const drop = classifyDropData(
+        data,
+        event.dataTransfer.getData("text/uri-list"),
+        [...(event.dataTransfer?.files ?? [])]
+      );
+      if (drop?.kind === "files") {
+        event.preventDefault();
+        return this.#onMediaFilesDrop(event, drop);
+      }
+      return this.#onTimelineDrop(event);
+    }
+
     async #onTimelineDrop(event) {
       const target = event.target.closest("[data-drop-timepoint]");
       if (!target) return;
@@ -640,6 +664,98 @@ export function HubMixin(Base) {
         return ui.notifications.warn(game.i18n.localize("CAMPAIGNRECORD.Hub.CannotEditTimeline"));
       }
       await Timepoints.addLink(group, timepointId, link);
+    }
+
+    /** The group receiving a file drop, per target kind; null when none applies. */
+    #dropGroup(target, tpRow, viewedPage) {
+      if (target.kind === "timepoint") {
+        return game.journal.get(tpRow.closest("[data-group-id]").dataset.groupId) ?? null;
+      }
+      if (target.kind === "media-entry") return viewedPage?.parent ?? null;
+      if (this.state.groupId !== "all") return game.journal.get(this.state.groupId) ?? null;
+      return getTargetGroup();
+    }
+
+    /** Upload dropped media files and attach them per the resolved target. */
+    async #onMediaFilesDrop(event, { accepted, rejected }) {
+      for (const name of rejected) {
+        ui.notifications.warn(game.i18n.format("CAMPAIGNRECORD.Hub.DropSkippedFile", { name }));
+      }
+      if (!accepted.length) return;
+      if (!game.user.can("FILES_UPLOAD")) {
+        return ui.notifications.warn(game.i18n.localize("CAMPAIGNRECORD.Hub.DropCannotUpload"));
+      }
+      const tpRow = event.target.closest("[data-drop-timepoint]");
+      const viewedPage = this.#resolveViewedPage();
+      const target = resolveDropTarget({
+        timepointId: tpRow?.dataset.timepointId ?? null,
+        viewedPage,
+        canModifyPage: viewedPage?.canUserModify(game.user, "update") === true
+      });
+      const group = this.#dropGroup(target, tpRow, viewedPage);
+      if (!group) {
+        return ui.notifications.warn(game.i18n.localize("CAMPAIGNRECORD.Hub.DropNoGroup"));
+      }
+      if (!group.canUserModify(game.user, "update")) {
+        return ui.notifications.warn(game.i18n.localize("CAMPAIGNRECORD.Hub.CannotEditTimeline"));
+      }
+      for (const file of accepted) {
+        let path;
+        try {
+          path = await uploadHubMedia(group, file);
+        } catch (error) {
+          console.error("campaign-record | media upload failed", error);
+          ui.notifications.error(game.i18n.format("CAMPAIGNRECORD.Hub.DropUploadFailed", { name: file.name }));
+          continue;
+        }
+        await this.#attachDroppedMedia(target, group, file.name, path);
+      }
+    }
+
+    /** Attach one uploaded file per the resolved target. Failures notify with the path so the upload isn't lost. */
+    async #attachDroppedMedia(target, group, name, path) {
+      const entry = { id: foundry.utils.randomID(), src: path, caption: "" };
+      try {
+        if (target.kind === "media-entry") {
+          const page = await fromUuid(target.uuid);
+          await page.update({ "system.images": [...page.system.toObject().images, entry] });
+          return ui.notifications.info(
+            game.i18n.format("CAMPAIGNRECORD.Hub.DropAdded", { name, target: page.name })
+          );
+        }
+        if (target.kind === "timepoint" && !isVideoSrc(path)) {
+          const showPlayers = await foundry.applications.api.DialogV2.confirm({
+            window: { title: "CAMPAIGNRECORD.Hub.ShowImageToPlayers" },
+            content: `<p>${game.i18n.format("CAMPAIGNRECORD.Hub.ShowImageToPlayersPrompt", {
+              name: foundry.utils.escapeHTML(name)
+            })}</p>`,
+            rejectClose: false
+          });
+          if (showPlayers === null) {
+            // Dialog dismissed: leave the file uploaded but unattached.
+            return ui.notifications.info(game.i18n.format("CAMPAIGNRECORD.Hub.DropUnattached", { name, path }));
+          }
+          await Timepoints.addLink(group, target.id, {
+            src: path, name: filenameFromSrc(path), showPlayers: showPlayers === true
+          });
+          const label = Timepoints.getTimepoints(group).find((t) => t.id === target.id)?.label ?? "";
+          return ui.notifications.info(game.i18n.format("CAMPAIGNRECORD.Hub.DropAdded", { name, target: label }));
+        }
+        // Shared auto-gallery — hub-wide drops, and videos dropped on a timepoint
+        // row (image-link chips render <img> thumbnails, broken for video).
+        const timepointId = target.kind === "timepoint" ? target.id : null;
+        if (game.user.isGM) {
+          await queueMediaTask(() => fileMediaToTimepoint(group, entry, timepointId));
+        } else if (game.users.activeGM) {
+          relayDroppedMedia(group, entry, timepointId);
+        } else {
+          return ui.notifications.warn(game.i18n.format("CAMPAIGNRECORD.Hub.DropNoGM", { name, path }));
+        }
+        ui.notifications.info(game.i18n.format("CAMPAIGNRECORD.Hub.DropAddedToGallery", { name }));
+      } catch (error) {
+        console.error("campaign-record | dropped-media attach failed", error);
+        ui.notifications.error(game.i18n.format("CAMPAIGNRECORD.Hub.DropAttachFailed", { name, path }));
+      }
     }
 
     async _prepareContext(options) {
@@ -857,12 +973,27 @@ export function HubMixin(Base) {
 
       new foundry.applications.ux.DragDrop.implementation({
         dragSelector: "[data-drag-record], [data-drag-timepoint]",
-        dropSelector: "[data-drop-timepoint]",
+        dropSelector: ".window-content",
         callbacks: {
           dragstart: this.#onTimelineDragStart.bind(this),
-          drop: this.#onTimelineDrop.bind(this)
+          drop: this.#onHubDrop.bind(this)
         }
       }).bind(this.element);
+
+      if (!this.element.dataset.crDropHoverBound) {
+        this.element.dataset.crDropHoverBound = "1";
+        this.element.addEventListener("dragover", (event) => {
+          if (![...(event.dataTransfer?.types ?? [])].includes("Files")) return;
+          event.preventDefault();
+          this.element.classList.add("cr-file-drag");
+        });
+        this.element.addEventListener("dragleave", (event) => {
+          if (!event.relatedTarget || !this.element.contains(event.relatedTarget)) {
+            this.element.classList.remove("cr-file-drag");
+          }
+        });
+        this.element.addEventListener("drop", () => this.element.classList.remove("cr-file-drag"));
+      }
 
       this.element.classList.toggle("rail-collapsed", game.settings.get(MODULE_ID, RAIL_SETTING));
       // The timeline stays mounted (live) beneath an open record, but the

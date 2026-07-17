@@ -164,3 +164,25 @@ describe("recordLinkMigrationEntries", () => {
     expect(recordLinkMigrationEntries([{ uuid: "x", name: "x", timepointIds: [] }])).toEqual([]);
   });
 });
+
+describe("classifyDropData files kind", () => {
+  it("classifies dropped files, splitting media from the rest", () => {
+    const files = [
+      { name: "map.png" }, { name: "intro.webm" }, { name: "notes.pdf" }
+    ];
+    const result = classifyDropData({}, "", files);
+    expect(result.kind).toBe("files");
+    expect(result.accepted.map((f) => f.name)).toEqual(["map.png", "intro.webm"]);
+    expect(result.rejected).toEqual(["notes.pdf"]);
+  });
+  it("files take precedence over other payload data", () => {
+    const result = classifyDropData({ type: "Actor", uuid: "Actor.x" }, "", [{ name: "a.png" }]);
+    expect(result.kind).toBe("files");
+  });
+  it("without files, existing classification is unchanged", () => {
+    expect(classifyDropData({ type: "Actor", uuid: "Actor.x" }))
+      .toEqual({ kind: "document", uuid: "Actor.x", type: "Actor" });
+    expect(classifyDropData({ src: "art/a.png" })).toEqual({ kind: "image", src: "art/a.png" });
+    expect(classifyDropData({}, "")).toBeNull();
+  });
+});

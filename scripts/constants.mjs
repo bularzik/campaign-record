@@ -66,6 +66,9 @@ export const AUTO_TARGET_SETTING = "autoCaptureTargetGroup";
 /** Socket action: relay a target-group change to the active GM. */
 export const AUTO_TARGET_ACTION = "set-auto-target";
 
+/** Socket action: relay a dropped-media gallery filing to the active GM. */
+export const DROP_MEDIA_ACTION = "file-dropped-media";
+
 /** Combat flag: uuid of the Encounter page this combat is captured into. */
 export const ENCOUNTER_FLAG = "encounterUuid";
 

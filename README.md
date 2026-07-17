@@ -21,6 +21,10 @@ for dnd5e.
 - **GM-only media presenter**: push images from a Media entry's gallery to
   all connected players as a fullscreen overlay, with a synced slideshow
   (prev/next and optional auto-advance) and per-viewer dismiss.
+- **Drag-and-drop media upload**: drop an image or video from your desktop
+  onto the Campaign Hub and it uploads to the server, landing in the open
+  media entry, the timepoint you dropped it on, or the newest timepoint's
+  shared media gallery.
 - **Hidden entries & GM notes**: GMs can hide any entry from players and
   keep private GM Notes on any entry; both are stripped at render time.
 - **dnd5e integration**: dropping a weapon onto a Shop or Item entry

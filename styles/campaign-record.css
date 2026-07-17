@@ -852,3 +852,9 @@
   opacity: 0.7;
   padding: 0 0.25rem;
 }
+
+/* Hub drop-zone highlight while dragging OS files over the window. */
+.campaign-hub.cr-file-drag .window-content {
+  outline: 2px dashed var(--color-border-highlight, #ff6400);
+  outline-offset: -4px;
+}
