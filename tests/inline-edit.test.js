@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { computeInlineEdit, createDebouncedSaver, hasInlineFocus } from "../scripts/logic/inline-edit.mjs";
+import { JSDOM } from "jsdom";
+import { computeInlineEdit, createDebouncedSaver, hasActiveEditorFocus } from "../scripts/logic/inline-edit.mjs";
 import { shouldShowEditToggle } from "../scripts/logic/inline-edit.mjs";
+import { isInlineEditableView } from "../scripts/logic/inline-edit.mjs";
 
 describe("shouldShowEditToggle", () => {
   it("hides the toggle for an inline-editable typed entry in view mode", () => {
@@ -122,72 +124,57 @@ describe("createDebouncedSaver", () => {
   });
 });
 
-describe("hasInlineFocus", () => {
-  // Minimal stub elements implementing only the DOM surface hasInlineFocus
-  // touches: contains() on the root, and closest()/matches()/
-  // isContentEditable on the active element.
-  const makeRoot = ({ containsActive = true } = {}) => ({
-    contains: () => containsActive
-  });
+function root(html) {
+  return new JSDOM(`<body><div id="root">${html}</div></body>`).window.document.getElementById("root");
+}
 
-  const makeActive = ({
-    inSection = true,
-    isTyping = false,
-    inProseMirror = false,
-    contentEditable = false
-  } = {}) => ({
-    matches: (selector) => (isTyping ? selector === "input, select, textarea" : false),
-    closest: (selector) => {
-      if (selector === ".campaign-record-content.inline-edit") return inSection ? {} : null;
-      if (selector === "prose-mirror") return inProseMirror ? {} : null;
-      return null;
-    },
-    isContentEditable: contentEditable
+describe("hasActiveEditorFocus", () => {
+  it("defers for a focused text-page editor NOT wrapped in .inline-edit", () => {
+    const r = root('<prose-mirror><div contenteditable="true">x</div></prose-mirror>');
+    const active = r.querySelector('[contenteditable="true"]');
+    expect(hasActiveEditorFocus(r, active)).toBe(true);
   });
-
-  it("returns false when root is null", () => {
-    const active = makeActive({ isTyping: true });
-    expect(hasInlineFocus(null, active)).toBe(false);
+  it("defers for a focused input inside root", () => {
+    const r = root('<input name="system.foo">');
+    expect(hasActiveEditorFocus(r, r.querySelector("input"))).toBe(true);
   });
-
-  it("returns false when active is null", () => {
-    const root = makeRoot();
-    expect(hasInlineFocus(root, null)).toBe(false);
+  it("does NOT defer for a focused action button", () => {
+    const r = root('<button type="button">Add</button>');
+    expect(hasActiveEditorFocus(r, r.querySelector("button"))).toBe(false);
   });
-
-  it("returns false when the active element is outside root", () => {
-    const root = makeRoot({ containsActive: false });
-    const active = makeActive({ isTyping: true });
-    expect(hasInlineFocus(root, active)).toBe(false);
+  it("does NOT defer when focus is outside root", () => {
+    const doc = new JSDOM('<body><div id="root"><input></div><input id="outside"></body>').window.document;
+    expect(hasActiveEditorFocus(doc.getElementById("root"), doc.getElementById("outside"))).toBe(false);
   });
-
-  it("returns true for a typing control (input/select/textarea) inside an inline-edit section", () => {
-    const root = makeRoot();
-    const active = makeActive({ inSection: true, isTyping: true });
-    expect(hasInlineFocus(root, active)).toBe(true);
+  it("is false with no active element", () => {
+    expect(hasActiveEditorFocus(root('<input>'), null)).toBe(false);
   });
+});
 
-  it("returns false for a structural button inside the section", () => {
-    const root = makeRoot();
-    const active = makeActive({ inSection: true, isTyping: false });
-    expect(hasInlineFocus(root, active)).toBe(false);
+describe("isInlineEditableView", () => {
+  const base = { enabled: true, canEdit: true, inGroup: true };
+  it("is true for a record type in a hub group with the setting on", () => {
+    expect(isInlineEditableView({ ...base, type: "campaign-record.npc" })).toBe(true);
   });
-
-  it("returns true for an element inside a prose-mirror editor", () => {
-    const root = makeRoot();
-    const active = makeActive({ inSection: true, isTyping: false, inProseMirror: true });
-    expect(hasInlineFocus(root, active)).toBe(true);
+  it("is true for a text page in a hub group with the setting on", () => {
+    expect(isInlineEditableView({ ...base, type: "text" })).toBe(true);
   });
-
-  it("returns true for a contenteditable element", () => {
-    const root = makeRoot();
-    const active = makeActive({ inSection: true, isTyping: false, contentEditable: true });
-    expect(hasInlineFocus(root, active)).toBe(true);
+  it("is true for an HTML text page (isMarkdown false/default)", () => {
+    expect(isInlineEditableView({ ...base, type: "text", isMarkdown: false })).toBe(true);
   });
-
-  it("returns false for a typing control that is not inside an inline-edit section", () => {
-    const root = makeRoot();
-    const active = makeActive({ inSection: false, isTyping: true });
-    expect(hasInlineFocus(root, active)).toBe(false);
+  it("is false for a markdown-format text page", () => {
+    expect(isInlineEditableView({ ...base, type: "text", isMarkdown: true })).toBe(false);
+  });
+  it("is false when the setting is off", () => {
+    expect(isInlineEditableView({ ...base, enabled: false, type: "text" })).toBe(false);
+  });
+  it("is false when the user cannot edit", () => {
+    expect(isInlineEditableView({ ...base, canEdit: false, type: "text" })).toBe(false);
+  });
+  it("is false outside a hub group", () => {
+    expect(isInlineEditableView({ ...base, inGroup: false, type: "text" })).toBe(false);
+  });
+  it("is false for an unrelated page type", () => {
+    expect(isInlineEditableView({ ...base, type: "image" })).toBe(false);
   });
 });

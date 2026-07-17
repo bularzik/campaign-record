@@ -3,7 +3,7 @@ import { promptSelectActor } from "../apps/actor-picker.mjs";
 import { promptSelectScene } from "../apps/scene-picker.mjs";
 import { exportRecordDialog } from "../apps/export-dialog.mjs";
 import { MODULE_ID, INLINE_EDIT_SETTING, GROUP_SHEET_CLASS } from "../constants.mjs";
-import { computeInlineEdit, createDebouncedSaver, hasInlineFocus } from "../logic/inline-edit.mjs";
+import { computeInlineEdit, createDebouncedSaver, hasActiveEditorFocus } from "../logic/inline-edit.mjs";
 import { setBaseline } from "../logic/auto-link-baseline.mjs";
 import { sceneUuidFromContentLink, resolveSceneClickAction } from "../logic/scene-link.mjs";
 
@@ -41,7 +41,9 @@ export class BaseRecordSheet extends JournalEntryPageHandlebarsSheet {
     const system = this.document.system;
     context.page = this.document;
     context.system = system;
-    context.systemFields = system.schema.fields;
+    // Plain text/journal pages have a schemaless `system`; TextPageSheet reuses
+    // this context builder and only needs `page`/`enriched`/`inlineEdit`.
+    context.systemFields = system?.schema?.fields ?? {};
     context.isGM = game.user.isGM;
     context.inlineEdit = computeInlineEdit({
       enabled: game.settings.get(MODULE_ID, INLINE_EDIT_SETTING),
@@ -50,11 +52,11 @@ export class BaseRecordSheet extends JournalEntryPageHandlebarsSheet {
       inGroup: this.document.parent?.getFlag("core", "sheetClass") === GROUP_SHEET_CLASS
     });
     context.enriched = {
-      description: await TextEditorImpl.enrichHTML(system.description, {
+      description: await TextEditorImpl.enrichHTML(system?.description ?? "", {
         relativeTo: this.document
       }),
       gmNotes: game.user.isGM
-        ? await TextEditorImpl.enrichHTML(system.gmNotes, { relativeTo: this.document })
+        ? await TextEditorImpl.enrichHTML(system?.gmNotes ?? "", { relativeTo: this.document })
         : ""
     };
     return context;
@@ -67,7 +69,7 @@ export class BaseRecordSheet extends JournalEntryPageHandlebarsSheet {
    */
   async render(options = {}, _options = {}) {
     if (typeof options === "boolean") options = { force: options, ..._options };
-    if (this.isView && this.rendered && hasInlineFocus(this.element)) {
+    if (this.isView && this.rendered && hasActiveEditorFocus(this.element)) {
       this.#deferredRender = foundry.utils.mergeObject(this.#deferredRender ?? {}, options, {
         inplace: false
       });
@@ -77,7 +79,7 @@ export class BaseRecordSheet extends JournalEntryPageHandlebarsSheet {
   }
 
   #flushDeferredRender() {
-    if (!this.#deferredRender || hasInlineFocus(this.element)) return;
+    if (!this.#deferredRender || hasActiveEditorFocus(this.element)) return;
     const options = this.#deferredRender;
     this.#deferredRender = null;
     this.render(options);
@@ -87,7 +89,7 @@ export class BaseRecordSheet extends JournalEntryPageHandlebarsSheet {
     super._onRender(context, options);
     // Snapshot the pre-edit prose as the auto-link diff baseline. Quiet inline
     // autosaves render:false, so they never reach here and never pollute it.
-    for (const field of ["system.description", "system.gmNotes", "system.rewards", "system.distribution"]) {
+    for (const field of ["system.description", "system.gmNotes", "system.rewards", "system.distribution", "text.content"]) {
       if (foundry.utils.hasProperty(this.document, field)) {
         setBaseline(this.document.uuid, field, foundry.utils.getProperty(this.document, field) ?? "");
       }

@@ -4,7 +4,8 @@ import {
   MODULE_ID, RAIL_SETTING, INLINE_EDIT_SETTING, SNIPPETS_SETTING, RECORD_TYPES, typeId, GROUP_SHEET_CLASS,
   TIMELINE_ORDER_SETTING
 } from "../../constants.mjs";
-import { hasInlineFocus, shouldShowEditToggle } from "../../logic/inline-edit.mjs";
+import { hasActiveEditorFocus, shouldShowEditToggle, isInlineEditableView } from "../../logic/inline-edit.mjs";
+import { renderPartsForChange } from "../../logic/hub-render.mjs";
 import { buildDoctypeFilter } from "../../logic/doctype-filter.mjs";
 import { buildSortMenu } from "../../logic/sort-menu.mjs";
 import { buildNewRecordGroupField } from "../../logic/new-record-form.mjs";
@@ -103,6 +104,14 @@ export function HubMixin(Base) {
       return doc?.documentName === "JournalEntryPage" ? doc : null;
     }
 
+    /** Is the currently-viewed page resolvable AND viewable by this user? */
+    #isViewedPageViewable() {
+      const page = this.#resolveViewedPage();
+      return !!page
+        && page.testUserPermission(game.user, "OBSERVER")
+        && isRecordVisible(game.user, page);
+    }
+
     async navigateToRecord(uuid, { mode = "view", pushHistory = true } = {}) {
       this.state.view = { uuid, mode };
       if (pushHistory) pushEntry(this.#history, { kind: "record", uuid });
@@ -172,8 +181,16 @@ export function HubMixin(Base) {
       this.#hookHandlers = [];
     }
 
+    // Rebuilt each fire with the current view state so an external update that
+    // arrives while a record is open never re-renders the `record` part (which
+    // would re-mount the pane and tear down the active editor).
     #debouncedRender = foundry.utils.debounce(() => {
-      if (this.rendered) this.render();
+      if (!this.rendered) return;
+      const parts = renderPartsForChange({
+        hasView: !!this.state.view,
+        viewInvalidated: !!this.state.view && !this.#isViewedPageViewable()
+      });
+      this.render(parts ? { parts } : {});
     }, 100);
 
     #deferredRender = null;
@@ -190,7 +207,7 @@ export function HubMixin(Base) {
     async render(options = {}, _options = {}) {
       if (typeof options === "boolean") options = { force: options, ..._options };
       const mount = this.rendered ? this.element?.querySelector(".record-pane-mount") : null;
-      if (mount && hasInlineFocus(mount)) {
+      if (mount && hasActiveEditorFocus(mount)) {
         this.#deferredRender = foundry.utils.mergeObject(this.#deferredRender ?? {}, options, {
           inplace: false
         });
@@ -202,7 +219,7 @@ export function HubMixin(Base) {
     #flushDeferredRender() {
       if (!this.#deferredRender) return;
       const mount = this.element?.querySelector(".record-pane-mount");
-      if (mount && hasInlineFocus(mount)) return;
+      if (mount && hasActiveEditorFocus(mount)) return;
       const options = this.#deferredRender;
       this.#deferredRender = null;
       this.render(options);
@@ -820,9 +837,7 @@ export function HubMixin(Base) {
       }));
       context.snippets = game.settings.get(MODULE_ID, SNIPPETS_SETTING);
       const viewedPage = this.#resolveViewedPage();
-      const viewable = !!viewedPage
-        && viewedPage.testUserPermission(game.user, "OBSERVER")
-        && isRecordVisible(game.user, viewedPage);
+      const viewable = this.#isViewedPageViewable();
       if (this.state.view && !viewable) {
         // Deleted, unresolvable, or not viewable by this user: fall back to the index.
         pruneUuid(this.#history, this.state.view.uuid);
@@ -832,11 +847,13 @@ export function HubMixin(Base) {
       context.canGoForward = canGoForward(this.#history);
       if (this.state.view && viewedPage) {
         const canEdit = viewedPage.canUserModify(game.user, "update");
-        const inlineEditableView =
-          game.settings.get(MODULE_ID, INLINE_EDIT_SETTING) &&
-          canEdit &&
-          viewedPage.type.startsWith(`${MODULE_ID}.`) &&
-          viewedPage.parent?.getFlag("core", "sheetClass") === GROUP_SHEET_CLASS;
+        const inlineEditableView = isInlineEditableView({
+          enabled: game.settings.get(MODULE_ID, INLINE_EDIT_SETTING),
+          canEdit,
+          type: viewedPage.type,
+          inGroup: viewedPage.parent?.getFlag("core", "sheetClass") === GROUP_SHEET_CLASS,
+          isMarkdown: viewedPage.text?.format === CONST.JOURNAL_ENTRY_PAGE_FORMATS.MARKDOWN
+        });
         context.view = {
           name: viewedPage.name,
           editing: this.state.view.mode === "edit",

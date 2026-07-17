@@ -25,6 +25,19 @@ export function shouldShowEditToggle({ canEdit, inViewMode, inlineEditableView }
 }
 
 /**
+ * Should the hub treat the viewed page as inline-editable (drives whether the
+ * pane shows an always-open editor vs. a view + edit-toggle)? Records and plain
+ * text/journal pages both qualify; both are protected from mid-edit teardown.
+ * A markdown-format text page is the exception: it falls back to core's own
+ * editor (see RecordPane.mount), so it is never inline-editable here either.
+ */
+export function isInlineEditableView({ enabled, canEdit, type, inGroup, isMarkdown = false }) {
+  if (!(enabled && canEdit && inGroup)) return false;
+  if (type === "text") return !isMarkdown;
+  return typeof type === "string" && type.startsWith("campaign-record.");
+}
+
+/**
  * Debounced field saver. schedule() saves quietly (render suppressed) after
  * `delay` ms of inactivity; flush() saves immediately with a normal render.
  * schedule() skips a value identical to the last save of either kind, but
@@ -72,19 +85,19 @@ export function createDebouncedSaver({ save, delay = 2000 }) {
 }
 
 /**
- * Is the user focused on an editable control inside an inline-editable
- * section of `root`? Render guards defer re-renders while this is true so
- * auto-saves don't destroy the control being typed in. Only typing-style
- * controls (inputs, selects, textareas, anything within a prose-mirror
- * editor) count — a focused action button (add/delete row, toggle) must not
- * suppress the re-render that shows its own structural result.
+ * Is the user focused on a typing-style control inside `root`? Render guards
+ * defer re-renders while this is true so auto-saves / external updates don't
+ * destroy the control being typed in. Matches inputs, selects, textareas,
+ * anything within a prose-mirror editor, and contenteditable — anywhere in
+ * root (record inline views AND core text-page editors). A focused action
+ * button is none of these, so it still does not suppress the re-render that
+ * shows its own structural result.
  */
-export function hasInlineFocus(root, active = document.activeElement) {
+export function hasActiveEditorFocus(root, active = document.activeElement) {
   if (!root || !active || !root.contains(active)) return false;
-  if (!active.closest(".campaign-record-content.inline-edit")) return false;
   return (
     !!active.matches?.("input, select, textarea") ||
-    !!active.closest("prose-mirror") ||
+    !!active.closest?.("prose-mirror") ||
     active.isContentEditable === true
   );
 }
