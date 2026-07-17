@@ -72,19 +72,19 @@ export function createDebouncedSaver({ save, delay = 2000 }) {
 }
 
 /**
- * Is the user focused on an editable control inside an inline-editable
- * section of `root`? Render guards defer re-renders while this is true so
- * auto-saves don't destroy the control being typed in. Only typing-style
- * controls (inputs, selects, textareas, anything within a prose-mirror
- * editor) count — a focused action button (add/delete row, toggle) must not
- * suppress the re-render that shows its own structural result.
+ * Is the user focused on a typing-style control inside `root`? Render guards
+ * defer re-renders while this is true so auto-saves / external updates don't
+ * destroy the control being typed in. Matches inputs, selects, textareas,
+ * anything within a prose-mirror editor, and contenteditable — anywhere in
+ * root (record inline views AND core text-page editors). A focused action
+ * button is none of these, so it still does not suppress the re-render that
+ * shows its own structural result.
  */
-export function hasInlineFocus(root, active = document.activeElement) {
+export function hasActiveEditorFocus(root, active = document.activeElement) {
   if (!root || !active || !root.contains(active)) return false;
-  if (!active.closest(".campaign-record-content.inline-edit")) return false;
   return (
     !!active.matches?.("input, select, textarea") ||
-    !!active.closest("prose-mirror") ||
+    !!active.closest?.("prose-mirror") ||
     active.isContentEditable === true
   );
 }

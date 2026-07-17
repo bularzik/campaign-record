@@ -4,7 +4,7 @@ import {
   MODULE_ID, RAIL_SETTING, INLINE_EDIT_SETTING, SNIPPETS_SETTING, RECORD_TYPES, typeId, GROUP_SHEET_CLASS,
   TIMELINE_ORDER_SETTING
 } from "../../constants.mjs";
-import { hasInlineFocus, shouldShowEditToggle } from "../../logic/inline-edit.mjs";
+import { hasActiveEditorFocus, shouldShowEditToggle } from "../../logic/inline-edit.mjs";
 import { buildDoctypeFilter } from "../../logic/doctype-filter.mjs";
 import { buildSortMenu } from "../../logic/sort-menu.mjs";
 import { buildNewRecordGroupField } from "../../logic/new-record-form.mjs";
@@ -190,7 +190,7 @@ export function HubMixin(Base) {
     async render(options = {}, _options = {}) {
       if (typeof options === "boolean") options = { force: options, ..._options };
       const mount = this.rendered ? this.element?.querySelector(".record-pane-mount") : null;
-      if (mount && hasInlineFocus(mount)) {
+      if (mount && hasActiveEditorFocus(mount)) {
         this.#deferredRender = foundry.utils.mergeObject(this.#deferredRender ?? {}, options, {
           inplace: false
         });
@@ -202,7 +202,7 @@ export function HubMixin(Base) {
     #flushDeferredRender() {
       if (!this.#deferredRender) return;
       const mount = this.element?.querySelector(".record-pane-mount");
-      if (mount && hasInlineFocus(mount)) return;
+      if (mount && hasActiveEditorFocus(mount)) return;
       const options = this.#deferredRender;
       this.#deferredRender = null;
       this.render(options);

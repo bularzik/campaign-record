@@ -3,7 +3,7 @@ import { promptSelectActor } from "../apps/actor-picker.mjs";
 import { promptSelectScene } from "../apps/scene-picker.mjs";
 import { exportRecordDialog } from "../apps/export-dialog.mjs";
 import { MODULE_ID, INLINE_EDIT_SETTING, GROUP_SHEET_CLASS } from "../constants.mjs";
-import { computeInlineEdit, createDebouncedSaver, hasInlineFocus } from "../logic/inline-edit.mjs";
+import { computeInlineEdit, createDebouncedSaver, hasActiveEditorFocus } from "../logic/inline-edit.mjs";
 import { setBaseline } from "../logic/auto-link-baseline.mjs";
 import { sceneUuidFromContentLink, resolveSceneClickAction } from "../logic/scene-link.mjs";
 
@@ -67,7 +67,7 @@ export class BaseRecordSheet extends JournalEntryPageHandlebarsSheet {
    */
   async render(options = {}, _options = {}) {
     if (typeof options === "boolean") options = { force: options, ..._options };
-    if (this.isView && this.rendered && hasInlineFocus(this.element)) {
+    if (this.isView && this.rendered && hasActiveEditorFocus(this.element)) {
       this.#deferredRender = foundry.utils.mergeObject(this.#deferredRender ?? {}, options, {
         inplace: false
       });
@@ -77,7 +77,7 @@ export class BaseRecordSheet extends JournalEntryPageHandlebarsSheet {
   }
 
   #flushDeferredRender() {
-    if (!this.#deferredRender || hasInlineFocus(this.element)) return;
+    if (!this.#deferredRender || hasActiveEditorFocus(this.element)) return;
     const options = this.#deferredRender;
     this.#deferredRender = null;
     this.render(options);
