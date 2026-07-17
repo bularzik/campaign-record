@@ -19,7 +19,7 @@ import { isVideoSrc } from "../../logic/auto-capture.mjs";
 import { fileMediaToTimepoint, queueMediaTask, relayDroppedMedia } from "../../hooks/auto-capture.mjs";
 import { uploadHubMedia } from "./media-upload.mjs";
 import * as Timepoints from "../../data/timepoints.mjs";
-import { getCalendarMonths, calendarBounds, hasCalendar, formatCampaignDate } from "../../logic/campaign-calendar.mjs";
+import { getCalendarMonths, calendarBounds, hasCalendar, formatCampaignDate, currentWorldComponents } from "../../logic/campaign-calendar.mjs";
 import { parseCampaignDateInput, formatCreateDate } from "../../logic/campaign-date.mjs";
 import { orderTimepoints } from "../../logic/timeline-sort.mjs";
 import { ImportWizard } from "../import-wizard.mjs";
@@ -521,7 +521,10 @@ export function HubMixin(Base) {
       if (!group) return;
       const raw = Number(target.dataset.position);
       const position = target.dataset.position != null && Number.isInteger(raw) ? raw : null;
-      const result = await HubBase.#promptTimepoint({}, { titleKey: "CAMPAIGNRECORD.Hub.AddTimepoint" });
+      const result = await HubBase.#promptTimepoint(
+        { campaignDate: currentWorldComponents() },
+        { titleKey: "CAMPAIGNRECORD.Hub.AddTimepoint" }
+      );
       if (!result) return;
       await Timepoints.addTimepoint(group, result.label, position, result.campaignDate ?? null);
     }
