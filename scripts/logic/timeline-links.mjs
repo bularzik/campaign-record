@@ -1,3 +1,5 @@
+import { isVideoSrc } from "./auto-capture.mjs";
+
 /** Document classes accepted as timeline links. */
 export const LINKABLE_TYPES = ["JournalEntry", "JournalEntryPage", "Actor", "Scene", "Item"];
 
@@ -53,11 +55,22 @@ export function withoutLink(links, linkId) {
 
 /**
  * Classify a timeline drop payload into a link candidate.
- * Accepts Foundry document drag data, FilePicker/Tile file payloads
- * (src / path / texture.src), and a text/uri-list image URL fallback.
- * @returns {{kind:"document",uuid:string,type:string}|{kind:"image",src:string}|null}
+ * Accepts raw OS files (dataTransfer.files — takes precedence), Foundry
+ * document drag data, FilePicker/Tile file payloads (src / path /
+ * texture.src), and a text/uri-list image URL fallback.
+ * @returns {{kind:"files",accepted:File[],rejected:string[]}
+ *   |{kind:"document",uuid:string,type:string}|{kind:"image",src:string}|null}
  */
-export function classifyDropData(data, uriList = "") {
+export function classifyDropData(data, uriList = "", files = []) {
+  if (files.length) {
+    const accepted = [];
+    const rejected = [];
+    for (const f of files) {
+      if (isImagePath(f.name) || isVideoSrc(f.name)) accepted.push(f);
+      else rejected.push(f.name);
+    }
+    return { kind: "files", accepted, rejected };
+  }
   if (LINKABLE_TYPES.includes(data?.type) && typeof data.uuid === "string") {
     return { kind: "document", uuid: data.uuid, type: data.type };
   }
