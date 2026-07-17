@@ -2,7 +2,7 @@ import { isGroup } from "../data/groups.mjs";
 import { setTargetGroup, getTargetGroup } from "../settings/auto-target.mjs";
 import { MODULE_ID, typeId, ENCOUNTER_FLAG, DEPARTED_FLAG, AUTO_MEDIA_FLAG, MEDIA_CAPTURE_SETTING, DROP_MEDIA_ACTION } from "../constants.mjs";
 import { addTimepoint, addLink, getTimepoints, timepointsForRecord } from "../data/timepoints.mjs";
-import { matchPlaceForScene, pickLatestTimepoint, pickNewestTimepoint, collapseParticipants, mergeParticipants, summarizeOutcome, appendGalleryImage } from "../logic/auto-capture.mjs";
+import { matchPlaceForScene, pickLatestTimepoint, pickNewestTimepoint, collapseParticipants, mergeParticipants, summarizeOutcome, appendGalleryImage, mergeGalleryImages } from "../logic/auto-capture.mjs";
 import { SOCKET_NAME } from "../presenter/socket.mjs";
 
 const PLACE_TYPE = typeId("place");
@@ -53,6 +53,42 @@ export async function fileMediaToTimepoint(group, entry, timepointId = null) {
   ]);
   await addLink(group, tp.id, { uuid: page.uuid, name: page.name, type: "JournalEntryPage" });
   return { added: true, gallery: page, timepointId: tp.id };
+}
+
+/**
+ * File many media entries into a group's timepoint gallery in a single write.
+ * Batch analogue of fileMediaToTimepoint: creates the gallery page (flagged
+ * with the timepoint id) and its timeline link on first use; later calls
+ * append, deduped by src. An unknown/missing timepointId is a no-op.
+ * @param {JournalEntry} group
+ * @param {{id:string,src:string,caption:string}[]} entries
+ * @param {string} timepointId
+ * @returns {Promise<{added:number, gallery:JournalEntryPage|null}>}
+ */
+export async function fileMediaBatchToTimepoint(group, entries, timepointId) {
+  if (!entries?.length) return { added: 0, gallery: null };
+  const tp = getTimepoints(group).find((t) => t.id === timepointId);
+  if (!tp) return { added: 0, gallery: null };
+
+  const gallery = findAutoGallery(group, tp.id);
+  if (gallery) {
+    const { images, added } = mergeGalleryImages(gallery.system.toObject().images, entries);
+    if (added) await gallery.update({ "system.images": images });
+    return { added, gallery };
+  }
+
+  const name = game.i18n.format("CAMPAIGNRECORD.AutoCapture.SharedMediaName", { label: tp.label });
+  const { images } = mergeGalleryImages([], entries);
+  const [page] = await group.createEmbeddedDocuments("JournalEntryPage", [
+    {
+      name,
+      type: MEDIA_TYPE,
+      system: { images },
+      flags: { [MODULE_ID]: { [AUTO_MEDIA_FLAG]: tp.id } }
+    }
+  ]);
+  await addLink(group, tp.id, { uuid: page.uuid, name: page.name, type: "JournalEntryPage" });
+  return { added: images.length, gallery: page };
 }
 
 /**

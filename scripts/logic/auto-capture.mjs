@@ -101,3 +101,23 @@ export function appendGalleryImage(images, entry) {
   if (images.some((i) => i.src === entry.src)) return { images, added: false };
   return { images: [...images, entry], added: true };
 }
+
+/**
+ * Append many entries to a gallery's images, deduped by src against both the
+ * existing images and earlier entries in the same batch.
+ * @param {{id:string,src:string,caption:string}[]} existing
+ * @param {{id:string,src:string,caption:string}[]} entries
+ * @returns {{images:{id:string,src:string,caption:string}[], added:number}}
+ */
+export function mergeGalleryImages(existing, entries) {
+  const images = [...existing];
+  const seen = new Set(images.map((i) => i.src));
+  let added = 0;
+  for (const entry of entries) {
+    if (seen.has(entry.src)) continue;
+    seen.add(entry.src);
+    images.push(entry);
+    added++;
+  }
+  return { images, added };
+}

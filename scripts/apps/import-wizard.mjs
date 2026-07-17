@@ -3,6 +3,9 @@ import { getGroups, createGroup } from "../data/groups.mjs";
 import { splitSections, suggestType, buildImportPlan, mergeSections, splitSectionAt } from "../logic/doc-import.mjs";
 import { DOC_SOURCES } from "../integrations/doc-sources.mjs";
 import * as Timepoints from "../data/timepoints.mjs";
+import { parseImageDataUri, imageExtension, assignTimepoints } from "../logic/import-images.mjs";
+import { fileMediaBatchToTimepoint } from "../hooks/auto-capture.mjs";
+import { uploadHubMedia } from "./hub/media-upload.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -254,9 +257,13 @@ export class ImportWizard extends HandlebarsApplicationMixin(ApplicationV2) {
         : await createGroup(groupName || this.state.docTitle || "Imported Document");
       if (!group) throw new Error(`group ${groupId} not found`);
 
-      const slug = group.name.slugify({ strict: true }) || "import";
+      // Upload inline images once each (deduped across the whole document);
+      // collect per-page refs for gallery filing.
+      const uploadedByUri = new Map();
       for (const page of plan.pages) {
-        page.html = await uploadDataUriImages(page.html, slug, plan.warnings);
+        const { html, images } = await uploadInlineImages(page.html, group, plan.warnings, uploadedByUri);
+        page.html = html;
+        page.images = images;
       }
 
       const payload = plan.pages.map((p) => p.type === "text"
@@ -265,15 +272,31 @@ export class ImportWizard extends HandlebarsApplicationMixin(ApplicationV2) {
         : { name: p.name, type: typeId(p.type), system: { description: p.html } });
       const created = await group.createEmbeddedDocuments("JournalEntryPage", payload);
 
+      // Create a timepoint per session page; record each page's own tp id (or null).
+      const sessionTpIds = [];
       let timepoints = 0;
       for (let i = 0; i < plan.pages.length; i++) {
-        if (!plan.pages[i].timepoint) continue;
+        if (!plan.pages[i].timepoint) { sessionTpIds.push(null); continue; }
         const tp = await Timepoints.addTimepoint(group, plan.pages[i].timepoint);
         const page = created[i];
         if (page) await Timepoints.addLink(group, tp.id, {
           uuid: page.uuid, name: page.name, type: "JournalEntryPage"
         });
+        sessionTpIds.push(tp.id);
         timepoints++;
+      }
+
+      // File images into the nearest-preceding timepoint's gallery, batched per tp.
+      const governing = assignTimepoints(sessionTpIds);
+      const byTimepoint = new Map();
+      plan.pages.forEach((page, i) => {
+        const tpId = governing[i];
+        if (!tpId || !page.images?.length) return;
+        const entries = page.images.map((img) => ({ id: foundry.utils.randomID(), ...img }));
+        byTimepoint.set(tpId, [...(byTimepoint.get(tpId) ?? []), ...entries]);
+      });
+      for (const [tpId, entries] of byTimepoint) {
+        await fileMediaBatchToTimepoint(group, entries, tpId);
       }
 
       ui.notifications.info(game.i18n.format("CAMPAIGNRECORD.Import.Created", {
@@ -296,39 +319,77 @@ function sectionPreview(html) {
   return html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 80);
 }
 
-function dataUriToFile(uri, basename) {
-  const match = uri.match(/^data:(image\/(\w+));base64,(.+)$/);
-  if (!match) return null;
-  const bytes = Uint8Array.from(atob(match[3]), (c) => c.charCodeAt(0));
-  const ext = match[2] === "jpeg" ? "jpg" : match[2];
-  return new File([bytes], `${basename}.${ext}`, { type: match[1] });
+/**
+ * Build an upload File from an image data-URI. Renderable types upload as-is;
+ * unknown-but-decodable types transcode to PNG; undecodable types (EMF/WMF)
+ * return { skipped: subtype }.
+ */
+async function dataUriToFile(uri, basename) {
+  const parsed = parseImageDataUri(uri);
+  if (!parsed) return { skipped: "unknown" };
+  const bytes = Uint8Array.from(atob(parsed.base64), (c) => c.charCodeAt(0));
+  const ext = imageExtension(parsed.subtype);
+  if (ext) return { file: new File([bytes], `${basename}.${ext}`, { type: parsed.mime }) };
+  // Not directly renderable — best-effort transcode to PNG (EMF/WMF will throw).
+  try {
+    const bitmap = await createImageBitmap(new Blob([bytes], { type: parsed.mime }));
+    const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
+    canvas.getContext("2d").drawImage(bitmap, 0, 0);
+    const png = await canvas.convertToBlob({ type: "image/png" });
+    return { file: new File([await png.arrayBuffer()], `${basename}.png`, { type: "image/png" }) };
+  } catch {
+    return { skipped: parsed.subtype };
+  }
 }
 
 /**
- * Upload data-URI images (mammoth inlines docx images) to the user data dir
- * and rewrite srcs. On any failure the import proceeds without images.
+ * Upload each inline data-URI image once (mammoth inlines docx images), rewrite
+ * srcs to the stored path, and return the collected {src, caption} refs for
+ * gallery filing. Identical data-URIs upload once. Per-image failures drop that
+ * image with a warning; other images are unaffected. `uploadedByUri` (data-URI ->
+ * stored path or null) is supplied by the caller and shared across the whole
+ * document, so identical images on different pages are also deduped.
  */
-async function uploadDataUriImages(html, slug, warnings) {
-  if (!html?.includes("data:image")) return html;
+async function uploadInlineImages(html, group, warnings, uploadedByUri) {
+  if (!html?.includes("data:image")) return { html, images: [] };
   const doc = new DOMParser().parseFromString(html, "text/html");
-  const images = [...doc.body.querySelectorAll('img[src^="data:"]')];
-  if (!images.length) return html;
-  const FilePickerImpl = foundry.applications.apps.FilePicker.implementation;
-  const dir = `campaign-record-imports/${slug}`;
-  try {
-    await FilePickerImpl.browse("data", dir)
-      .catch(() => FilePickerImpl.createDirectory("data", dir));
-    let n = 0;
-    for (const img of images) {
-      const file = dataUriToFile(img.src, `import-${Date.now()}-${++n}`);
-      const result = file && await FilePickerImpl.upload("data", dir, file, {}, { notify: false });
-      if (result?.path) img.setAttribute("src", result.path);
-      else img.remove();
+  const imgs = [...doc.body.querySelectorAll('img[src^="data:"]')];
+  if (!imgs.length) return { html, images: [] };
+
+  const images = [];
+  let uploadFailed = false;
+  let n = 0;
+  for (const img of imgs) {
+    const uri = img.getAttribute("src");
+    if (!uploadedByUri.has(uri)) {
+      const result = await dataUriToFile(uri, `import-${Date.now()}-${++n}`);
+      let path = null;
+      if (result.skipped) {
+        warnings.push(game.i18n.format("CAMPAIGNRECORD.Import.ImageTypeUnsupported", { type: result.skipped }));
+      } else {
+        try {
+          path = await uploadHubMedia(group, result.file);
+        } catch (error) {
+          console.warn("campaign-record | inline image upload failed", error);
+          uploadFailed = true;
+        }
+      }
+      uploadedByUri.set(uri, path);
     }
-  } catch (error) {
-    console.warn("campaign-record | image upload failed; importing without images", error);
-    for (const img of images) img.remove();
-    warnings.push(game.i18n.localize("CAMPAIGNRECORD.Import.ImagesDropped"));
+    const path = uploadedByUri.get(uri);
+    if (path) {
+      img.setAttribute("src", path);
+      const caption = (img.getAttribute("alt") ?? "").trim();
+      images.push({ src: path, caption });
+    } else {
+      img.remove();
+    }
   }
-  return doc.body.innerHTML;
+
+  if (uploadFailed) warnings.push(game.i18n.localize("CAMPAIGNRECORD.Import.ImagesDropped"));
+
+  // Dedupe refs by src so the same image inline twice yields one gallery entry.
+  const seen = new Set();
+  const uniqueImages = images.filter((i) => (seen.has(i.src) ? false : seen.add(i.src)));
+  return { html: doc.body.innerHTML, images: uniqueImages };
 }
