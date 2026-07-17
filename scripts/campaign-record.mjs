@@ -10,7 +10,7 @@ import { registerPresenterSocket, requestPresentationSync } from "./presenter/so
 import { registerSchemaSetting, runMigrations } from "./data/migration-runner.mjs";
 import { registerJournalPageStyling } from "./integrations/dnd5e.mjs";
 import { registerAutoTargetSetting, registerAutoTargetSocket } from "./settings/auto-target.mjs";
-import { registerAutoCapture } from "./hooks/auto-capture.mjs";
+import { registerAutoCapture, registerMediaDropSocket } from "./hooks/auto-capture.mjs";
 
 Hooks.once("init", () => {
   console.log("campaign-record | Initializing Campaign Record");
@@ -33,6 +33,7 @@ Hooks.once("ready", async () => {
   registerPresenterSocket();
   registerAutoTargetSocket();
   registerAutoCapture();
+  registerMediaDropSocket();
   // a reloading/late-joining client re-acquires any presentation in progress
   requestPresentationSync();
   if (game.user.isGM) ensureRecordsFolder();

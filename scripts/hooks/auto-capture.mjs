@@ -1,8 +1,9 @@
 import { isGroup } from "../data/groups.mjs";
 import { setTargetGroup, getTargetGroup } from "../settings/auto-target.mjs";
-import { MODULE_ID, typeId, ENCOUNTER_FLAG, DEPARTED_FLAG, AUTO_MEDIA_FLAG, MEDIA_CAPTURE_SETTING } from "../constants.mjs";
+import { MODULE_ID, typeId, ENCOUNTER_FLAG, DEPARTED_FLAG, AUTO_MEDIA_FLAG, MEDIA_CAPTURE_SETTING, DROP_MEDIA_ACTION } from "../constants.mjs";
 import { addTimepoint, addLink, getTimepoints, timepointsForRecord } from "../data/timepoints.mjs";
 import { matchPlaceForScene, pickLatestTimepoint, pickNewestTimepoint, collapseParticipants, mergeParticipants, summarizeOutcome, appendGalleryImage } from "../logic/auto-capture.mjs";
+import { SOCKET_NAME } from "../presenter/socket.mjs";
 
 const PLACE_TYPE = typeId("place");
 const MEDIA_TYPE = typeId("media");
@@ -82,6 +83,40 @@ export function queueMediaTask(task) {
 /** Queue a shared-media capture so it never overlaps a prior in-flight one. */
 export function captureSharedMedia(src, caption) {
   return queueMediaTask(() => doCaptureSharedMedia(src, caption));
+}
+
+/**
+ * Ask the active GM to file a dropped-media entry (players lack ownership
+ * of GM-created galleries). Caller checks game.users.activeGM first.
+ */
+export function relayDroppedMedia(group, entry, timepointId = null) {
+  game.socket.emit(SOCKET_NAME, {
+    action: DROP_MEDIA_ACTION,
+    groupId: group.id,
+    src: entry.src,
+    caption: entry.caption ?? "",
+    timepointId
+  });
+}
+
+/** Listen for relayed dropped-media filings; only the active GM applies them. Call in ready. */
+export function registerMediaDropSocket() {
+  game.socket.on(SOCKET_NAME, (payload) => {
+    if (payload?.action !== DROP_MEDIA_ACTION) return;
+    if (game.user !== game.users.activeGM) return;
+    if (typeof payload.src !== "string" || !payload.src) return;
+    const group = game.journal.get(payload.groupId);
+    if (!group || !isGroup(group)) return;
+    queueMediaTask(() => fileMediaToTimepoint(
+      group,
+      {
+        id: foundry.utils.randomID(),
+        src: payload.src,
+        caption: typeof payload.caption === "string" ? payload.caption : ""
+      },
+      typeof payload.timepointId === "string" ? payload.timepointId : null
+    ));
+  });
 }
 
 /** Every place page in a group whose scene is set. */
