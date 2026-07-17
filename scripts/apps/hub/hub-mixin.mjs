@@ -104,6 +104,14 @@ export function HubMixin(Base) {
       return doc?.documentName === "JournalEntryPage" ? doc : null;
     }
 
+    /** Is the currently-viewed page resolvable AND viewable by this user? */
+    #isViewedPageViewable() {
+      const page = this.#resolveViewedPage();
+      return !!page
+        && page.testUserPermission(game.user, "OBSERVER")
+        && isRecordVisible(game.user, page);
+    }
+
     async navigateToRecord(uuid, { mode = "view", pushHistory = true } = {}) {
       this.state.view = { uuid, mode };
       if (pushHistory) pushEntry(this.#history, { kind: "record", uuid });
@@ -180,7 +188,7 @@ export function HubMixin(Base) {
       if (!this.rendered) return;
       const parts = renderPartsForChange({
         hasView: !!this.state.view,
-        viewInvalidated: !!this.state.view && !this.#resolveViewedPage()
+        viewInvalidated: !!this.state.view && !this.#isViewedPageViewable()
       });
       this.render(parts ? { parts } : {});
     }, 100);
@@ -829,9 +837,7 @@ export function HubMixin(Base) {
       }));
       context.snippets = game.settings.get(MODULE_ID, SNIPPETS_SETTING);
       const viewedPage = this.#resolveViewedPage();
-      const viewable = !!viewedPage
-        && viewedPage.testUserPermission(game.user, "OBSERVER")
-        && isRecordVisible(game.user, viewedPage);
+      const viewable = this.#isViewedPageViewable();
       if (this.state.view && !viewable) {
         // Deleted, unresolvable, or not viewable by this user: fall back to the index.
         pruneUuid(this.#history, this.state.view.uuid);
