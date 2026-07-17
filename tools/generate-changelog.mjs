@@ -5,7 +5,7 @@
  *   npm run changelog
  */
 import { execFileSync } from "node:child_process";
-import { writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { classifyCommit, formatChangelog, compareSemver } from "../scripts/logic/changelog.mjs";
 
 const git = (...args) => execFileSync("git", args, { encoding: "utf8" }).trim();
@@ -29,6 +29,20 @@ const entries = tags.map((tag, i) => {
     commits: subjects.map(classifyCommit).filter(Boolean)
   };
 });
+
+const moduleJsonPath = new URL("../module.json", import.meta.url);
+const moduleVersion = JSON.parse(readFileSync(moduleJsonPath, "utf8")).version;
+const tagVersions = tags.map((tag) => tag.slice(1));
+
+if (!tagVersions.includes(moduleVersion)) {
+  const lastTag = tags[tags.length - 1];
+  const subjects = git("log", "--no-merges", "--format=%s", `${lastTag}..HEAD`).split("\n").filter(Boolean);
+  entries.push({
+    version: moduleVersion,
+    date: new Date().toISOString().slice(0, 10),
+    commits: subjects.map(classifyCommit).filter(Boolean)
+  });
+}
 
 const outPath = new URL("../CHANGELOG.md", import.meta.url);
 writeFileSync(outPath, formatChangelog(entries));

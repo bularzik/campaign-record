@@ -66,8 +66,14 @@ module management UI.
   unless `grep -qE "^## \[$(jq -r .version module.json)\]" CHANGELOG.md`.
 
 Release habit becomes: bump version → `npm run changelog` → commit both →
-tag. A stale or missing entry fails the release, and the local meta-test
-(below) catches it even earlier.
+tag. Since the generator derives entries only from tags, a bumped-but-untagged
+version would otherwise have no entry to commit; the generator handles this by
+synthesizing a pending entry for `module.json`'s version whenever it isn't
+among the tag versions, dated the day of generation, with commits classified
+from `<lastTag>..HEAD`. Tagging that commit later doesn't change the entry's
+content — the same range now resolves as a proper tag-to-tag walk — it just
+makes the entry permanent. A stale or missing entry fails the release, and the
+local meta-test (below) catches it even earlier.
 
 ### 5. Tests
 

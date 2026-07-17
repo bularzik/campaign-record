@@ -77,6 +77,24 @@ describe("formatVersionEntry", () => {
 - Maintenance release.
 `);
   });
+  it("renders consecutive same-section bullets with no blank line between them", () => {
+    const entry = formatVersionEntry({
+      version: "1.2.9",
+      date: "2026-07-12",
+      commits: [
+        { section: "Added", scope: null, description: "First feature" },
+        { section: "Added", scope: "import", description: "Second feature" }
+      ]
+    });
+    expect(entry).toBe(
+`## [1.2.9] - 2026-07-12
+
+### Added
+
+- First feature
+- **Import:** Second feature
+`);
+  });
 });
 
 describe("formatChangelog", () => {
