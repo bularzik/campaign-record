@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildNewRecordGroupField } from "../scripts/logic/new-record-form.mjs";
+import { buildNewRecordGroupField, buildNewRecordTypeOptions } from "../scripts/logic/new-record-form.mjs";
 
 const GROUPS = [
   { id: "g1", name: "Group One" },
@@ -31,5 +31,36 @@ describe("buildNewRecordGroupField", () => {
   it("marks nothing selected when scope is 'all'", () => {
     const vm = buildNewRecordGroupField(GROUPS, "all");
     expect(vm.options.some((o) => o.selected)).toBe(false);
+  });
+});
+
+const TYPE_LABELS = {
+  "TYPES.JournalEntryPage.campaign-record.npc": "NPC",
+  "TYPES.JournalEntryPage.campaign-record.place": "Place",
+  "TYPES.JournalEntryPage.campaign-record.quest": "Quest",
+  "TYPES.JournalEntryPage.campaign-record.pc": "PC",
+  "TYPES.JournalEntryPage.campaign-record.item": "Item",
+  "TYPES.JournalEntryPage.campaign-record.encounter": "Encounter",
+  "TYPES.JournalEntryPage.campaign-record.checklist": "Checklist",
+  "TYPES.JournalEntryPage.campaign-record.shop": "Shop",
+  "TYPES.JournalEntryPage.campaign-record.loot": "Loot",
+  "TYPES.JournalEntryPage.campaign-record.media": "Media",
+  "CAMPAIGNRECORD.Hub.JournalPage": "Journal"
+};
+const localize = (k) => TYPE_LABELS[k] ?? k;
+
+describe("buildNewRecordTypeOptions", () => {
+  it("lists all record types plus the core text page, alphabetized by label", () => {
+    const options = buildNewRecordTypeOptions(localize);
+    expect(options.map((o) => o.label)).toEqual([
+      "Checklist", "Encounter", "Item", "Journal", "Loot",
+      "Media", "NPC", "PC", "Place", "Quest", "Shop"
+    ]);
+    expect(options.find((o) => o.label === "NPC").value).toBe("campaign-record.npc");
+  });
+
+  it("marks only the Journal (text) option selected", () => {
+    const options = buildNewRecordTypeOptions(localize);
+    expect(options.filter((o) => o.selected).map((o) => o.value)).toEqual(["text"]);
   });
 });

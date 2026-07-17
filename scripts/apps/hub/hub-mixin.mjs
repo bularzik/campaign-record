@@ -1,14 +1,14 @@
 import { getGroups } from "../../data/groups.mjs";
 import { getTargetGroup, setTargetGroup } from "../../settings/auto-target.mjs";
 import {
-  MODULE_ID, RAIL_SETTING, INLINE_EDIT_SETTING, SNIPPETS_SETTING, RECORD_TYPES, typeId, GROUP_SHEET_CLASS,
+  MODULE_ID, RAIL_SETTING, INLINE_EDIT_SETTING, SNIPPETS_SETTING, typeId, GROUP_SHEET_CLASS,
   TIMELINE_ORDER_SETTING
 } from "../../constants.mjs";
 import { hasActiveEditorFocus, shouldShowEditToggle, isInlineEditableView } from "../../logic/inline-edit.mjs";
 import { renderPartsForChange } from "../../logic/hub-render.mjs";
 import { buildDoctypeFilter } from "../../logic/doctype-filter.mjs";
 import { buildSortMenu } from "../../logic/sort-menu.mjs";
-import { buildNewRecordGroupField } from "../../logic/new-record-form.mjs";
+import { buildNewRecordGroupField, buildNewRecordTypeOptions } from "../../logic/new-record-form.mjs";
 import { collectRecords, isIndexablePage, getScopedGroups, toSearchRecord } from "./hub-data.mjs";
 import { createIndex, indexRecord, removeRecord, search } from "../../logic/search-index.mjs";
 import { hasGroupFlag, isRecordVisible } from "../../logic/visibility.mjs";
@@ -367,9 +367,9 @@ export function HubMixin(Base) {
       const groups = getGroups();
       if (!groups.length) return ui.notifications.warn(game.i18n.localize("CAMPAIGNRECORD.Hub.NoGroups"));
       const current = this.groupScopeId;
-      const typeOptions = RECORD_TYPES.map((t) =>
-        `<option value="${typeId(t)}">${game.i18n.localize(`TYPES.JournalEntryPage.${typeId(t)}`)}</option>`
-      ).join("") + `<option value="text">${game.i18n.localize("CAMPAIGNRECORD.Hub.JournalPage")}</option>`;
+      const typeOptions = buildNewRecordTypeOptions((k) => game.i18n.localize(k)).map((o) =>
+        `<option value="${o.value}"${o.selected ? " selected" : ""}>${foundry.utils.escapeHTML(o.label)}</option>`
+      ).join("");
       const groupField = buildNewRecordGroupField(groups, current);
       const groupOptions = groupField.options.map((o) =>
         `<option value="${o.value}" ${o.selected ? "selected" : ""}>${foundry.utils.escapeHTML(o.label)}</option>`
