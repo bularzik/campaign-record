@@ -3,7 +3,8 @@ import { getGroups, createGroup } from "../data/groups.mjs";
 import { splitSections, suggestType, buildImportPlan, mergeSections, splitSectionAt } from "../logic/doc-import.mjs";
 import { DOC_SOURCES } from "../integrations/doc-sources.mjs";
 import * as Timepoints from "../data/timepoints.mjs";
-import { parseImageDataUri, imageExtension } from "../logic/import-images.mjs";
+import { parseImageDataUri, imageExtension, assignTimepoints } from "../logic/import-images.mjs";
+import { fileMediaBatchToTimepoint } from "../hooks/auto-capture.mjs";
 import { uploadHubMedia } from "./hub/media-upload.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
@@ -256,9 +257,11 @@ export class ImportWizard extends HandlebarsApplicationMixin(ApplicationV2) {
         : await createGroup(groupName || this.state.docTitle || "Imported Document");
       if (!group) throw new Error(`group ${groupId} not found`);
 
-      const slug = group.name.slugify({ strict: true }) || "import";
+      // Upload inline images once each; collect per-page refs for gallery filing.
       for (const page of plan.pages) {
-        page.html = await uploadDataUriImages(page.html, slug, plan.warnings);
+        const { html, images } = await uploadInlineImages(page.html, group, plan.warnings);
+        page.html = html;
+        page.images = images;
       }
 
       const payload = plan.pages.map((p) => p.type === "text"
@@ -267,15 +270,31 @@ export class ImportWizard extends HandlebarsApplicationMixin(ApplicationV2) {
         : { name: p.name, type: typeId(p.type), system: { description: p.html } });
       const created = await group.createEmbeddedDocuments("JournalEntryPage", payload);
 
+      // Create a timepoint per session page; record each page's own tp id (or null).
+      const sessionTpIds = [];
       let timepoints = 0;
       for (let i = 0; i < plan.pages.length; i++) {
-        if (!plan.pages[i].timepoint) continue;
+        if (!plan.pages[i].timepoint) { sessionTpIds.push(null); continue; }
         const tp = await Timepoints.addTimepoint(group, plan.pages[i].timepoint);
         const page = created[i];
         if (page) await Timepoints.addLink(group, tp.id, {
           uuid: page.uuid, name: page.name, type: "JournalEntryPage"
         });
+        sessionTpIds.push(tp.id);
         timepoints++;
+      }
+
+      // File images into the nearest-preceding timepoint's gallery, batched per tp.
+      const governing = assignTimepoints(sessionTpIds);
+      const byTimepoint = new Map();
+      plan.pages.forEach((page, i) => {
+        const tpId = governing[i];
+        if (!tpId || !page.images?.length) return;
+        const entries = page.images.map((img) => ({ id: foundry.utils.randomID(), ...img }));
+        byTimepoint.set(tpId, [...(byTimepoint.get(tpId) ?? []), ...entries]);
+      });
+      for (const [tpId, entries] of byTimepoint) {
+        await fileMediaBatchToTimepoint(group, entries, tpId);
       }
 
       ui.notifications.info(game.i18n.format("CAMPAIGNRECORD.Import.Created", {
