@@ -257,9 +257,11 @@ export class ImportWizard extends HandlebarsApplicationMixin(ApplicationV2) {
         : await createGroup(groupName || this.state.docTitle || "Imported Document");
       if (!group) throw new Error(`group ${groupId} not found`);
 
-      // Upload inline images once each; collect per-page refs for gallery filing.
+      // Upload inline images once each (deduped across the whole document);
+      // collect per-page refs for gallery filing.
+      const uploadedByUri = new Map();
       for (const page of plan.pages) {
-        const { html, images } = await uploadInlineImages(page.html, group, plan.warnings);
+        const { html, images } = await uploadInlineImages(page.html, group, plan.warnings, uploadedByUri);
         page.html = html;
         page.images = images;
       }
@@ -344,15 +346,16 @@ async function dataUriToFile(uri, basename) {
  * Upload each inline data-URI image once (mammoth inlines docx images), rewrite
  * srcs to the stored path, and return the collected {src, caption} refs for
  * gallery filing. Identical data-URIs upload once. Per-image failures drop that
- * image with a warning; other images are unaffected.
+ * image with a warning; other images are unaffected. `uploadedByUri` (data-URI ->
+ * stored path or null) is supplied by the caller and shared across the whole
+ * document, so identical images on different pages are also deduped.
  */
-async function uploadInlineImages(html, group, warnings) {
+async function uploadInlineImages(html, group, warnings, uploadedByUri) {
   if (!html?.includes("data:image")) return { html, images: [] };
   const doc = new DOMParser().parseFromString(html, "text/html");
   const imgs = [...doc.body.querySelectorAll('img[src^="data:"]')];
   if (!imgs.length) return { html, images: [] };
 
-  const uploadedByUri = new Map(); // data-URI -> stored path or null (dedupe within doc)
   const images = [];
   let uploadFailed = false;
   let n = 0;
