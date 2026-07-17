@@ -30,3 +30,19 @@ export function parseImageDataUri(uri) {
   if (!m) return null;
   return { mime: m[1], subtype: m[2].toLowerCase(), base64: m[3] };
 }
+
+/**
+ * Map each page to its governing timepoint id (nearest session at or before it
+ * in document order). Pages before the first session are backfilled to the
+ * first timepoint. All null when no page is a session.
+ * @param {(string|null)[]} sessionTpIds page's own tp id if a session, else null
+ * @returns {(string|null)[]}
+ */
+export function assignTimepoints(sessionTpIds) {
+  const firstId = sessionTpIds.find((id) => id != null) ?? null;
+  let current = null;
+  return sessionTpIds.map((id) => {
+    if (id != null) current = id;
+    return current ?? firstId;
+  });
+}

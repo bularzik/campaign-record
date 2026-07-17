@@ -34,3 +34,29 @@ describe("imageExtension", () => {
     expect(imageExtension("x-wmf")).toBeNull();
   });
 });
+
+import { assignTimepoints } from "../scripts/logic/import-images.mjs";
+
+describe("assignTimepoints", () => {
+  it("carries each session's id forward to following non-session pages", () => {
+    // pages: [session A][text][session B][text]
+    expect(assignTimepoints(["A", null, "B", null])).toEqual(["A", "A", "B", "B"]);
+  });
+
+  it("backfills pages before the first session to the first timepoint", () => {
+    // pages: [intro][text][session A][text]
+    expect(assignTimepoints([null, null, "A", null])).toEqual(["A", "A", "A", "A"]);
+  });
+
+  it("returns all null when there are no session pages", () => {
+    expect(assignTimepoints([null, null, null])).toEqual([null, null, null]);
+  });
+
+  it("assigns a session page's own images to its own timepoint", () => {
+    expect(assignTimepoints(["A", "B"])).toEqual(["A", "B"]);
+  });
+
+  it("returns an empty array for no pages", () => {
+    expect(assignTimepoints([])).toEqual([]);
+  });
+});
