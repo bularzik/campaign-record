@@ -1,14 +1,14 @@
 import { getGroups } from "../../data/groups.mjs";
 import { getTargetGroup, setTargetGroup } from "../../settings/auto-target.mjs";
 import {
-  MODULE_ID, RAIL_SETTING, INLINE_EDIT_SETTING, SNIPPETS_SETTING, RECORD_TYPES, typeId, GROUP_SHEET_CLASS,
+  MODULE_ID, RAIL_SETTING, INLINE_EDIT_SETTING, SNIPPETS_SETTING, typeId, GROUP_SHEET_CLASS,
   TIMELINE_ORDER_SETTING
 } from "../../constants.mjs";
 import { hasActiveEditorFocus, shouldShowEditToggle, isInlineEditableView } from "../../logic/inline-edit.mjs";
 import { renderPartsForChange } from "../../logic/hub-render.mjs";
 import { buildDoctypeFilter } from "../../logic/doctype-filter.mjs";
 import { buildSortMenu } from "../../logic/sort-menu.mjs";
-import { buildNewRecordGroupField } from "../../logic/new-record-form.mjs";
+import { buildNewRecordGroupField, buildNewRecordTypeOptions } from "../../logic/new-record-form.mjs";
 import { collectRecords, isIndexablePage, getScopedGroups, toSearchRecord } from "./hub-data.mjs";
 import { createIndex, indexRecord, removeRecord, search } from "../../logic/search-index.mjs";
 import { hasGroupFlag, isRecordVisible } from "../../logic/visibility.mjs";
@@ -19,7 +19,7 @@ import { isVideoSrc } from "../../logic/auto-capture.mjs";
 import { fileMediaToTimepoint, queueMediaTask, relayDroppedMedia } from "../../hooks/auto-capture.mjs";
 import { uploadHubMedia } from "./media-upload.mjs";
 import * as Timepoints from "../../data/timepoints.mjs";
-import { getCalendarMonths, calendarBounds, hasCalendar, formatCampaignDate } from "../../logic/campaign-calendar.mjs";
+import { getCalendarMonths, calendarBounds, hasCalendar, formatCampaignDate, currentWorldComponents } from "../../logic/campaign-calendar.mjs";
 import { parseCampaignDateInput, formatCreateDate } from "../../logic/campaign-date.mjs";
 import { orderTimepoints } from "../../logic/timeline-sort.mjs";
 import { ImportWizard } from "../import-wizard.mjs";
@@ -367,9 +367,9 @@ export function HubMixin(Base) {
       const groups = getGroups();
       if (!groups.length) return ui.notifications.warn(game.i18n.localize("CAMPAIGNRECORD.Hub.NoGroups"));
       const current = this.groupScopeId;
-      const typeOptions = RECORD_TYPES.map((t) =>
-        `<option value="${typeId(t)}">${game.i18n.localize(`TYPES.JournalEntryPage.${typeId(t)}`)}</option>`
-      ).join("") + `<option value="text">${game.i18n.localize("CAMPAIGNRECORD.Hub.JournalPage")}</option>`;
+      const typeOptions = buildNewRecordTypeOptions((k) => game.i18n.localize(k)).map((o) =>
+        `<option value="${o.value}"${o.selected ? " selected" : ""}>${foundry.utils.escapeHTML(o.label)}</option>`
+      ).join("");
       const groupField = buildNewRecordGroupField(groups, current);
       const groupOptions = groupField.options.map((o) =>
         `<option value="${o.value}" ${o.selected ? "selected" : ""}>${foundry.utils.escapeHTML(o.label)}</option>`
@@ -521,7 +521,10 @@ export function HubMixin(Base) {
       if (!group) return;
       const raw = Number(target.dataset.position);
       const position = target.dataset.position != null && Number.isInteger(raw) ? raw : null;
-      const result = await HubBase.#promptTimepoint({}, { titleKey: "CAMPAIGNRECORD.Hub.AddTimepoint" });
+      const result = await HubBase.#promptTimepoint(
+        { campaignDate: currentWorldComponents() },
+        { titleKey: "CAMPAIGNRECORD.Hub.AddTimepoint" }
+      );
       if (!result) return;
       await Timepoints.addTimepoint(group, result.label, position, result.campaignDate ?? null);
     }

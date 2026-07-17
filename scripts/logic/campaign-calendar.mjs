@@ -39,3 +39,20 @@ export function formatCampaignDate(components) {
   const monthName = getCalendarMonths()[components.month]?.name ?? `Month ${components.month + 1}`;
   return formatComponentsFallback(components, monthName);
 }
+
+/**
+ * The current world time as stored campaign-date components (0-based month,
+ * 1-based day), for prefilling new timepoints; null when no calendar.
+ */
+export function currentWorldComponents() {
+  const cal = calendar();
+  if (!cal) return null;
+  const c = cal.timeToComponents(game.time.worldTime);
+  return {
+    year: c.year,
+    month: c.month ?? 0,
+    day: (c.dayOfMonth ?? 0) + 1,
+    hour: c.hour ?? 0,
+    minute: c.minute ?? 0
+  };
+}

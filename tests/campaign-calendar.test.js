@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import {
-  hasCalendar, getCalendarMonths, calendarBounds, formatCampaignDate
+  hasCalendar, getCalendarMonths, calendarBounds, formatCampaignDate, currentWorldComponents
 } from "../scripts/logic/campaign-calendar.mjs";
 
 function stubCalendar() {
@@ -59,5 +59,32 @@ describe("campaign-calendar with no calendar", () => {
     expect(calendarBounds()).toEqual({
       monthCount: 12, monthDayCounts: [], hoursPerDay: 24, minutesPerHour: 60
     });
+  });
+});
+
+describe("currentWorldComponents", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("maps the current world time to dialog-ready components", () => {
+    const timeToComponents = vi.fn(() => ({
+      year: 1492, month: 1, dayOfMonth: 14, day: 44, hour: 9, minute: 30, second: 0
+    }));
+    vi.stubGlobal("game", {
+      time: {
+        worldTime: 123456,
+        calendar: {
+          timeToComponents,
+          months: { values: [] },
+          days: { hoursPerDay: 24, minutesPerHour: 60 }
+        }
+      }
+    });
+    expect(currentWorldComponents()).toEqual({ year: 1492, month: 1, day: 15, hour: 9, minute: 30 });
+    expect(timeToComponents).toHaveBeenCalledWith(123456);
+  });
+
+  it("returns null when no calendar is available", () => {
+    vi.stubGlobal("game", { time: {} });
+    expect(currentWorldComponents()).toBe(null);
   });
 });
