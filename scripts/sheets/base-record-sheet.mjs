@@ -89,7 +89,7 @@ export class BaseRecordSheet extends JournalEntryPageHandlebarsSheet {
     super._onRender(context, options);
     // Snapshot the pre-edit prose as the auto-link diff baseline. Quiet inline
     // autosaves render:false, so they never reach here and never pollute it.
-    for (const field of ["system.description", "system.gmNotes", "system.rewards", "system.distribution"]) {
+    for (const field of ["system.description", "system.gmNotes", "system.rewards", "system.distribution", "text.content"]) {
       if (foundry.utils.hasProperty(this.document, field)) {
         setBaseline(this.document.uuid, field, foundry.utils.getProperty(this.document, field) ?? "");
       }

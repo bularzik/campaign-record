@@ -28,10 +28,13 @@ export function shouldShowEditToggle({ canEdit, inViewMode, inlineEditableView }
  * Should the hub treat the viewed page as inline-editable (drives whether the
  * pane shows an always-open editor vs. a view + edit-toggle)? Records and plain
  * text/journal pages both qualify; both are protected from mid-edit teardown.
+ * A markdown-format text page is the exception: it falls back to core's own
+ * editor (see RecordPane.mount), so it is never inline-editable here either.
  */
-export function isInlineEditableView({ enabled, canEdit, type, inGroup }) {
+export function isInlineEditableView({ enabled, canEdit, type, inGroup, isMarkdown = false }) {
   if (!(enabled && canEdit && inGroup)) return false;
-  return type === "text" || (typeof type === "string" && type.startsWith("campaign-record."));
+  if (type === "text") return !isMarkdown;
+  return typeof type === "string" && type.startsWith("campaign-record.");
 }
 
 /**

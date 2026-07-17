@@ -159,6 +159,12 @@ describe("isInlineEditableView", () => {
   it("is true for a text page in a hub group with the setting on", () => {
     expect(isInlineEditableView({ ...base, type: "text" })).toBe(true);
   });
+  it("is true for an HTML text page (isMarkdown false/default)", () => {
+    expect(isInlineEditableView({ ...base, type: "text", isMarkdown: false })).toBe(true);
+  });
+  it("is false for a markdown-format text page", () => {
+    expect(isInlineEditableView({ ...base, type: "text", isMarkdown: true })).toBe(false);
+  });
   it("is false when the setting is off", () => {
     expect(isInlineEditableView({ ...base, enabled: false, type: "text" })).toBe(false);
   });

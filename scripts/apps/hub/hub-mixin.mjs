@@ -851,7 +851,8 @@ export function HubMixin(Base) {
           enabled: game.settings.get(MODULE_ID, INLINE_EDIT_SETTING),
           canEdit,
           type: viewedPage.type,
-          inGroup: viewedPage.parent?.getFlag("core", "sheetClass") === GROUP_SHEET_CLASS
+          inGroup: viewedPage.parent?.getFlag("core", "sheetClass") === GROUP_SHEET_CLASS,
+          isMarkdown: viewedPage.text?.format === CONST.JOURNAL_ENTRY_PAGE_FORMATS.MARKDOWN
         });
         context.view = {
           name: viewedPage.name,
