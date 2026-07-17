@@ -5,6 +5,7 @@ import {
   TIMELINE_ORDER_SETTING
 } from "../../constants.mjs";
 import { hasActiveEditorFocus, shouldShowEditToggle } from "../../logic/inline-edit.mjs";
+import { renderPartsForChange } from "../../logic/hub-render.mjs";
 import { buildDoctypeFilter } from "../../logic/doctype-filter.mjs";
 import { buildSortMenu } from "../../logic/sort-menu.mjs";
 import { buildNewRecordGroupField } from "../../logic/new-record-form.mjs";
@@ -172,8 +173,16 @@ export function HubMixin(Base) {
       this.#hookHandlers = [];
     }
 
+    // Rebuilt each fire with the current view state so an external update that
+    // arrives while a record is open never re-renders the `record` part (which
+    // would re-mount the pane and tear down the active editor).
     #debouncedRender = foundry.utils.debounce(() => {
-      if (this.rendered) this.render();
+      if (!this.rendered) return;
+      const parts = renderPartsForChange({
+        hasView: !!this.state.view,
+        viewInvalidated: !!this.state.view && !this.#resolveViewedPage()
+      });
+      this.render(parts ? { parts } : {});
     }, 100);
 
     #deferredRender = null;
