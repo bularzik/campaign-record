@@ -9,9 +9,11 @@ export async function uploadHubMedia(group, file) {
   const FilePickerImpl = foundry.applications.apps.FilePicker.implementation;
   const dir = `campaign-record-media/${group.id}`;
   await FilePickerImpl.browse("data", dir).catch(async () => {
-    // Parent first: createDirectory is not recursive.
+    // Parent first: createDirectory is not recursive. Both calls tolerate
+    // already-exists races; a directory that truly failed to create
+    // surfaces as an upload failure below.
     await FilePickerImpl.createDirectory("data", "campaign-record-media").catch(() => {});
-    await FilePickerImpl.createDirectory("data", dir);
+    await FilePickerImpl.createDirectory("data", dir).catch(() => {});
   });
   const renamed = new File([file], uploadFilename(file.name, Date.now()), { type: file.type });
   const result = await FilePickerImpl.upload("data", dir, renamed, {}, { notify: false });
