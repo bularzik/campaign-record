@@ -86,12 +86,12 @@ Use the systematic-debugging discipline: reproduce with `--trace on`, read the t
 
 ## Phase 2: Cap failure cost — timeout configuration
 
-- [ ] Read `playwright.config.mjs`. Record current `timeout`, `expect.timeout`, `use.actionTimeout` values here before changing: (fill in).
-- [ ] Set `use: { actionTimeout: 15_000 }` and `expect: { timeout: 15_000 }` (or confirm existing values and lower the effective 90s ceiling — the observed failures ran 90s before timing out, so find which knob produces that: likely `timeout: 90_000` per-test). Keep the per-test `timeout` high enough for the slowest legit test (World-reload tests in 18-migrations use explicit 60s `waitForFunction` — explicit timeouts override defaults, so they are safe).
-- [ ] Sanity run: `npx playwright test tests/e2e/01-module.spec.mjs tests/e2e/18-migrations.spec.mjs tests/e2e/11-checklist.spec.mjs` — green (proves explicit long waits survive the lower defaults).
-- [ ] Commit; update Status.
+- [x] Read `playwright.config.js` (plan said `.mjs`; actual file has no `m`). Recorded values before changing: `timeout: 90_000` (per-test), `expect.timeout: 15_000` (already at the 15s target), `use.actionTimeout`: **unset** (defaults to unbounded — actions like `locator.click`/`selectOption` retry until the per-test `timeout` fires). The unset `actionTimeout` is the knob that produced the observed 90s failure ceiling; `expect.timeout` was already fine.
+- [x] Set `use: { actionTimeout: 15_000 }`; left `expect: { timeout: 15_000 }` and per-test `timeout: 90_000` unchanged (90s backstop still comfortably covers 18-migrations' explicit 60s `waitForFunction`, which overrides defaults regardless).
+- [x] Sanity run: `npx playwright test tests/e2e/01-module.spec.mjs tests/e2e/18-migrations.spec.mjs tests/e2e/11-checklist.spec.mjs` — 8/8 green in 49.5s, confirming 18-migrations' explicit 60s `waitForFunction` survives the new 15s `actionTimeout` default.
+- [x] Commit; update Status.
 
-**Exit criteria:** a deliberately-broken locator (try one locally, don't commit it) fails in ~15s, not 90s; the sanity specs pass.
+**Exit criteria:** a deliberately-broken locator (try one locally, don't commit it) fails in ~15s, not 90s; the sanity specs pass. **MET** — a temporary probe test (`page.locator("#this-selector-does-not-exist-anywhere").click()`, added and fully reverted, not committed) failed with `TimeoutError: locator.click: Timeout 15000ms exceeded` in 19.9s wall time (was previously 90s). Sanity specs pass (see above).
 
 ---
 

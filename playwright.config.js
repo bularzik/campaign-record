@@ -17,6 +17,7 @@ export default defineConfig({
   use: {
     baseURL: process.env.FOUNDRY_URL ?? "http://localhost:30000",
     viewport: { width: 1440, height: 900 },
-    trace: "retain-on-failure"
+    trace: "retain-on-failure",
+    actionTimeout: 15_000
   }
 });
