@@ -8,7 +8,7 @@
     <li data-row-id="{{this.id}}">
       <input type="checkbox" data-action="toggleItem" {{#if this.done}}checked{{/if}}>
       <span class="{{#if this.done}}done{{/if}}">{{this.text}}</span>
-      {{#if this.assigneeName}}<span class="assignee">{{this.assigneeName}}</span>{{/if}}
+      {{#if this.assigneeName}}{{#if this.assigneeVisible}}<a class="assignee" data-action="openAssignee">{{this.assigneeName}}</a>{{else}}<span class="assignee">{{this.assigneeName}}</span>{{/if}}{{/if}}
     </li>
     {{/each}}
   </ol>
