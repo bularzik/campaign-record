@@ -1,5 +1,6 @@
 import { TextPageSheet } from "../../sheets/text-page-sheet.mjs";
 import { GROUP_SHEET_CLASS } from "../../constants.mjs";
+import { createSerialQueue } from "../../logic/mount-queue.mjs";
 
 /**
  * Owns the frameless page-sheet instances embedded in a hub's record pane.
@@ -9,7 +10,26 @@ import { GROUP_SHEET_CLASS } from "../../constants.mjs";
 export class RecordPane {
   #sheets = new Map(); // "pageUuid:mode" -> sheet instance
 
-  async mount(container, page, mode) {
+  // The hub's _onRender fires mount() fire-and-forget on every render pass;
+  // an import's hook burst produces overlapping passes, and two interleaved
+  // mounts re-parent a sheet whose <prose-mirror> is mid-initialization
+  // (destroying its EditorView under a live render). Serialize: one mount or
+  // close at a time, and a queued mount that a newer call has superseded is
+  // skipped instead of touching the DOM.
+  #queue = createSerialQueue();
+
+  mount(container, page, mode) {
+    return this.#queue.run(() => this.#mount(container, page, mode));
+  }
+
+  close() {
+    return this.#queue.run(() => this.#close(), { supersede: false });
+  }
+
+  async #mount(container, page, mode) {
+    // Superseded-by-close mounts can arrive after the hub swapped views; a
+    // container no longer in the document has nothing to mount into.
+    if (!container.isConnected) return;
     const key = `${page.uuid}:${mode}`;
     // One live embedded sheet at a time: close all others (mode flips included).
     for (const [k, sheet] of [...this.#sheets]) {
@@ -50,7 +70,7 @@ export class RecordPane {
     if (!fresh) await sheet.render({ force: true });
   }
 
-  async close() {
+  async #close() {
     for (const sheet of this.#sheets.values()) await sheet.close({ animate: false });
     this.#sheets.clear();
   }
