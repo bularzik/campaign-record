@@ -38,6 +38,15 @@ export function isInlineEditableView({ enabled, canEdit, type, inGroup, isMarkdo
 }
 
 /**
+ * Should the pane header render the record name as an always-open input?
+ * True exactly when the rest of the entry is editable: the user can update the
+ * page AND either the view is inline-editable or manual edit mode is active.
+ */
+export function isNameEditable({ canEdit, editing, inlineEditable }) {
+  return Boolean(canEdit && (inlineEditable || editing));
+}
+
+/**
  * Debounced field saver. schedule() saves quietly (render suppressed) after
  * `delay` ms of inactivity; flush() saves immediately with a normal render.
  * schedule() skips a value identical to the last save of either kind, but

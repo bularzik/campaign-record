@@ -3,6 +3,7 @@ import { JSDOM } from "jsdom";
 import { computeInlineEdit, createDebouncedSaver, hasActiveEditorFocus } from "../scripts/logic/inline-edit.mjs";
 import { shouldShowEditToggle } from "../scripts/logic/inline-edit.mjs";
 import { isInlineEditableView } from "../scripts/logic/inline-edit.mjs";
+import { isNameEditable } from "../scripts/logic/inline-edit.mjs";
 
 describe("shouldShowEditToggle", () => {
   it("hides the toggle for an inline-editable typed entry in view mode", () => {
@@ -176,5 +177,24 @@ describe("isInlineEditableView", () => {
   });
   it("is false for an unrelated page type", () => {
     expect(isInlineEditableView({ ...base, type: "image" })).toBe(false);
+  });
+});
+
+describe("isNameEditable", () => {
+  it("is editable in an inline-editable view (typed record, inline on)", () => {
+    expect(isNameEditable({ canEdit: true, editing: false, inlineEditable: true })).toBe(true);
+  });
+  it("is editable in manual edit mode (text page / inline off)", () => {
+    expect(isNameEditable({ canEdit: true, editing: true, inlineEditable: false })).toBe(true);
+  });
+  it("is read-only in plain view mode when the view is not inline-editable", () => {
+    expect(isNameEditable({ canEdit: true, editing: false, inlineEditable: false })).toBe(false);
+  });
+  it("is never editable without update permission", () => {
+    for (const editing of [true, false]) {
+      for (const inlineEditable of [true, false]) {
+        expect(isNameEditable({ canEdit: false, editing, inlineEditable })).toBe(false);
+      }
+    }
   });
 });
