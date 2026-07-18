@@ -144,6 +144,7 @@
       "Create": "Import",
       "Created": "Imported {pages} entries and {timepoints} timepoints into \"{group}\".",
       "ImagesDropped": "Images could not be uploaded and were left out.",
+      "ImagesNeedGM": "No GM is connected and you lack file upload permission — images in this document will be skipped.",
       "ImageTypeUnsupported": "Skipped an image of unsupported type \"{type}\".",
       "NothingToImport": "Every section is set to skip — nothing to import.",
       "CreateFailed": "Import failed — see the console for details."

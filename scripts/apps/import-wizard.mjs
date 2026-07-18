@@ -3,9 +3,9 @@ import { getGroups, createGroup } from "../data/groups.mjs";
 import { splitSections, suggestType, buildImportPlan, mergeSections, splitSectionAt } from "../logic/doc-import.mjs";
 import { DOC_SOURCES } from "../integrations/doc-sources.mjs";
 import * as Timepoints from "../data/timepoints.mjs";
-import { parseImageDataUri, imageExtension, assignTimepoints } from "../logic/import-images.mjs";
+import { assignTimepoints } from "../logic/import-images.mjs";
 import { fileMediaBatchToTimepoint } from "../hooks/auto-capture.mjs";
-import { uploadHubMedia } from "./hub/media-upload.mjs";
+import { uploadInlineImages } from "./import-upload.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -126,6 +126,9 @@ export class ImportWizard extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!sections.length) {
       this.#setReading(false);
       return ui.notifications.warn(game.i18n.localize("CAMPAIGNRECORD.Import.NoSections"));
+    }
+    if (parsed.html.includes("data:image") && !game.user.can("FILES_UPLOAD") && !game.users.activeGM) {
+      ui.notifications.warn(game.i18n.localize("CAMPAIGNRECORD.Import.ImagesNeedGM"));
     }
     this.state.docTitle = title ?? file.name.replace(/\.docx$/i, "");
     this.state.sections = sections;
@@ -317,79 +320,4 @@ export class ImportWizard extends HandlebarsApplicationMixin(ApplicationV2) {
 
 function sectionPreview(html) {
   return html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 80);
-}
-
-/**
- * Build an upload File from an image data-URI. Renderable types upload as-is;
- * unknown-but-decodable types transcode to PNG; undecodable types (EMF/WMF)
- * return { skipped: subtype }.
- */
-async function dataUriToFile(uri, basename) {
-  const parsed = parseImageDataUri(uri);
-  if (!parsed) return { skipped: "unknown" };
-  const bytes = Uint8Array.from(atob(parsed.base64), (c) => c.charCodeAt(0));
-  const ext = imageExtension(parsed.subtype);
-  if (ext) return { file: new File([bytes], `${basename}.${ext}`, { type: parsed.mime }) };
-  // Not directly renderable — best-effort transcode to PNG (EMF/WMF will throw).
-  try {
-    const bitmap = await createImageBitmap(new Blob([bytes], { type: parsed.mime }));
-    const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
-    canvas.getContext("2d").drawImage(bitmap, 0, 0);
-    const png = await canvas.convertToBlob({ type: "image/png" });
-    return { file: new File([await png.arrayBuffer()], `${basename}.png`, { type: "image/png" }) };
-  } catch {
-    return { skipped: parsed.subtype };
-  }
-}
-
-/**
- * Upload each inline data-URI image once (mammoth inlines docx images), rewrite
- * srcs to the stored path, and return the collected {src, caption} refs for
- * gallery filing. Identical data-URIs upload once. Per-image failures drop that
- * image with a warning; other images are unaffected. `uploadedByUri` (data-URI ->
- * stored path or null) is supplied by the caller and shared across the whole
- * document, so identical images on different pages are also deduped.
- */
-async function uploadInlineImages(html, group, warnings, uploadedByUri) {
-  if (!html?.includes("data:image")) return { html, images: [] };
-  const doc = new DOMParser().parseFromString(html, "text/html");
-  const imgs = [...doc.body.querySelectorAll('img[src^="data:"]')];
-  if (!imgs.length) return { html, images: [] };
-
-  const images = [];
-  let uploadFailed = false;
-  let n = 0;
-  for (const img of imgs) {
-    const uri = img.getAttribute("src");
-    if (!uploadedByUri.has(uri)) {
-      const result = await dataUriToFile(uri, `import-${Date.now()}-${++n}`);
-      let path = null;
-      if (result.skipped) {
-        warnings.push(game.i18n.format("CAMPAIGNRECORD.Import.ImageTypeUnsupported", { type: result.skipped }));
-      } else {
-        try {
-          path = await uploadHubMedia(group, result.file);
-        } catch (error) {
-          console.warn("campaign-record | inline image upload failed", error);
-          uploadFailed = true;
-        }
-      }
-      uploadedByUri.set(uri, path);
-    }
-    const path = uploadedByUri.get(uri);
-    if (path) {
-      img.setAttribute("src", path);
-      const caption = (img.getAttribute("alt") ?? "").trim();
-      images.push({ src: path, caption });
-    } else {
-      img.remove();
-    }
-  }
-
-  if (uploadFailed) warnings.push(game.i18n.localize("CAMPAIGNRECORD.Import.ImagesDropped"));
-
-  // Dedupe refs by src so the same image inline twice yields one gallery entry.
-  const seen = new Set();
-  const uniqueImages = images.filter((i) => (seen.has(i.src) ? false : seen.add(i.src)));
-  return { html: doc.body.innerHTML, images: uniqueImages };
 }
