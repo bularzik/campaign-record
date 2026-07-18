@@ -36,11 +36,17 @@ test.describe("schema migrations", () => {
         )
       )
       .toEqual({ timepoints: [] });
-    const schemaVersion = await page.evaluate(async () => {
+    // The flag-normalization poll above only proves migration 1 landed; the
+    // remaining migrations (2-5) keep running asynchronously in the ready
+    // hook, so the final schemaVersion needs its own poll rather than one
+    // immediate read (a one-shot check here is a race, not a real assertion).
+    const current = await page.evaluate(async () => {
       const { SCHEMA_VERSION } = await import("/modules/campaign-record/scripts/constants.mjs");
-      return { stored: game.settings.get("campaign-record", "schemaVersion"), current: SCHEMA_VERSION };
+      return SCHEMA_VERSION;
     });
-    expect(schemaVersion.stored).toBe(schemaVersion.current);
+    await expect
+      .poll(() => page.evaluate(() => game.settings.get("campaign-record", "schemaVersion")))
+      .toBe(current);
   });
 
   test("a newer stored schema puts the module in read-only", async () => {
