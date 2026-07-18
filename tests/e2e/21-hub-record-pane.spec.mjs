@@ -326,4 +326,52 @@ test.describe("hub record pane", () => {
       await ctx.close();
     }
   });
+
+  test("editable record renders the title as an input", async ({ page }) => {
+    await login(page, "Gamemaster");
+    await createGroupWithPage(page, "E2E Pane Group", "E2E Pane Rename", "campaign-record.npc");
+    await page.evaluate(async () => {
+      await game.settings.set("campaign-record", "inlineEditing", true);
+      const { CampaignHub } = await import("/modules/campaign-record/scripts/apps/hub/campaign-hub.mjs");
+      CampaignHub.open();
+    });
+    const hub = page.locator("#campaign-hub");
+    await hub.waitFor();
+    await hub.locator(".record-row", { hasText: "E2E Pane Rename" }).click();
+
+    const input = hub.locator("input.record-pane-title");
+    await expect(input).toHaveValue("E2E Pane Rename");
+    await expect(hub.locator("h2.record-pane-title")).toHaveCount(0);
+  });
+
+  test("observer without update permission still gets the static title", async ({ browser, page }) => {
+    await login(page, "Gamemaster");
+    const ids = await page.evaluate(async () => {
+      const entry = await JournalEntry.create({
+        name: "E2E Pane Observer Group",
+        ownership: { default: CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER },
+        flags: {
+          "campaign-record": { group: { timepoints: [] } },
+          core: { sheetClass: "campaign-record.GroupHubSheet" }
+        }
+      });
+      const [recordPage] = await entry.createEmbeddedDocuments("JournalEntryPage", [
+        { name: "E2E Pane Observed", type: "campaign-record.npc" }
+      ]);
+      return { groupId: entry.id, pageId: recordPage.id };
+    });
+    const ctx = await browser.newContext();
+    const playerPage = await ctx.newPage();
+    await login(playerPage, "User 1");
+    await playerPage.evaluate(async ({ groupId, pageId }) => {
+      await game.settings.set("campaign-record", "inlineEditing", true);
+      const sheet = game.journal.get(groupId).sheet;
+      await sheet.render({ force: true });
+      await sheet.goToPage(pageId);
+    }, ids);
+    const sheet = playerPage.locator(".group-hub");
+    await expect(sheet.locator("h2.record-pane-title")).toHaveText("E2E Pane Observed");
+    await expect(sheet.locator("input.record-pane-title")).toHaveCount(0);
+    await ctx.close();
+  });
 });

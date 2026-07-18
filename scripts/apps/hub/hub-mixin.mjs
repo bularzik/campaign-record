@@ -4,7 +4,7 @@ import {
   MODULE_ID, RAIL_SETTING, INLINE_EDIT_SETTING, SNIPPETS_SETTING, typeId, GROUP_SHEET_CLASS,
   TIMELINE_ORDER_SETTING
 } from "../../constants.mjs";
-import { hasActiveEditorFocus, shouldShowEditToggle, isInlineEditableView } from "../../logic/inline-edit.mjs";
+import { hasActiveEditorFocus, shouldShowEditToggle, isInlineEditableView, isNameEditable } from "../../logic/inline-edit.mjs";
 import { renderPartsForChange } from "../../logic/hub-render.mjs";
 import { buildDoctypeFilter } from "../../logic/doctype-filter.mjs";
 import { buildSortMenu } from "../../logic/sort-menu.mjs";
@@ -868,6 +868,11 @@ export function HubMixin(Base) {
           name: viewedPage.name,
           editing: this.state.view.mode === "edit",
           canEdit,
+          nameEditable: isNameEditable({
+            canEdit,
+            editing: this.state.view.mode === "edit",
+            inlineEditable: inlineEditableView
+          }),
           showEditToggle: shouldShowEditToggle({
             canEdit,
             inViewMode: this.state.view.mode !== "edit",
