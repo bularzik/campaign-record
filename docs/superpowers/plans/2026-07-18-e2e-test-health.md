@@ -13,7 +13,7 @@
 | Phase | State | Commits | Notes |
 |---|---|---|---|
 | 1a/1b: hub-record-pane failures | COMPLETE (commit 274330e) | 274330e | :211 — inline editing defaults on (client setting), so non-markdown text pages are natively inline-editable in view mode and never render the manual edit-toggle button; test needed to disable inlineEditing to exercise the toggle flow. :229 — New Entry dialog's type select now defaults to "Journal" (text) since the 2026-07-17 new-creation-defaults change; test never selected a type, so it created a text page (no system.role) instead of an NPC. |
-| 1c: group-hub-sheet failure | NOT STARTED | | |
+| 1c: group-hub-sheet failure | COMPLETE (commit 87985ab) | 87985ab | :67 — test predated PR #18 ("Hide New Entry record selector when hub is scoped to a group"), which intentionally removed the group `<select>` from a scoped GroupHubSheet's New Entry dialog; test also asserted a stale `.record-pane-mount form` selector that never matched (inline-editing-default-on renders NPC view mode as live inputs, not a `<form>`, per pattern established in 1a/1b). Test-only fix. |
 | 1d: inline-edit ProseMirror failure | NOT STARTED | | |
 | 2: timeout caps | NOT STARTED | | |
 | 3: storageState login reuse | NOT STARTED | | |
