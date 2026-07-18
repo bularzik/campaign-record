@@ -2,7 +2,12 @@
   <header class="record-pane-header">
     {{> campaign-record.hub-right-nav}}
     {{#if view}}
+    {{#if view.nameEditable}}
+    <input type="text" class="record-pane-title" name="name" value="{{view.name}}"
+           aria-label="{{localize "CAMPAIGNRECORD.Hub.RecordName"}}" />
+    {{else}}
     <h2 class="record-pane-title">{{view.name}}</h2>
+    {{/if}}
     <button type="button" class="new-record" data-action="newRecord"
             data-tooltip="CAMPAIGNRECORD.Hub.NewRecord" aria-label="{{localize "CAMPAIGNRECORD.Hub.NewRecord"}}">
       <i class="fa-solid fa-plus"></i>

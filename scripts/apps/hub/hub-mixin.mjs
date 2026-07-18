@@ -4,7 +4,7 @@ import {
   MODULE_ID, RAIL_SETTING, INLINE_EDIT_SETTING, SNIPPETS_SETTING, typeId, GROUP_SHEET_CLASS,
   TIMELINE_ORDER_SETTING
 } from "../../constants.mjs";
-import { hasActiveEditorFocus, shouldShowEditToggle, isInlineEditableView } from "../../logic/inline-edit.mjs";
+import { hasActiveEditorFocus, shouldShowEditToggle, isInlineEditableView, isNameEditable } from "../../logic/inline-edit.mjs";
 import { renderPartsForChange } from "../../logic/hub-render.mjs";
 import { buildDoctypeFilter } from "../../logic/doctype-filter.mjs";
 import { buildSortMenu } from "../../logic/sort-menu.mjs";
@@ -207,8 +207,10 @@ export function HubMixin(Base) {
      */
     async render(options = {}, _options = {}) {
       if (typeof options === "boolean") options = { force: options, ..._options };
-      const mount = this.rendered ? this.element?.querySelector(".record-pane-mount") : null;
-      if (mount && hasActiveEditorFocus(mount)) {
+      const root = this.rendered ? this.element : null;
+      const mount = root?.querySelector(".record-pane-mount");
+      const header = root?.querySelector(".record-pane-header");
+      if ((mount && hasActiveEditorFocus(mount)) || (header && hasActiveEditorFocus(header))) {
         this.#deferredRender = foundry.utils.mergeObject(this.#deferredRender ?? {}, options, {
           inplace: false
         });
@@ -857,6 +859,7 @@ export function HubMixin(Base) {
       context.canGoForward = canGoForward(this.#history);
       if (this.state.view && viewedPage) {
         const canEdit = viewedPage.canUserModify(game.user, "update");
+        const editing = this.state.view.mode === "edit";
         const inlineEditableView = isInlineEditableView({
           enabled: game.settings.get(MODULE_ID, INLINE_EDIT_SETTING),
           canEdit,
@@ -866,8 +869,13 @@ export function HubMixin(Base) {
         });
         context.view = {
           name: viewedPage.name,
-          editing: this.state.view.mode === "edit",
+          editing,
           canEdit,
+          nameEditable: isNameEditable({
+            canEdit,
+            editing,
+            inlineEditable: inlineEditableView
+          }),
           showEditToggle: shouldShowEditToggle({
             canEdit,
             inViewMode: this.state.view.mode !== "edit",
@@ -896,6 +904,41 @@ export function HubMixin(Base) {
         groupSelect.addEventListener("change", (event) => {
           this.state.groupId = event.target.value;
           this.render();
+        });
+      }
+      const titleInput = this.element.querySelector("input.record-pane-title");
+      if (titleInput && !titleInput.dataset.crBound) {
+        titleInput.dataset.crBound = "1";
+        titleInput.addEventListener("change", async (event) => {
+          // Keep the rename out of the group journal's own form handling.
+          event.stopPropagation();
+          const page = this.#resolveViewedPage();
+          if (!page) return;
+          const name = event.target.value.trim();
+          if (!name || name === page.name) {
+            event.target.value = page.name;
+            return;
+          }
+          try {
+            await page.update({ name });
+          } catch (error) {
+            console.warn("campaign-record | rename save rejected; reverting title", error);
+            ui.notifications.warn(game.i18n.localize("CAMPAIGNRECORD.Warning.InlineSaveFailed"));
+            event.target.value = page.name;
+          }
+        });
+        titleInput.addEventListener("keydown", (event) => {
+          if (event.key === "Enter") {
+            event.preventDefault();
+            event.target.blur(); // commits via the change handler
+          } else if (event.key === "Escape") {
+            // Revert, and keep core's Escape handling from closing the app.
+            event.preventDefault();
+            event.stopPropagation();
+            const page = this.#resolveViewedPage();
+            if (page) event.target.value = page.name;
+            event.target.blur();
+          }
         });
       }
       const indexSearch = this.element.querySelector('input[name="index-search"]');

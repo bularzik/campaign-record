@@ -698,6 +698,24 @@
   font-size: var(--font-size-18, 1.125rem);
   border: none;
 }
+.record-pane-header input.record-pane-title {
+  flex: 1;
+  margin: 0;
+  height: auto;
+  padding: 0 0.125rem;
+  font-family: inherit;
+  font-size: var(--font-size-18, 1.125rem);
+  font-weight: bold;
+  color: inherit;
+  background: transparent;
+  border: none;
+  border-radius: 3px;
+}
+.record-pane-header input.record-pane-title:hover,
+.record-pane-header input.record-pane-title:focus {
+  box-shadow: inset 0 0 0 1px var(--color-border, #7a7971);
+  outline: none;
+}
 .record-pane-header button {
   width: 2rem;
   flex: 0 0 auto;

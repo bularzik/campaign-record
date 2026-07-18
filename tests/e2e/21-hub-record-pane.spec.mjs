@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { login, createGroupWithPage, deleteGroupsByPrefix } from "./helpers/foundry.mjs";
+import { login, createGroupWithPage, deleteGroupsByPrefix, expectPaneTitle } from "./helpers/foundry.mjs";
 
 test.describe("hub record pane", () => {
   test.afterEach(async ({ page }) => {
@@ -17,7 +17,7 @@ test.describe("hub record pane", () => {
     await hub.waitFor();
     await hub.locator(".record-row", { hasText: "E2E Pane Npc" }).click();
 
-    await expect(hub.locator(".record-pane-title")).toHaveText("E2E Pane Npc");
+    await expectPaneTitle(hub, "E2E Pane Npc");
     await expect(hub.locator(".record-pane-mount dl.record-facts")).toBeVisible();
     // The index stays visible as the searchable left pane while viewing a record.
     await expect(hub.locator(".hub-index")).toBeVisible();
@@ -72,7 +72,7 @@ test.describe("hub record pane", () => {
     });
     const hub = page.locator("#campaign-hub");
     await hub.locator(".record-row", { hasText: "E2E Pane Doomed" }).click();
-    await expect(hub.locator(".record-pane-title")).toHaveText("E2E Pane Doomed");
+    await expectPaneTitle(hub, "E2E Pane Doomed");
     await page.evaluate(
       ({ groupId, pageId }) => game.journal.get(groupId).pages.get(pageId).delete(),
       ids
@@ -96,7 +96,7 @@ test.describe("hub record pane", () => {
     const index = hub.locator(".hub-index");
     await expect(index.locator(".record-row", { hasText: "E2E Pane One" })).toHaveClass(/current/);
     await index.locator(".record-row", { hasText: "E2E Pane Two" }).click();
-    await expect(hub.locator(".record-pane-title")).toHaveText("E2E Pane Two");
+    await expectPaneTitle(hub, "E2E Pane Two");
     await expect(index.locator(".record-row", { hasText: "E2E Pane Two" })).toHaveClass(/current/);
   });
 
@@ -152,7 +152,6 @@ test.describe("hub record pane", () => {
     }, ids);
     const hub = page.locator("#campaign-hub");
     const index = hub.locator(".hub-index");
-    const title = hub.locator(".record-pane-title");
     // The shared right-pane nav also renders in the timeline tools, so scope
     // Back/Forward to the record header while a record is being viewed.
     const recordNav = hub.locator(".hub-record.active .record-pane-header");
@@ -161,18 +160,18 @@ test.describe("hub record pane", () => {
     await hub.locator(".record-row", { hasText: "E2E Pane A" }).click();
     await index.locator(".record-row", { hasText: "E2E Pane B" }).click();
     await index.locator(".record-row", { hasText: "E2E Pane A" }).click();
-    await expect(title).toHaveText("E2E Pane A");
+    await expectPaneTitle(hub, "E2E Pane A");
 
     await recordNav.locator('[data-action="paneBack"]').click();
-    await expect(title).toHaveText("E2E Pane B");
+    await expectPaneTitle(hub, "E2E Pane B");
     // Forward works while a record is still showing (the pane, including its
     // Back/Forward header, is part of the record overlay).
     await recordNav.locator('[data-action="paneForward"]').click();
-    await expect(title).toHaveText("E2E Pane A");
+    await expectPaneTitle(hub, "E2E Pane A");
     await recordNav.locator('[data-action="paneBack"]').click();
-    await expect(title).toHaveText("E2E Pane B");
+    await expectPaneTitle(hub, "E2E Pane B");
     await recordNav.locator('[data-action="paneBack"]').click();
-    await expect(title).toHaveText("E2E Pane A");
+    await expectPaneTitle(hub, "E2E Pane A");
     await recordNav.locator('[data-action="paneBack"]').click();
     // Root: the record pane (including its Back/Forward header) overlays
     // nothing here and is hidden entirely — only the index is visible.
@@ -247,7 +246,7 @@ test.describe("hub record pane", () => {
       .locator('dialog button[data-action="ok"], .application.dialog button[data-action="ok"]')
       .click();
 
-    await expect(hub.locator(".record-pane-title")).toHaveText("E2E Pane Fresh");
+    await expectPaneTitle(hub, "E2E Pane Fresh");
     await expect(hub.locator('.record-pane-mount [name="system.role"]')).toBeVisible();
   });
 
@@ -270,7 +269,7 @@ test.describe("hub record pane", () => {
     const hub = page.locator("#campaign-hub");
     await hub.locator(".record-row", { hasText: "E2E Pane Source" }).click();
     await hub.locator(".record-pane-mount a.content-link", { hasText: "the target" }).click();
-    await expect(hub.locator(".record-pane-title")).toHaveText("E2E Pane Target");
+    await expectPaneTitle(hub, "E2E Pane Target");
     await expect(hub.locator(".hub-index .record-row", { hasText: "E2E Pane Target" })).toHaveClass(/current/);
   });
 
@@ -293,7 +292,7 @@ test.describe("hub record pane", () => {
       });
       const hub = playerPage.locator("#campaign-hub");
       await hub.locator(".record-row", { hasText: "E2E Pane Locked" }).click();
-      await expect(hub.locator(".record-pane-title")).toHaveText("E2E Pane Locked");
+      await expectPaneTitle(hub, "E2E Pane Locked");
       await expect(hub.locator('[data-action="toggleEditMode"]')).toHaveCount(0);
     } finally {
       await ctx.close();
@@ -326,5 +325,98 @@ test.describe("hub record pane", () => {
     } finally {
       await ctx.close();
     }
+  });
+
+  test("editable record renders the title as an input", async ({ page }) => {
+    const { hub, input } = await openRenameFixture(page);
+    await expect(input).toHaveValue("E2E Pane Rename");
+    await expect(hub.locator("h2.record-pane-title")).toHaveCount(0);
+  });
+
+  test("observer without update permission still gets the static title", async ({ browser, page }) => {
+    await login(page, "Gamemaster");
+    const ids = await page.evaluate(async () => {
+      const entry = await JournalEntry.create({
+        name: "E2E Pane Observer Group",
+        ownership: { default: CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER },
+        flags: {
+          "campaign-record": { group: { timepoints: [] } },
+          core: { sheetClass: "campaign-record.GroupHubSheet" }
+        }
+      });
+      const [recordPage] = await entry.createEmbeddedDocuments("JournalEntryPage", [
+        { name: "E2E Pane Observed", type: "campaign-record.npc" }
+      ]);
+      return { groupId: entry.id, pageId: recordPage.id };
+    });
+    const ctx = await browser.newContext();
+    const playerPage = await ctx.newPage();
+    try {
+      await login(playerPage, "User 1");
+      await playerPage.evaluate(async ({ groupId, pageId }) => {
+        await game.settings.set("campaign-record", "inlineEditing", true);
+        const sheet = game.journal.get(groupId).sheet;
+        await sheet.render({ force: true });
+        await sheet.goToPage(pageId);
+      }, ids);
+      const sheet = playerPage.locator(".group-hub");
+      await expect(sheet.locator("h2.record-pane-title")).toHaveText("E2E Pane Observed");
+      await expect(sheet.locator("input.record-pane-title")).toHaveCount(0);
+    } finally {
+      await ctx.close();
+    }
+  });
+
+  async function openRenameFixture(page) {
+    await login(page, "Gamemaster");
+    await createGroupWithPage(page, "E2E Pane Group", "E2E Pane Rename", "campaign-record.npc");
+    await page.evaluate(async () => {
+      await game.settings.set("campaign-record", "inlineEditing", true);
+      const { CampaignHub } = await import("/modules/campaign-record/scripts/apps/hub/campaign-hub.mjs");
+      CampaignHub.open();
+    });
+    const hub = page.locator("#campaign-hub");
+    await hub.waitFor();
+    await hub.locator(".record-row", { hasText: "E2E Pane Rename" }).click();
+    const input = hub.locator("input.record-pane-title");
+    await expect(input).toHaveValue("E2E Pane Rename");
+    return { hub, input };
+  }
+
+  test("typing a new name and pressing Enter renames the record", async ({ page }) => {
+    const { hub, input } = await openRenameFixture(page);
+    await input.fill("E2E Pane Renamed");
+    await input.press("Enter");
+
+    // The document saved and the index row picked up the new name.
+    await expect(hub.locator(".hub-index .record-row", { hasText: "E2E Pane Renamed" })).toHaveCount(1);
+    await expect(input).toHaveValue("E2E Pane Renamed");
+    expect(await page.evaluate(() =>
+      game.journal.getName("E2E Pane Group").pages.getName("E2E Pane Renamed")?.name
+    )).toBe("E2E Pane Renamed");
+  });
+
+  test("Escape reverts the title without saving", async ({ page }) => {
+    const { hub, input } = await openRenameFixture(page);
+    await input.fill("E2E Pane Discarded");
+    await input.press("Escape");
+
+    await expect(input).toHaveValue("E2E Pane Rename");
+    // The hub window itself must survive the Escape (not close).
+    await expect(hub).toBeVisible();
+    expect(await page.evaluate(() =>
+      game.journal.getName("E2E Pane Group").pages.getName("E2E Pane Rename")?.name
+    )).toBe("E2E Pane Rename");
+  });
+
+  test("committing an empty name reverts instead of saving", async ({ page }) => {
+    const { input } = await openRenameFixture(page);
+    await input.fill("   ");
+    await input.press("Enter");
+
+    await expect(input).toHaveValue("E2E Pane Rename");
+    expect(await page.evaluate(() =>
+      game.journal.getName("E2E Pane Group").pages.getName("E2E Pane Rename")?.name
+    )).toBe("E2E Pane Rename");
   });
 });
