@@ -25,7 +25,12 @@ export async function uploadHubMedia(group, file) {
 }
 
 /** Thrown when a user can neither upload directly nor relay through a GM. */
-export class NoActiveGMError extends Error {}
+export class NoActiveGMError extends Error {
+  constructor(...args) {
+    super(...args);
+    this.name = "NoActiveGMError";
+  }
+}
 
 /**
  * Upload media as the current user: directly when they hold FILES_UPLOAD,

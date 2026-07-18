@@ -1,4 +1,4 @@
-import { IMAGE_SUBTYPE_EXT } from "./import-images.mjs";
+import { IMAGE_SUBTYPE_EXT, imageExtension } from "./import-images.mjs";
 
 /**
  * Pure protocol helpers for relaying a player's media upload to the active
@@ -10,6 +10,14 @@ import { IMAGE_SUBTYPE_EXT } from "./import-images.mjs";
 export const MAX_RELAY_FILE_BYTES = 10 * 1024 * 1024;
 export const RELAY_CHUNK_SIZE = 256 * 1024; // base64 chars per socket message
 export const RELAY_BUFFER_STALE_MS = 60 * 1000;
+// Chunk count a MAX_RELAY_FILE_BYTES upload actually produces, plus one
+// rounding-error margin. Bounds `total` so a hostile huge value can't drive
+// `new Array(total)` into an OOM before any size check runs.
+export const MAX_RELAY_CHUNKS = Math.ceil((MAX_RELAY_FILE_BYTES * 4) / 3 / RELAY_CHUNK_SIZE) + 1;
+// Concurrent in-flight reassembly buffers allowed per GM before new
+// requestIds are refused; bounds worst-case memory fan-out independent of
+// per-buffer size caps.
+export const DEFAULT_MAX_RELAY_BUFFERS = 16;
 
 /** Decoded byte length of a base64 string. */
 export function base64ByteLength(base64) {
@@ -40,16 +48,34 @@ export function chunkProblem(p) {
   if (typeof p.name !== "string" || !p.name) return "bad-name";
   if (!isRelayableImageType(p.type)) return "bad-type";
   if (!Number.isInteger(p.seq) || p.seq < 0) return "bad-seq";
-  if (!Number.isInteger(p.total) || p.total < 1 || p.seq >= p.total) return "bad-seq";
+  if (!Number.isInteger(p.total) || p.total < 1 || p.total > MAX_RELAY_CHUNKS || p.seq >= p.total) {
+    return "bad-seq";
+  }
   if (typeof p.data !== "string") return "bad-data";
   return null;
+}
+
+/**
+ * Force `name`'s extension to match the validated MIME's subtype, ignoring
+ * whatever extension the caller supplied. Guards against a mismatched pair
+ * like {name:"evil.html", type:"image/png"} landing on disk as .html.
+ * Returns null when `mime` has no known renderable extension.
+ */
+export function enforcedImageName(name, mime) {
+  const m = /^image\/([a-z0-9.+-]+)$/i.exec(mime ?? "");
+  const ext = m ? imageExtension(m[1].toLowerCase()) : null;
+  if (!ext) return null;
+  const base = (name ?? "").replace(/\.[^./\\]+$/, "");
+  return `${base || "media"}.${ext}`;
 }
 
 /**
  * Chunk reassembly for the GM side. `now` is injected so tests control time;
  * buffers untouched for staleMs are evicted on the next accept().
  */
-export function createRelayAssembler({ maxBytes = MAX_RELAY_FILE_BYTES, staleMs = RELAY_BUFFER_STALE_MS } = {}) {
+export function createRelayAssembler({
+  maxBytes = MAX_RELAY_FILE_BYTES, staleMs = RELAY_BUFFER_STALE_MS, maxBuffers = DEFAULT_MAX_RELAY_BUFFERS
+} = {}) {
   const buffers = new Map(); // requestId -> {groupId,name,type,total,parts,received,bytes,touched}
   return {
     accept(payload, now) {
@@ -58,6 +84,7 @@ export function createRelayAssembler({ maxBytes = MAX_RELAY_FILE_BYTES, staleMs 
       if (reason) return { status: "invalid", reason };
       let buf = buffers.get(payload.requestId);
       if (!buf) {
+        if (buffers.size >= maxBuffers) return { status: "invalid", reason: "too-many" };
         buf = {
           groupId: payload.groupId, name: payload.name, type: payload.type,
           total: payload.total, parts: new Array(payload.total).fill(null),

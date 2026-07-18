@@ -1,7 +1,8 @@
 import { MODULE_ID, UPLOAD_MEDIA_ACTION, UPLOAD_MEDIA_RESULT_ACTION } from "../constants.mjs";
 import { isGroup } from "../data/groups.mjs";
 import {
-  chunkBase64, createRelayAssembler, base64ByteLength, isRelayableImageType, MAX_RELAY_FILE_BYTES
+  chunkBase64, createRelayAssembler, base64ByteLength, isRelayableImageType, enforcedImageName,
+  MAX_RELAY_FILE_BYTES
 } from "../logic/media-relay.mjs";
 import { uploadHubMedia } from "../apps/hub/media-upload.mjs";
 
@@ -11,7 +12,12 @@ const RELAY_TIMEOUT_MS = 30_000;
 const pending = new Map(); // requestId -> {resolve, reject, timer} on the requesting client
 const assembler = createRelayAssembler();
 
-export class RelayUploadError extends Error {}
+export class RelayUploadError extends Error {
+  constructor(...args) {
+    super(...args);
+    this.name = "RelayUploadError";
+  }
+}
 
 /** Encode a File's bytes as base64 without exceeding the call stack. */
 async function fileToBase64(file) {
@@ -73,9 +79,13 @@ async function handleUploadRequest(payload) {
   if (outcome.status === "invalid") return reply({ error: outcome.reason });
   const group = game.journal.get(outcome.request.groupId);
   if (!group || !isGroup(group)) return reply({ error: "unknown-group" });
+  // Never trust the caller's extension: force it to match the validated
+  // MIME so a mismatched pair (evil.html, image/png) can't land as .html.
+  const name = enforcedImageName(outcome.request.name, outcome.request.type);
+  if (!name) return reply({ error: "bad-type" });
   try {
     const bytes = Uint8Array.from(atob(outcome.request.base64), (c) => c.charCodeAt(0));
-    const file = new File([bytes], outcome.request.name, { type: outcome.request.type });
+    const file = new File([bytes], name, { type: outcome.request.type });
     const path = await uploadHubMedia(group, file);
     reply({ path });
   } catch (error) {

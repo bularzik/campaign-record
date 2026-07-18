@@ -1,7 +1,8 @@
 import { describe, it, expect } from "vitest";
 import {
-  MAX_RELAY_FILE_BYTES, RELAY_CHUNK_SIZE,
-  base64ByteLength, chunkBase64, isRelayableImageType, chunkProblem, createRelayAssembler
+  MAX_RELAY_FILE_BYTES, RELAY_CHUNK_SIZE, MAX_RELAY_CHUNKS, DEFAULT_MAX_RELAY_BUFFERS,
+  base64ByteLength, chunkBase64, isRelayableImageType, chunkProblem, createRelayAssembler,
+  enforcedImageName
 } from "../scripts/logic/media-relay.mjs";
 
 describe("base64ByteLength", () => {
@@ -62,6 +63,34 @@ describe("chunkProblem", () => {
     expect(chunkProblem(chunk({ data: 42 }))).toBe("bad-data");
     expect(chunkProblem(null)).toBe("bad-request-id");
   });
+  it("bounds total to MAX_RELAY_CHUNKS so a hostile total can't OOM the assembler", () => {
+    expect(chunkProblem(chunk({ seq: 0, total: MAX_RELAY_CHUNKS + 1 }))).toBe("bad-seq");
+    expect(chunkProblem(chunk({ seq: 0, total: MAX_RELAY_CHUNKS }))).toBeNull();
+    expect(chunkProblem(chunk({ seq: 0, total: 1e8 }))).toBe("bad-seq");
+  });
+  it("keeps a legitimate max-size upload's chunk count within MAX_RELAY_CHUNKS", () => {
+    // Worst-case base64 length for a MAX_RELAY_FILE_BYTES-sized body (no padding).
+    const body = "A".repeat(Math.ceil((MAX_RELAY_FILE_BYTES * 4) / 3));
+    const chunks = chunkBase64(body);
+    expect(chunks.length).toBeLessThanOrEqual(MAX_RELAY_CHUNKS);
+    expect(chunkProblem(chunk({ seq: 0, total: chunks.length }))).toBeNull();
+  });
+});
+
+describe("enforcedImageName", () => {
+  it("forces the extension to match the validated MIME, ignoring the caller's extension", () => {
+    expect(enforcedImageName("evil.html", "image/png")).toBe("evil.png");
+  });
+  it("leaves a name whose extension already matches unchanged", () => {
+    expect(enforcedImageName("map.png", "image/png")).toBe("map.png");
+  });
+  it("appends an extension when the name has none", () => {
+    expect(enforcedImageName("map", "image/png")).toBe("map.png");
+  });
+  it("returns null for a mime with no known renderable extension", () => {
+    expect(enforcedImageName("evil.png", "image/x-emf")).toBeNull();
+    expect(enforcedImageName("evil.png", "video/webm")).toBeNull();
+  });
 });
 
 describe("createRelayAssembler", () => {
@@ -109,5 +138,19 @@ describe("createRelayAssembler", () => {
   });
   it("respects MAX_RELAY_FILE_BYTES as the default cap", () => {
     expect(MAX_RELAY_FILE_BYTES).toBe(10 * 1024 * 1024);
+  });
+  it("caps concurrent reassembly buffers without evicting live ones", () => {
+    const a = createRelayAssembler({ maxBuffers: 2 });
+    expect(a.accept(chunk({ requestId: "req1", seq: 0, total: 2, data: "A" }), 1000).status).toBe("pending");
+    expect(a.accept(chunk({ requestId: "req2", seq: 0, total: 2, data: "A" }), 1000).status).toBe("pending");
+    expect(a.size()).toBe(2);
+    expect(a.accept(chunk({ requestId: "req3", seq: 0, total: 2, data: "A" }), 1000))
+      .toEqual({ status: "invalid", reason: "too-many" });
+    expect(a.size()).toBe(2);
+    // Live buffers are untouched and can still complete.
+    expect(a.accept(chunk({ requestId: "req1", seq: 1, total: 2, data: "B" }), 1001).status).toBe("complete");
+  });
+  it("uses DEFAULT_MAX_RELAY_BUFFERS as the default cap", () => {
+    expect(DEFAULT_MAX_RELAY_BUFFERS).toBe(16);
   });
 });
