@@ -69,6 +69,12 @@ export const AUTO_TARGET_ACTION = "set-auto-target";
 /** Socket action: relay a dropped-media gallery filing to the active GM. */
 export const DROP_MEDIA_ACTION = "file-dropped-media";
 
+/** Socket action: one chunk of a player's media upload relayed to the active GM. */
+export const UPLOAD_MEDIA_ACTION = "relay-upload-media";
+
+/** Socket action: the GM's success/failure reply to a relayed media upload. */
+export const UPLOAD_MEDIA_RESULT_ACTION = "relay-upload-media-result";
+
 /** Combat flag: uuid of the Encounter page this combat is captured into. */
 export const ENCOUNTER_FLAG = "encounterUuid";
 

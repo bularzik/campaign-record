@@ -15,9 +15,10 @@ import { hasGroupFlag, isRecordVisible } from "../../logic/visibility.mjs";
 import { classifyDropData, filenameFromSrc, recordDragPayload } from "../../logic/timeline-links.mjs";
 import { classifyLinkTarget } from "../../logic/record-links.mjs";
 import { resolveDropTarget } from "../../logic/media-drop.mjs";
+import { isRelayableImageType } from "../../logic/media-relay.mjs";
 import { isVideoSrc } from "../../logic/auto-capture.mjs";
 import { fileMediaToTimepoint, queueMediaTask, relayDroppedMedia } from "../../hooks/auto-capture.mjs";
-import { uploadHubMedia } from "./media-upload.mjs";
+import { uploadHubMediaAsUser } from "./media-upload.mjs";
 import * as Timepoints from "../../data/timepoints.mjs";
 import { getCalendarMonths, calendarBounds, hasCalendar, formatCampaignDate, currentWorldComponents } from "../../logic/campaign-calendar.mjs";
 import { parseCampaignDateInput, formatCreateDate } from "../../logic/campaign-date.mjs";
@@ -702,7 +703,8 @@ export function HubMixin(Base) {
         ui.notifications.warn(game.i18n.format("CAMPAIGNRECORD.Hub.DropSkippedFile", { name }));
       }
       if (!accepted.length) return;
-      if (!game.user.can("FILES_UPLOAD")) {
+      const canUploadDirect = game.user.can("FILES_UPLOAD");
+      if (!canUploadDirect && !game.users.activeGM) {
         return ui.notifications.warn(game.i18n.localize("CAMPAIGNRECORD.Hub.DropCannotUpload"));
       }
       const tpRow = event.target.closest("[data-drop-timepoint]");
@@ -720,9 +722,14 @@ export function HubMixin(Base) {
         return ui.notifications.warn(game.i18n.localize("CAMPAIGNRECORD.Hub.CannotEditTimeline"));
       }
       for (const file of accepted) {
+        // The relay carries images only; players without upload rights skip videos.
+        if (!canUploadDirect && !isRelayableImageType(file.type)) {
+          ui.notifications.warn(game.i18n.format("CAMPAIGNRECORD.Hub.DropRelayImagesOnly", { name: file.name }));
+          continue;
+        }
         let path;
         try {
-          path = await uploadHubMedia(group, file);
+          path = await uploadHubMediaAsUser(group, file);
         } catch (error) {
           console.error("campaign-record | media upload failed", error);
           ui.notifications.error(game.i18n.format("CAMPAIGNRECORD.Hub.DropUploadFailed", { name: file.name }));
