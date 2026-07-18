@@ -604,6 +604,16 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
+  /* When two stacked groups (e.g. description + GM notes) can't both fit
+     their editor's --min-height floor in the pane's available height, the
+     prose-mirror child's own min-height forces it taller than this shrunk
+     flex box. Without a clip, that overflow paints past this section's
+     bottom edge and visually lands on top of the NEXT section's own editor
+     (its menu ends up "above" this editor's content in the hit-test order),
+     so clicks meant for this editor land on the sibling's toolbar instead.
+     Clipping here confines each editor to its own allotted box; the pane
+     itself (.record-pane-mount) already scrolls so nothing is unreachable. */
+  overflow: hidden;
 }
 /* Core text/journal pages don't use our wrapper: flex whichever direct child
    of the mounted sheet actually holds the editor. */
