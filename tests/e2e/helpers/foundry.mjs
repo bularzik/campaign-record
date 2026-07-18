@@ -1,6 +1,7 @@
 import { execFileSync, spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
+import { expect } from "@playwright/test";
 import { lockStatus, UNLOCK_HINT } from "./env-lock.mjs";
 
 export const BASE_URL = process.env.FOUNDRY_URL ?? "http://localhost:30000";
@@ -170,4 +171,16 @@ export async function createGroupWithPage(page, groupName, pageName, type) {
     },
     { groupName, pageName, type }
   );
+}
+
+/**
+ * Assert the record pane title within `scope` shows `name`, whether it is
+ * rendered as a static <h2> or (for editable viewers) an <input>.
+ */
+export async function expectPaneTitle(scope, name) {
+  const title = scope.locator(".record-pane-title");
+  await expect(title).toHaveCount(1);
+  const tag = await title.evaluate((el) => el.tagName);
+  if (tag === "INPUT") await expect(title).toHaveValue(name);
+  else await expect(title).toHaveText(name);
 }

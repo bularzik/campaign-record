@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { login, deleteGroupsByPrefix, createGroupWithPage } from "./helpers/foundry.mjs";
+import { login, deleteGroupsByPrefix, createGroupWithPage, expectPaneTitle } from "./helpers/foundry.mjs";
 
 // Proves the preUpdateJournalEntryPage auto-link hook end-to-end: a
 // newly-typed mention of a sibling record's name becomes an @UUID content
@@ -108,14 +108,14 @@ test.describe("auto-link entry names on save", () => {
     await gmPage.evaluate(() => game.settings.set("campaign-record", "inlineEditing", false));
     await openFrodo();
     await gmPage.locator(".group-hub .record-pane-title").waitFor({ timeout: 15_000 });
-    await expect(gmPage.locator(".group-hub .record-pane-title")).toHaveText("E2E Frodo");
+    await expectPaneTitle(gmPage.locator(".group-hub"), "E2E Frodo");
 
     const link = gmPage.locator(".group-hub .record-pane-mount a.content-link", { hasText: "E2E Gandalf" });
     await expect(link).toBeVisible();
     await expect(link).toHaveAttribute("data-uuid", gandalfUuid);
 
     await link.click();
-    await expect(gmPage.locator(".group-hub .record-pane-title")).toHaveText("E2E Gandalf");
+    await expectPaneTitle(gmPage.locator(".group-hub"), "E2E Gandalf");
 
     await gmPage.evaluate(() => game.settings.set("campaign-record", "inlineEditing", true));
   });

@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { login, createGroupWithPage, deleteGroupsByPrefix } from "./helpers/foundry.mjs";
+import { login, createGroupWithPage, deleteGroupsByPrefix, expectPaneTitle } from "./helpers/foundry.mjs";
 
 test.describe("hub record pane", () => {
   test.afterEach(async ({ page }) => {
@@ -17,7 +17,7 @@ test.describe("hub record pane", () => {
     await hub.waitFor();
     await hub.locator(".record-row", { hasText: "E2E Pane Npc" }).click();
 
-    await expect(hub.locator(".record-pane-title")).toHaveText("E2E Pane Npc");
+    await expectPaneTitle(hub, "E2E Pane Npc");
     await expect(hub.locator(".record-pane-mount dl.record-facts")).toBeVisible();
     // The index stays visible as the searchable left pane while viewing a record.
     await expect(hub.locator(".hub-index")).toBeVisible();
@@ -72,7 +72,7 @@ test.describe("hub record pane", () => {
     });
     const hub = page.locator("#campaign-hub");
     await hub.locator(".record-row", { hasText: "E2E Pane Doomed" }).click();
-    await expect(hub.locator(".record-pane-title")).toHaveText("E2E Pane Doomed");
+    await expectPaneTitle(hub, "E2E Pane Doomed");
     await page.evaluate(
       ({ groupId, pageId }) => game.journal.get(groupId).pages.get(pageId).delete(),
       ids
@@ -96,7 +96,7 @@ test.describe("hub record pane", () => {
     const index = hub.locator(".hub-index");
     await expect(index.locator(".record-row", { hasText: "E2E Pane One" })).toHaveClass(/current/);
     await index.locator(".record-row", { hasText: "E2E Pane Two" }).click();
-    await expect(hub.locator(".record-pane-title")).toHaveText("E2E Pane Two");
+    await expectPaneTitle(hub, "E2E Pane Two");
     await expect(index.locator(".record-row", { hasText: "E2E Pane Two" })).toHaveClass(/current/);
   });
 
@@ -152,7 +152,6 @@ test.describe("hub record pane", () => {
     }, ids);
     const hub = page.locator("#campaign-hub");
     const index = hub.locator(".hub-index");
-    const title = hub.locator(".record-pane-title");
     // The shared right-pane nav also renders in the timeline tools, so scope
     // Back/Forward to the record header while a record is being viewed.
     const recordNav = hub.locator(".hub-record.active .record-pane-header");
@@ -161,18 +160,18 @@ test.describe("hub record pane", () => {
     await hub.locator(".record-row", { hasText: "E2E Pane A" }).click();
     await index.locator(".record-row", { hasText: "E2E Pane B" }).click();
     await index.locator(".record-row", { hasText: "E2E Pane A" }).click();
-    await expect(title).toHaveText("E2E Pane A");
+    await expectPaneTitle(hub, "E2E Pane A");
 
     await recordNav.locator('[data-action="paneBack"]').click();
-    await expect(title).toHaveText("E2E Pane B");
+    await expectPaneTitle(hub, "E2E Pane B");
     // Forward works while a record is still showing (the pane, including its
     // Back/Forward header, is part of the record overlay).
     await recordNav.locator('[data-action="paneForward"]').click();
-    await expect(title).toHaveText("E2E Pane A");
+    await expectPaneTitle(hub, "E2E Pane A");
     await recordNav.locator('[data-action="paneBack"]').click();
-    await expect(title).toHaveText("E2E Pane B");
+    await expectPaneTitle(hub, "E2E Pane B");
     await recordNav.locator('[data-action="paneBack"]').click();
-    await expect(title).toHaveText("E2E Pane A");
+    await expectPaneTitle(hub, "E2E Pane A");
     await recordNav.locator('[data-action="paneBack"]').click();
     // Root: the record pane (including its Back/Forward header) overlays
     // nothing here and is hidden entirely — only the index is visible.
@@ -247,7 +246,7 @@ test.describe("hub record pane", () => {
       .locator('dialog button[data-action="ok"], .application.dialog button[data-action="ok"]')
       .click();
 
-    await expect(hub.locator(".record-pane-title")).toHaveText("E2E Pane Fresh");
+    await expectPaneTitle(hub, "E2E Pane Fresh");
     await expect(hub.locator('.record-pane-mount [name="system.role"]')).toBeVisible();
   });
 
@@ -270,7 +269,7 @@ test.describe("hub record pane", () => {
     const hub = page.locator("#campaign-hub");
     await hub.locator(".record-row", { hasText: "E2E Pane Source" }).click();
     await hub.locator(".record-pane-mount a.content-link", { hasText: "the target" }).click();
-    await expect(hub.locator(".record-pane-title")).toHaveText("E2E Pane Target");
+    await expectPaneTitle(hub, "E2E Pane Target");
     await expect(hub.locator(".hub-index .record-row", { hasText: "E2E Pane Target" })).toHaveClass(/current/);
   });
 
@@ -293,7 +292,7 @@ test.describe("hub record pane", () => {
       });
       const hub = playerPage.locator("#campaign-hub");
       await hub.locator(".record-row", { hasText: "E2E Pane Locked" }).click();
-      await expect(hub.locator(".record-pane-title")).toHaveText("E2E Pane Locked");
+      await expectPaneTitle(hub, "E2E Pane Locked");
       await expect(hub.locator('[data-action="toggleEditMode"]')).toHaveCount(0);
     } finally {
       await ctx.close();

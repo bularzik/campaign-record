@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { login, createGroupWithPage, deleteGroupsByPrefix } from "./helpers/foundry.mjs";
+import { login, createGroupWithPage, deleteGroupsByPrefix, expectPaneTitle } from "./helpers/foundry.mjs";
 
 test.describe("group hub sheet", () => {
   test.afterEach(async ({ page }) => {
@@ -35,7 +35,7 @@ test.describe("group hub sheet", () => {
       await g.sheet.goToPage(pageId);
     }, ids);
     const sheet = page.locator(".group-hub");
-    await expect(sheet.locator(".record-pane-title")).toHaveText("E2E Sheet Npc");
+    await expectPaneTitle(sheet, "E2E Sheet Npc");
     await expect(sheet.locator(".record-pane-mount dl.record-facts")).toBeVisible();
   });
 
@@ -57,7 +57,7 @@ test.describe("group hub sheet", () => {
     const alpha = page.locator(".group-hub").first();
     await alpha.locator(".record-pane-mount a.content-link", { hasText: "far away" }).click();
     // The SAME hub window shows the remote page; Beta's own hub never opens.
-    await expect(alpha.locator(".record-pane-title")).toHaveText("E2E Sheet Remote");
+    await expectPaneTitle(alpha, "E2E Sheet Remote");
     const betaHubOpen = await page.evaluate(
       ({ b }) => game.journal.get(b.groupId).sheet.rendered, { b }
     );
@@ -83,7 +83,7 @@ test.describe("group hub sheet", () => {
     await page.locator('dialog button[data-action="ok"], .application.dialog button[data-action="ok"]').click();
 
     // Lands in ALPHA's pane, in edit mode, even though the page lives in Beta.
-    await expect(sheet.locator(".record-pane-title")).toHaveText("E2E Sheet Created Elsewhere");
+    await expectPaneTitle(sheet, "E2E Sheet Created Elsewhere");
     await expect(sheet.locator(".record-pane-mount form")).toBeVisible();
     const inBeta = await page.evaluate(
       ({ b }) => !!game.journal.get(b.groupId).pages.getName("E2E Sheet Created Elsewhere"), { b }

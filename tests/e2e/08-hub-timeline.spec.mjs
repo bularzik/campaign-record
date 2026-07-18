@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { login, deleteGroupsByPrefix, createGroupWithPage, settle } from "./helpers/foundry.mjs";
+import { login, deleteGroupsByPrefix, createGroupWithPage, settle, expectPaneTitle } from "./helpers/foundry.mjs";
 
 test.describe("hub timeline", () => {
   let gmPage, playerCtx, playerPage, ids;
@@ -270,7 +270,7 @@ test.describe("hub timeline", () => {
     try {
       const hub = await openTimeline(gmPage);
       await groupSection(gmPage).locator(".link-chip", { hasText: pageName }).click();
-      await expect(hub.locator(".record-pane-title")).toHaveText(pageName);
+      await expectPaneTitle(hub, pageName);
       // The core journal sheet did NOT open.
       const coreSheetOpen = await gmPage.evaluate(
         (id) => game.journal.get(id).sheet.rendered,
