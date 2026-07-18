@@ -374,4 +374,57 @@ test.describe("hub record pane", () => {
     await expect(sheet.locator("input.record-pane-title")).toHaveCount(0);
     await ctx.close();
   });
+
+  async function openRenameFixture(page) {
+    await login(page, "Gamemaster");
+    await createGroupWithPage(page, "E2E Pane Group", "E2E Pane Rename", "campaign-record.npc");
+    await page.evaluate(async () => {
+      await game.settings.set("campaign-record", "inlineEditing", true);
+      const { CampaignHub } = await import("/modules/campaign-record/scripts/apps/hub/campaign-hub.mjs");
+      CampaignHub.open();
+    });
+    const hub = page.locator("#campaign-hub");
+    await hub.waitFor();
+    await hub.locator(".record-row", { hasText: "E2E Pane Rename" }).click();
+    const input = hub.locator("input.record-pane-title");
+    await expect(input).toHaveValue("E2E Pane Rename");
+    return { hub, input };
+  }
+
+  test("typing a new name and pressing Enter renames the record", async ({ page }) => {
+    const { hub, input } = await openRenameFixture(page);
+    await input.fill("E2E Pane Renamed");
+    await input.press("Enter");
+
+    // The document saved and the index row picked up the new name.
+    await expect(hub.locator(".hub-index .record-row", { hasText: "E2E Pane Renamed" })).toHaveCount(1);
+    await expect(input).toHaveValue("E2E Pane Renamed");
+    expect(await page.evaluate(() =>
+      game.journal.getName("E2E Pane Group").pages.getName("E2E Pane Renamed")?.name
+    )).toBe("E2E Pane Renamed");
+  });
+
+  test("Escape reverts the title without saving", async ({ page }) => {
+    const { hub, input } = await openRenameFixture(page);
+    await input.fill("E2E Pane Discarded");
+    await input.press("Escape");
+
+    await expect(input).toHaveValue("E2E Pane Rename");
+    // The hub window itself must survive the Escape (not close).
+    await expect(hub).toBeVisible();
+    expect(await page.evaluate(() =>
+      game.journal.getName("E2E Pane Group").pages.getName("E2E Pane Rename")?.name
+    )).toBe("E2E Pane Rename");
+  });
+
+  test("committing an empty name reverts instead of saving", async ({ page }) => {
+    const { input } = await openRenameFixture(page);
+    await input.fill("   ");
+    await input.press("Enter");
+
+    await expect(input).toHaveValue("E2E Pane Rename");
+    expect(await page.evaluate(() =>
+      game.journal.getName("E2E Pane Group").pages.getName("E2E Pane Rename")?.name
+    )).toBe("E2E Pane Rename");
+  });
 });

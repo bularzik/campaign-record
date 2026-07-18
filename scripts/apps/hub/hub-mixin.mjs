@@ -207,8 +207,10 @@ export function HubMixin(Base) {
      */
     async render(options = {}, _options = {}) {
       if (typeof options === "boolean") options = { force: options, ..._options };
-      const mount = this.rendered ? this.element?.querySelector(".record-pane-mount") : null;
-      if (mount && hasActiveEditorFocus(mount)) {
+      const root = this.rendered ? this.element : null;
+      const mount = root?.querySelector(".record-pane-mount");
+      const header = root?.querySelector(".record-pane-header");
+      if ((mount && hasActiveEditorFocus(mount)) || (header && hasActiveEditorFocus(header))) {
         this.#deferredRender = foundry.utils.mergeObject(this.#deferredRender ?? {}, options, {
           inplace: false
         });
@@ -901,6 +903,35 @@ export function HubMixin(Base) {
         groupSelect.addEventListener("change", (event) => {
           this.state.groupId = event.target.value;
           this.render();
+        });
+      }
+      const titleInput = this.element.querySelector("input.record-pane-title");
+      if (titleInput && !titleInput.dataset.crBound) {
+        titleInput.dataset.crBound = "1";
+        titleInput.addEventListener("change", async (event) => {
+          // Keep the rename out of the group journal's own form handling.
+          event.stopPropagation();
+          const page = this.#resolveViewedPage();
+          if (!page) return;
+          const name = event.target.value.trim();
+          if (!name || name === page.name) {
+            event.target.value = page.name;
+            return;
+          }
+          await page.update({ name });
+        });
+        titleInput.addEventListener("keydown", (event) => {
+          if (event.key === "Enter") {
+            event.preventDefault();
+            event.target.blur(); // commits via the change handler
+          } else if (event.key === "Escape") {
+            // Revert, and keep core's Escape handling from closing the app.
+            event.preventDefault();
+            event.stopPropagation();
+            const page = this.#resolveViewedPage();
+            if (page) event.target.value = page.name;
+            event.target.blur();
+          }
         });
       }
       const indexSearch = this.element.querySelector('input[name="index-search"]');
