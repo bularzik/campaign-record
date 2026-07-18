@@ -5,7 +5,8 @@ export class ChecklistSheet extends BaseRecordSheet {
     actions: {
       addItem: ChecklistSheet.#onAddItem,
       deleteItem: ChecklistSheet.#onDeleteItem,
-      toggleItem: ChecklistSheet.#onToggleItem
+      toggleItem: ChecklistSheet.#onToggleItem,
+      openAssignee: ChecklistSheet.#onOpenAssignee
     }
   };
 
@@ -21,11 +22,18 @@ export class ChecklistSheet extends BaseRecordSheet {
 
   async _prepareContext(options) {
     const context = await super._prepareContext(options);
-    context.userOptions = Object.fromEntries(game.users.map((u) => [u.id, u.name]));
-    context.items = this.document.system.items.map((item) => ({
-      ...item,
-      assigneeName: item.assignee ? (game.users.get(item.assignee)?.name ?? "") : ""
-    }));
+    const characters = game.actors
+      .filter((a) => a.type === "character")
+      .sort((a, b) => a.name.localeCompare(b.name));
+    context.actorOptions = Object.fromEntries(characters.map((a) => [a.id, a.name]));
+    context.items = this.document.system.items.map((item) => {
+      const actor = item.assignee ? game.actors.get(item.assignee) : null;
+      return {
+        ...item,
+        assigneeName: actor?.name ?? "",
+        assigneeVisible: actor?.testUserPermission(game.user, "LIMITED") ?? false
+      };
+    });
     return context;
   }
 
@@ -54,5 +62,13 @@ export class ChecklistSheet extends BaseRecordSheet {
       const r = rows.find((x) => x.id === id);
       if (r) r.done = !r.done;
     });
+  }
+
+  /** Open the assigned character's sheet. Missing actor: silent no-op. */
+  static async #onOpenAssignee(event, target) {
+    const id = target.closest("[data-row-id]").dataset.rowId;
+    const item = this.document.system.items.find((i) => i.id === id);
+    const actor = item?.assignee ? game.actors.get(item.assignee) : null;
+    actor?.sheet.render(true);
   }
 }

@@ -1,5 +1,5 @@
-import { MODULE_ID, GROUP_FLAG, SCHEMA_VERSION, SCHEMA_SETTING, GROUP_SHEET_CLASS } from "../constants.mjs";
-import { pendingMigrations, isDowngrade } from "../logic/migrations.mjs";
+import { MODULE_ID, GROUP_FLAG, SCHEMA_VERSION, SCHEMA_SETTING, GROUP_SHEET_CLASS, typeId } from "../constants.mjs";
+import { pendingMigrations, isDowngrade, checklistAssigneeUpdates } from "../logic/migrations.mjs";
 import { getGroups } from "./groups.mjs";
 import { addLink } from "./timepoints.mjs";
 import { recordLinkMigrationEntries } from "../logic/timeline-links.mjs";
@@ -74,6 +74,25 @@ export const MIGRATIONS = [
         const stamped = tps.map((t) =>
           Number.isFinite(t.createdAt) ? t : { ...t, createdAt: now });
         await group.setFlag(MODULE_ID, GROUP_FLAG, { ...flag, timepoints: stamped });
+      }
+    }
+  }
+  ,{
+    version: 5,
+    // Checklist assignees moved from user IDs to character actor IDs. Map
+    // each stored user ID to that user's assigned character; users without
+    // a character are cleared. Values that are not known user IDs (empty,
+    // already actor IDs) pass through, so re-running is a no-op.
+    async run() {
+      const userCharacters = new Map(
+        game.users.map((u) => [u.id, u.character?.id ?? null])
+      );
+      for (const group of getGroups()) {
+        const pages = group.pages
+          .filter((p) => p.type === typeId("checklist"))
+          .map((p) => ({ id: p.id, items: p.system.toObject().items }));
+        const updates = checklistAssigneeUpdates(pages, userCharacters);
+        if (updates.length) await group.updateEmbeddedDocuments("JournalEntryPage", updates);
       }
     }
   }
