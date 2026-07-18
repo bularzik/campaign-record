@@ -21,7 +21,13 @@ used to require by hand, including true multi-client collaboration.
 ```bash
 npm run test:e2e          # or: npx playwright test
 npx playwright test tests/e2e/03-quest.spec.mjs   # one file
+npm run e2e:smoke         # ~2 min sanity subset (boot, env-lock, records)
 ```
+
+Choosing what to run: while iterating on a feature, run the spec files that
+cover it; use `npm run e2e:smoke` as a quick mid-task sanity check that the
+module still boots and core record flows work; run the full suite before
+merging a branch.
 
 Global setup automatically: starts the server (or restarts it into the test
 world if a different world is active), logs in as Gamemaster, enables the

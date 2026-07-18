@@ -1,11 +1,22 @@
 import { execFileSync, spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { expect } from "@playwright/test";
 import { lockStatus, UNLOCK_HINT } from "./env-lock.mjs";
 
 export const BASE_URL = process.env.FOUNDRY_URL ?? "http://localhost:30000";
 export const TEST_WORLD = process.env.FOUNDRY_TEST_WORLD ?? "world-b";
+
+// Phase 3 (storageState login reuse): one saved session file per test-world
+// user. The "setup" Playwright project (tests/e2e/auth.setup.mjs) populates
+// these once per run; login() below fast-paths from them. Git-ignored
+// (tests/e2e/.auth/) since cookies are host-local and short-lived.
+const AUTH_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", ".auth");
+export const AUTH_STATE_FILES = {
+  Gamemaster: path.join(AUTH_DIR, "gm.json"),
+  "User 1": path.join(AUTH_DIR, "user1.json")
+};
 
 const FOUNDRY_APP =
   process.env.FOUNDRY_APP ?? "/Users/danbularzik/FoundryVTT/FoundryVTT-Node-13.351";
@@ -80,8 +91,42 @@ export async function ensureTestWorld() {
   throw new Error(`Foundry did not come up with world "${TEST_WORLD}" on ${BASE_URL}`);
 }
 
+/**
+ * Try to authenticate `page` as `userName` from a saved storageState cookie
+ * (written by the "setup" Playwright project) instead of the interactive
+ * /join flow. Returns true on success (page is left on /game, ready).
+ * Foundry sessions are plain cookies (see login()'s own already-connected
+ * guard below, and Phase 3 experiment notes in the e2e-test-health plan):
+ * injecting a saved cookie into a fresh context and loading /game works
+ * exactly like a returning browser tab — confirmed against the live test
+ * server before this was wired in. Never used concurrently with another
+ * live session for the same user (no spec in this suite does that); falls
+ * back to the interactive flow on any failure (missing/stale/wrong-user).
+ */
+async function loginFromSavedState(page, userName) {
+  const file = AUTH_STATE_FILES[userName];
+  if (!file || !fs.existsSync(file)) return false;
+  try {
+    const state = JSON.parse(fs.readFileSync(file, "utf8"));
+    await page.context().addCookies(state.cookies ?? []);
+    await page.goto(`${BASE_URL}/game`);
+    await page.waitForFunction(() => globalThis.game?.ready === true, null, { timeout: 10_000 });
+    const actualUser = await page.evaluate(() => game.user?.name);
+    if (actualUser !== userName) {
+      throw new Error(`landed as "${actualUser}", expected "${userName}"`);
+    }
+    return true;
+  } catch (err) {
+    console.warn(
+      `login() fast-path miss for "${userName}" (${err.message}) — falling back to interactive /join.`
+    );
+    return false;
+  }
+}
+
 /** Log a page in as the named user (no passwords in the test worlds). */
 export async function login(page, userName) {
+  if (await loginFromSavedState(page, userName)) return;
   for (let attempt = 0; attempt < 2; attempt++) {
     await page.goto(`${BASE_URL}/join`);
     const select = page.locator('select[name="userid"]');

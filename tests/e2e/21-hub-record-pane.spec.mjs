@@ -210,6 +210,13 @@ test.describe("hub record pane", () => {
 
   test("text pages view and edit in-pane", async ({ page }) => {
     await login(page, "Gamemaster");
+    // Inline editing (client-scoped, default on) makes a non-markdown text
+    // page's view mode directly editable, with no separate edit-toggle
+    // button (see shouldShowEditToggle/isInlineEditableView in
+    // scripts/logic/inline-edit.mjs). This test asserts the manual
+    // toggle-driven view -> edit transition, so switch inline editing off,
+    // matching the sibling "edit toggle flips..." test above.
+    await page.evaluate(() => game.settings.set("campaign-record", "inlineEditing", false));
     const ids = await createGroupWithPage(page, "E2E Pane Group", "E2E Pane Text", "text");
     await page.evaluate(async ({ groupId, pageId }) => {
       await game.journal.get(groupId).pages.get(pageId).update({
@@ -240,6 +247,12 @@ test.describe("hub record pane", () => {
     const nameInput = page.locator('dialog input[name="name"], .application.dialog input[name="name"]');
     await nameInput.waitFor({ timeout: 10_000 });
     await nameInput.fill("E2E Pane Fresh");
+    // The New Entry dialog defaults its type to "Journal" (text) since the
+    // 2026-07-17 new-creation-defaults change (buildNewRecordTypeOptions in
+    // scripts/logic/new-record-form.mjs). This test wants a system-backed
+    // record with a "system.role" field, so select NPC explicitly.
+    const typeSelect = page.locator('dialog select[name="type"], .application.dialog select[name="type"]');
+    await typeSelect.selectOption({ label: "NPC" });
     const groupSelect = page.locator('dialog select[name="group"], .application.dialog select[name="group"]');
     await groupSelect.selectOption({ label: "E2E Pane Group" });
     await page

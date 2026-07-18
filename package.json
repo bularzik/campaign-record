@@ -5,6 +5,7 @@
   "scripts": {
     "test": "vitest run",
     "test:e2e": "playwright test",
+    "e2e:smoke": "playwright test tests/e2e/01-module.spec.mjs tests/e2e/20-env-lock.spec.mjs tests/e2e/02-records.spec.mjs",
     "e2e:unlock": "node tests/e2e/helpers/unlock.mjs",
     "changelog": "node tools/generate-changelog.mjs"
   },
