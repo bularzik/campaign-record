@@ -12,7 +12,7 @@
 
 | Phase | State | Commits | Notes |
 |---|---|---|---|
-| 1a/1b: hub-record-pane failures | COMPLETE (commit TBD) | TBD | :211 — inline editing defaults on (client setting), so non-markdown text pages are natively inline-editable in view mode and never render the manual edit-toggle button; test needed to disable inlineEditing to exercise the toggle flow. :229 — New Entry dialog's type select now defaults to "Journal" (text) since the 2026-07-17 new-creation-defaults change; test never selected a type, so it created a text page (no system.role) instead of an NPC. |
+| 1a/1b: hub-record-pane failures | COMPLETE (commit 274330e) | 274330e | :211 — inline editing defaults on (client setting), so non-markdown text pages are natively inline-editable in view mode and never render the manual edit-toggle button; test needed to disable inlineEditing to exercise the toggle flow. :229 — New Entry dialog's type select now defaults to "Journal" (text) since the 2026-07-17 new-creation-defaults change; test never selected a type, so it created a text page (no system.role) instead of an NPC. |
 | 1c: group-hub-sheet failure | NOT STARTED | | |
 | 1d: inline-edit ProseMirror failure | NOT STARTED | | |
 | 2: timeout caps | NOT STARTED | | |
