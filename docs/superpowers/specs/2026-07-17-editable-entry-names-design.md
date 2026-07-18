@@ -79,8 +79,11 @@ entry is editable.
 
 - Empty / whitespace-only name: no save, revert input to current name.
 - Unchanged name: no save (avoids no-op document updates and re-renders).
-- `document.update` rejection (e.g. permission revoked mid-session): Foundry
-  surfaces its own notification; the subsequent render restores the true name.
+- `document.update` rejection (e.g. permission revoked mid-session): a failed
+  update fires no hook (no re-render to fall back on), so the `change` handler
+  itself catches the rejection, reverts the input to `page.name`, and warns via
+  `ui.notifications.warn` (matching the `InlineSaveFailed` pattern used by other
+  inline saves in `base-record-sheet.mjs`).
 
 ## Testing
 

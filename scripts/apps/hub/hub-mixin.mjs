@@ -859,6 +859,7 @@ export function HubMixin(Base) {
       context.canGoForward = canGoForward(this.#history);
       if (this.state.view && viewedPage) {
         const canEdit = viewedPage.canUserModify(game.user, "update");
+        const editing = this.state.view.mode === "edit";
         const inlineEditableView = isInlineEditableView({
           enabled: game.settings.get(MODULE_ID, INLINE_EDIT_SETTING),
           canEdit,
@@ -868,11 +869,11 @@ export function HubMixin(Base) {
         });
         context.view = {
           name: viewedPage.name,
-          editing: this.state.view.mode === "edit",
+          editing,
           canEdit,
           nameEditable: isNameEditable({
             canEdit,
-            editing: this.state.view.mode === "edit",
+            editing,
             inlineEditable: inlineEditableView
           }),
           showEditToggle: shouldShowEditToggle({
@@ -918,7 +919,13 @@ export function HubMixin(Base) {
             event.target.value = page.name;
             return;
           }
-          await page.update({ name });
+          try {
+            await page.update({ name });
+          } catch (error) {
+            console.warn("campaign-record | rename save rejected; reverting title", error);
+            ui.notifications.warn(game.i18n.localize("CAMPAIGNRECORD.Warning.InlineSaveFailed"));
+            event.target.value = page.name;
+          }
         });
         titleInput.addEventListener("keydown", (event) => {
           if (event.key === "Enter") {
