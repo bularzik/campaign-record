@@ -5,7 +5,7 @@ import {
   TIMELINE_ORDER_SETTING
 } from "../../constants.mjs";
 import { hasActiveEditorFocus, shouldShowEditToggle, isInlineEditableView, isNameEditable } from "../../logic/inline-edit.mjs";
-import { buildHeaderActions } from "../../logic/record-header.mjs";
+import { buildHeaderActions, normalizeTagAdd, removeTag } from "../../logic/record-header.mjs";
 import { renderPartsForChange } from "../../logic/hub-render.mjs";
 import { buildDoctypeFilter } from "../../logic/doctype-filter.mjs";
 import { buildSortMenu } from "../../logic/sort-menu.mjs";
@@ -76,7 +76,9 @@ export function HubMixin(Base) {
         toggleEditMode: HubBase.#onToggleEditMode,
         toggleSettingsMenu: HubBase.#onToggleSettingsMenu,
         closeRecord: HubBase.#onCloseRecord,
-        pickRecordImage: HubBase.#onPickRecordImage
+        pickRecordImage: HubBase.#onPickRecordImage,
+        toggleTagPopover: HubBase.#onToggleTagPopover,
+        removeTag: HubBase.#onRemoveTag
       }
     };
 
@@ -89,7 +91,7 @@ export function HubMixin(Base) {
 
     state = {
       groupId: "all", types: new Set(), sort: "name", query: "",
-      typeMenuOpen: false, settingsMenuOpen: false, sortMenuOpen: false
+      typeMenuOpen: false, settingsMenuOpen: false, sortMenuOpen: false, tagMenuOpen: false
     };
 
     #history = createHistory();
@@ -597,6 +599,69 @@ export function HubMixin(Base) {
       }).render(true);
     }
 
+    static #onToggleTagPopover() {
+      this.state.tagMenuOpen = !this.state.tagMenuOpen;
+      this.#syncTagPopover();
+    }
+
+    static async #onRemoveTag(event, target) {
+      const page = this.#resolveViewedPage();
+      if (!page?.canUserModify(game.user, "update")) return;
+      const tag = target.closest("[data-tag]").dataset.tag;
+      await page.update({ "system.tags": removeTag(Array.from(page.system?.tags ?? []), tag) });
+      this.#syncTagPopover();
+    }
+
+    /**
+     * Patch the tag button/popover's content directly, without touching the mounted
+     * sheet. `render({parts:["record"]})` re-renders the *whole* record part — including
+     * `.record-pane-mount` — which reparents the embedded page sheet (RecordPane#mount)
+     * and, for a page with an always-open collaborative ProseMirror editor (inline-edit
+     * description/gmNotes), crashes the editor mid-rebuild. Mirrors #syncHeaderImage's
+     * out-of-band DOM patch for the same reason.
+     */
+    #syncTagPopover() {
+      const container = this.element?.querySelector(".record-pane-header .record-tags");
+      if (!container) return;
+      const page = this.#resolveViewedPage();
+      if (!page) return;
+      const canEdit = page.canUserModify(game.user, "update");
+      const tags = Array.from(page.system?.tags ?? []);
+      const open = this.state.tagMenuOpen;
+      const esc = foundry.utils.escapeHTML;
+
+      const button = container.querySelector(".record-tags-button");
+      if (button) {
+        button.setAttribute("aria-expanded", open ? "true" : "false");
+        button.innerHTML = `<i class="fa-solid fa-tags"></i>${
+          tags.length ? `<span class="tag-count">${tags.length}</span>` : ""
+        }`;
+      }
+
+      let popover = container.querySelector(".tag-popover");
+      if (!open) {
+        popover?.remove();
+        return;
+      }
+      if (!popover) {
+        popover = document.createElement("div");
+        popover.className = "tag-popover";
+        container.append(popover);
+      }
+      const chips = tags
+        .map((tag) => {
+          const removeLink = canEdit
+            ? `<a data-action="removeTag" aria-label="${esc(game.i18n.localize("CAMPAIGNRECORD.Hub.RemoveTag"))}"><i class="fa-solid fa-xmark"></i></a>`
+            : "";
+          return `<span class="tag-chip" data-tag="${esc(tag)}">${esc(tag)}${removeLink}</span>`;
+        })
+        .join("");
+      const input = canEdit
+        ? `<input type="text" name="tag-add" placeholder="${esc(game.i18n.localize("CAMPAIGNRECORD.Hub.AddTag"))}" autocomplete="off">`
+        : "";
+      popover.innerHTML = chips + input;
+    }
+
     static async #onOpenLink(event, target) {
       const chip = target.closest("[data-link-id]");
       const { uuid, src, name } = chip.dataset;
@@ -864,6 +929,7 @@ export function HubMixin(Base) {
         game.i18n.localize("CAMPAIGNRECORD.Hub.AllTypesSummary")
       );
       context.typeMenuOpen = this.state.typeMenuOpen;
+      context.tagMenuOpen = this.state.tagMenuOpen;
       context.sortMenu = buildSortMenu(
         this.state.sort,
         (s) => game.i18n.localize(`CAMPAIGNRECORD.Hub.Sort.${s}`)
@@ -933,6 +999,7 @@ export function HubMixin(Base) {
         };
       } else {
         context.view = null;
+        this.state.tagMenuOpen = false;
       }
       return context;
     }
@@ -1065,6 +1132,36 @@ export function HubMixin(Base) {
           // render({parts}) replaces this part's DOM — restore focus so keyboard
           // users can toggle several types without tabbing from the top each time.
           this.element.querySelector(`input[name="doctype-check"][value="${value}"]`)?.focus();
+        });
+      }
+      if (!this.element.dataset.crTagsBound) {
+        this.element.dataset.crTagsBound = "1";
+        // Close the popover on any click outside it (its own buttons sync directly).
+        this.element.addEventListener("click", (event) => {
+          if (this.state.tagMenuOpen && !event.target.closest(".record-tags")) {
+            this.state.tagMenuOpen = false;
+            this.#syncTagPopover();
+          }
+        });
+        this.element.addEventListener("keydown", async (event) => {
+          if (event.key === "Escape" && this.state.tagMenuOpen) {
+            this.state.tagMenuOpen = false;
+            return this.#syncTagPopover();
+          }
+          if (event.key !== "Enter") return;
+          const input = event.target.closest?.('input[name="tag-add"]');
+          if (!input) return;
+          event.preventDefault();
+          const page = this.#resolveViewedPage();
+          if (!page?.canUserModify(game.user, "update")) return;
+          const next = normalizeTagAdd(Array.from(page.system?.tags ?? []), input.value);
+          if (!next) { input.value = ""; return; }
+          await page.update({ "system.tags": next });
+          // Patch the popover directly rather than render({parts:["record"]}), which
+          // would reparent the mounted page sheet (see #syncTagPopover) — and restore
+          // focus, since the popover's innerHTML was just replaced.
+          this.#syncTagPopover();
+          this.element.querySelector('input[name="tag-add"]')?.focus();
         });
       }
       if (!this.element.dataset.crLinkBound) {

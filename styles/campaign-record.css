@@ -803,6 +803,38 @@
   border-radius: 3px;
 }
 
+.record-pane-header .record-tags { position: relative; flex: 0 0 auto; }
+.record-pane-header .record-tags-button .tag-count {
+  font-size: var(--font-size-11, 0.75rem);
+  margin-left: 2px;
+}
+.record-pane-header .tag-popover {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 5;
+  min-width: 200px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 0.5rem;
+  background: var(--color-bg-option, var(--color-cool-5, #23221d));
+  border: 1px solid var(--color-border-dark, #000);
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+.tag-popover .tag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 6px;
+  border: 1px solid var(--color-border-light-tertiary, #7a7971);
+  border-radius: 3px;
+  font-size: var(--font-size-12, 0.8rem);
+}
+.tag-popover .tag-chip a { cursor: pointer; }
+.tag-popover input[name="tag-add"] { flex: 1 1 100%; min-width: 120px; }
+
 /* Narrow left-index rows: icon + name only. */
 .campaign-hub .hub-index .record-row {
   grid-template-columns: 2rem minmax(0, 1fr);

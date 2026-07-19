@@ -15,6 +15,27 @@
       {{#if view.image}}<img src="{{view.image}}" alt="">{{else}}<i class="fa-solid fa-image"></i>{{/if}}
     </button>
     {{/if}}
+    {{#if view.headerActions.showTagButton}}
+    <div class="record-tags">
+      <button type="button" class="record-tags-button" data-action="toggleTagPopover"
+              data-tooltip="CAMPAIGNRECORD.Hub.RecordTags"
+              aria-label="{{localize "CAMPAIGNRECORD.Hub.RecordTags"}}"
+              aria-haspopup="true" aria-expanded="{{#if tagMenuOpen}}true{{else}}false{{/if}}">
+        <i class="fa-solid fa-tags"></i>{{#if view.tagCount}}<span class="tag-count">{{view.tagCount}}</span>{{/if}}
+      </button>
+      {{#if tagMenuOpen}}
+      <div class="tag-popover">
+        {{#each view.tags}}
+        <span class="tag-chip" data-tag="{{this}}">{{this}}{{#if @root.view.canEdit}}<a data-action="removeTag"
+              aria-label="{{localize "CAMPAIGNRECORD.Hub.RemoveTag"}}"><i class="fa-solid fa-xmark"></i></a>{{/if}}</span>
+        {{/each}}
+        {{#if view.canEdit}}
+        <input type="text" name="tag-add" placeholder="{{localize "CAMPAIGNRECORD.Hub.AddTag"}}" autocomplete="off">
+        {{/if}}
+      </div>
+      {{/if}}
+    </div>
+    {{/if}}
     {{#if view.showEditToggle}}
     <button type="button" class="edit-toggle" data-action="toggleEditMode"
             data-tooltip="{{#if view.editing}}CAMPAIGNRECORD.Hub.DoneEditing{{else}}CAMPAIGNRECORD.Hub.EditRecord{{/if}}"
