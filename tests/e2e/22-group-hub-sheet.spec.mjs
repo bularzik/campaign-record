@@ -72,9 +72,7 @@ test.describe("group hub sheet", () => {
     const b = await createGroupWithPage(page, "E2E Sheet Beta", "E2E Sheet Other", "campaign-record.place");
     await page.evaluate(({ a }) => game.journal.get(a.groupId).sheet.render(true), { a });
     const sheet = page.locator(".group-hub");
-    // The shared right-pane nav also renders in the (inactive) record
-    // header, so scope New Entry to the timeline tools shown by default.
-    await sheet.locator('.hub-timeline [data-action="newRecord"]').click();
+    await sheet.locator('.hub-index [data-action="newRecord"]').click();
     const nameInput = page.locator('dialog input[name="name"], .application.dialog input[name="name"]');
     await nameInput.waitFor({ timeout: 10_000 });
     await nameInput.fill("E2E Sheet Created Elsewhere");

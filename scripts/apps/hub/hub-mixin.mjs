@@ -5,6 +5,7 @@ import {
   TIMELINE_ORDER_SETTING
 } from "../../constants.mjs";
 import { hasActiveEditorFocus, shouldShowEditToggle, isInlineEditableView, isNameEditable } from "../../logic/inline-edit.mjs";
+import { buildHeaderActions, normalizeTagAdd, removeTag } from "../../logic/record-header.mjs";
 import { renderPartsForChange } from "../../logic/hub-render.mjs";
 import { buildDoctypeFilter } from "../../logic/doctype-filter.mjs";
 import { buildSortMenu } from "../../logic/sort-menu.mjs";
@@ -74,7 +75,10 @@ export function HubMixin(Base) {
         toggleRail: HubBase.#onToggleRail,
         toggleEditMode: HubBase.#onToggleEditMode,
         toggleSettingsMenu: HubBase.#onToggleSettingsMenu,
-        closeRecord: HubBase.#onCloseRecord
+        closeRecord: HubBase.#onCloseRecord,
+        pickRecordImage: HubBase.#onPickRecordImage,
+        toggleTagPopover: HubBase.#onToggleTagPopover,
+        removeTag: HubBase.#onRemoveTag
       }
     };
 
@@ -87,7 +91,7 @@ export function HubMixin(Base) {
 
     state = {
       groupId: "all", types: new Set(), sort: "name", query: "",
-      typeMenuOpen: false, settingsMenuOpen: false, sortMenuOpen: false
+      typeMenuOpen: false, settingsMenuOpen: false, sortMenuOpen: false, tagMenuOpen: false
     };
 
     #history = createHistory();
@@ -257,7 +261,62 @@ export function HubMixin(Base) {
         pruneUuid(this.#history, doc.uuid);
         this.state.view = null;
       }
+      // The "record" part is deliberately excluded from #debouncedRender's targets
+      // (see below) so an unrelated document change never re-mounts the open page
+      // sheet and tears down its editor. That means the header thumbnail and the
+      // tag button/popover — part of that same part's markup — need their own
+      // out-of-band sync when it's the viewed page itself that changed (e.g. via
+      // the picker callback, or a tag edit arriving from another connected client).
+      if (hook === "updateJournalEntryPage" && this.state.view?.uuid === doc.uuid) {
+        if (this.#headerActionsMatchDom(doc)) {
+          // Same buttons present: a pure content change (image src / tag list).
+          // Patch in place so the mounted always-open editor is never disturbed.
+          this.#syncHeaderImage(doc);
+          this.#syncTagPopover();
+        } else {
+          // A button must appear or disappear — e.g. an observer viewing a
+          // record sees the first image/tag a GM just set, or a cleared image
+          // leaves a dead placeholder. The sync methods only patch elements
+          // already in the DOM, so re-render the `record` part to add/remove
+          // them. This mismatch is essentially viewer-only (an editing owner's
+          // DOM already matches); the render() focus guard still defers it if
+          // an editor happens to hold focus, protecting the edit guard.
+          this.render({ parts: ["record"] });
+        }
+      }
       this.#debouncedRender();
+    }
+
+    /**
+     * Do the image/tag buttons that *should* render for `page` match which are
+     * actually in the header DOM? Returns true when they match (or there is no
+     * header yet). A mismatch means a button must appear/disappear, which the
+     * in-place sync methods can't do — the caller re-renders the record part
+     * instead. Gating the re-render on this keeps it from firing on every update.
+     */
+    #headerActionsMatchDom(page) {
+      const header = this.element?.querySelector(".record-pane-header");
+      if (!header) return true;
+      const isRecord = typeof page.type === "string" && page.type.startsWith("campaign-record.");
+      const actions = buildHeaderActions({
+        isRecord,
+        canEdit: page.canUserModify(game.user, "update"),
+        hasImage: Boolean(page.system?.image),
+        tagCount: Array.from(page.system?.tags ?? []).length
+      });
+      const hasImageButton = !!header.querySelector(".record-image-button");
+      const hasTagButton = !!header.querySelector(".record-tags-button");
+      return actions.showImageButton === hasImageButton && actions.showTagButton === hasTagButton;
+    }
+
+    /** Patch the header thumbnail's content directly, without touching the mounted sheet. */
+    #syncHeaderImage(page) {
+      const button = this.element?.querySelector('.record-pane-header [data-action="pickRecordImage"]');
+      if (!button) return;
+      const src = page.system?.image || "";
+      button.innerHTML = src
+        ? `<img src="${foundry.utils.escapeHTML(src)}" alt="">`
+        : '<i class="fa-solid fa-image"></i>';
     }
 
     _onFirstRender(context, options) {
@@ -560,6 +619,114 @@ export function HubMixin(Base) {
       if (confirmed) await Timepoints.deleteTimepoint(group, id);
     }
 
+    /** Header thumbnail: editors pick a new image; viewers get a full-size popout. */
+    static async #onPickRecordImage() {
+      const page = this.#resolveViewedPage();
+      if (!page) return;
+      if (!page.canUserModify(game.user, "update")) {
+        const src = page.system?.image;
+        if (src) new foundry.applications.apps.ImagePopout({ src, window: { title: page.name } }).render(true);
+        return;
+      }
+      const FilePickerImpl = foundry.applications.apps.FilePicker.implementation;
+      new FilePickerImpl({
+        type: "image",
+        current: page.system?.image || "",
+        callback: (path) => page.update({ "system.image": path })
+      }).render(true);
+    }
+
+    static #onToggleTagPopover() {
+      this.state.tagMenuOpen = !this.state.tagMenuOpen;
+      this.#syncTagPopover();
+    }
+
+    static async #onRemoveTag(event, target) {
+      const page = this.#resolveViewedPage();
+      if (!page?.canUserModify(game.user, "update")) return;
+      const tag = target.closest("[data-tag]")?.dataset.tag;
+      if (tag == null) return;
+      await page.update({ "system.tags": removeTag(Array.from(page.system?.tags ?? []), tag) });
+      this.#syncTagPopover();
+    }
+
+    /**
+     * Patch the tag button/popover's content directly, without touching the mounted
+     * sheet. `render({parts:["record"]})` re-renders the *whole* record part — including
+     * `.record-pane-mount` — which reparents the embedded page sheet (RecordPane#mount)
+     * and, for a page with an always-open collaborative ProseMirror editor (inline-edit
+     * description/gmNotes), crashes the editor mid-rebuild. Mirrors #syncHeaderImage's
+     * out-of-band DOM patch for the same reason.
+     */
+    #syncTagPopover() {
+      const container = this.element?.querySelector(".record-pane-header .record-tags");
+      if (!container) return;
+      const page = this.#resolveViewedPage();
+      if (!page) return;
+      const canEdit = page.canUserModify(game.user, "update");
+      const tags = Array.from(page.system?.tags ?? []);
+      const open = this.state.tagMenuOpen;
+      const esc = foundry.utils.escapeHTML;
+
+      const button = container.querySelector(".record-tags-button");
+      if (button) {
+        button.setAttribute("aria-expanded", open ? "true" : "false");
+        button.innerHTML = `<i class="fa-solid fa-tags"></i>${
+          tags.length ? `<span class="tag-count">${tags.length}</span>` : ""
+        }`;
+      }
+
+      let popover = container.querySelector(".tag-popover");
+      if (!open) {
+        popover?.remove();
+        return;
+      }
+      if (!popover) {
+        popover = document.createElement("div");
+        popover.className = "tag-popover";
+        container.append(popover);
+      }
+      // A remote system.* update of the viewed page (e.g. another GM's autosave)
+      // fires this via _onDocumentChanged. If this user is mid-typing in the
+      // tag-add input, a blind innerHTML rebuild would discard their text and
+      // focus. Snapshot the input's value/selection/focus first and restore it
+      // after — the local add path clears the field before calling us, so it
+      // still gets a fresh empty input.
+      const priorInput = popover.querySelector('input[name="tag-add"]');
+      const hadFocus = priorInput != null && priorInput === document.activeElement;
+      const priorValue = priorInput?.value ?? "";
+      const priorStart = priorInput?.selectionStart ?? null;
+      const priorEnd = priorInput?.selectionEnd ?? null;
+
+      const chips = tags
+        .map((tag) => {
+          const removeLink = canEdit
+            ? `<a data-action="removeTag" aria-label="${esc(game.i18n.localize("CAMPAIGNRECORD.Hub.RemoveTag"))}"><i class="fa-solid fa-xmark"></i></a>`
+            : "";
+          return `<span class="tag-chip" data-tag="${esc(tag)}">${esc(tag)}${removeLink}</span>`;
+        })
+        .join("");
+      const input = canEdit
+        ? `<input type="text" name="tag-add" placeholder="${esc(game.i18n.localize("CAMPAIGNRECORD.Hub.AddTag"))}" autocomplete="off">`
+        : "";
+      popover.innerHTML = chips + input;
+
+      if (hadFocus) {
+        const nextInput = popover.querySelector('input[name="tag-add"]');
+        if (nextInput) {
+          nextInput.value = priorValue;
+          nextInput.focus();
+          if (priorStart != null && priorEnd != null) {
+            try {
+              nextInput.setSelectionRange(priorStart, priorEnd);
+            } catch {
+              // setSelectionRange throws on some input types; the value/focus restore is enough.
+            }
+          }
+        }
+      }
+    }
+
     static async #onOpenLink(event, target) {
       const chip = target.closest("[data-link-id]");
       const { uuid, src, name } = chip.dataset;
@@ -827,6 +994,7 @@ export function HubMixin(Base) {
         game.i18n.localize("CAMPAIGNRECORD.Hub.AllTypesSummary")
       );
       context.typeMenuOpen = this.state.typeMenuOpen;
+      context.tagMenuOpen = this.state.tagMenuOpen;
       context.sortMenu = buildSortMenu(
         this.state.sort,
         (s) => game.i18n.localize(`CAMPAIGNRECORD.Hub.Sort.${s}`)
@@ -867,10 +1035,22 @@ export function HubMixin(Base) {
           inGroup: viewedPage.parent?.getFlag("core", "sheetClass") === GROUP_SHEET_CLASS,
           isMarkdown: viewedPage.text?.format === CONST.JOURNAL_ENTRY_PAGE_FORMATS.MARKDOWN
         });
+        const isRecord = typeof viewedPage.type === "string" && viewedPage.type.startsWith("campaign-record.");
+        const tags = Array.from(viewedPage.system?.tags ?? []);
         context.view = {
           name: viewedPage.name,
           editing,
           canEdit,
+          isRecord,
+          image: viewedPage.system?.image || "",
+          tags,
+          tagCount: tags.length,
+          headerActions: buildHeaderActions({
+            isRecord,
+            canEdit,
+            hasImage: Boolean(viewedPage.system?.image),
+            tagCount: tags.length
+          }),
           nameEditable: isNameEditable({
             canEdit,
             editing,
@@ -884,6 +1064,7 @@ export function HubMixin(Base) {
         };
       } else {
         context.view = null;
+        this.state.tagMenuOpen = false;
       }
       return context;
     }
@@ -1016,6 +1197,52 @@ export function HubMixin(Base) {
           // render({parts}) replaces this part's DOM — restore focus so keyboard
           // users can toggle several types without tabbing from the top each time.
           this.element.querySelector(`input[name="doctype-check"][value="${value}"]`)?.focus();
+        });
+      }
+      if (!this.element.dataset.crTagsBound) {
+        this.element.dataset.crTagsBound = "1";
+        // Close the popover on any click outside it (its own buttons sync directly).
+        this.element.addEventListener("click", (event) => {
+          if (this.state.tagMenuOpen && !event.target.closest(".record-tags")) {
+            // If focus is still inside the popover (outside-click on a
+            // non-focusable element), removing it would drop focus to <body>;
+            // restore it to the trigger. A click that landed on another
+            // focusable control already moved focus there, so leave it be.
+            const hadFocus = this.element.querySelector(".record-tags")?.contains(document.activeElement);
+            this.state.tagMenuOpen = false;
+            this.#syncTagPopover();
+            if (hadFocus) this.element.querySelector(".record-tags-button")?.focus();
+          }
+        });
+        this.element.addEventListener("keydown", async (event) => {
+          if (event.key === "Escape" && this.state.tagMenuOpen) {
+            this.state.tagMenuOpen = false;
+            this.#syncTagPopover();
+            // Closing the popover removed the focused input; restore focus to its
+            // trigger so keyboard focus doesn't drop to <body> (mirrors the
+            // doctype-check refocus pattern above).
+            this.element.querySelector(".record-tags-button")?.focus();
+            return;
+          }
+          if (event.key !== "Enter") return;
+          const input = event.target.closest?.('input[name="tag-add"]');
+          if (!input) return;
+          event.preventDefault();
+          const page = this.#resolveViewedPage();
+          if (!page?.canUserModify(game.user, "update")) return;
+          const next = normalizeTagAdd(Array.from(page.system?.tags ?? []), input.value);
+          if (!next) { input.value = ""; return; }
+          // Clear before the update: the same-client updateJournalEntryPage hook
+          // runs #syncTagPopover, which snapshots/restores the input's value when
+          // it holds focus. Clearing first means it snapshots an empty field, so
+          // the committed tag doesn't linger in the input after the add.
+          input.value = "";
+          await page.update({ "system.tags": next });
+          // Patch the popover directly rather than render({parts:["record"]}), which
+          // would reparent the mounted page sheet (see #syncTagPopover) — and restore
+          // focus, since the popover's innerHTML was just replaced.
+          this.#syncTagPopover();
+          this.element.querySelector('input[name="tag-add"]')?.focus();
         });
       }
       if (!this.element.dataset.crLinkBound) {
