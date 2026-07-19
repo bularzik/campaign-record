@@ -823,7 +823,7 @@
   border-radius: 4px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
 }
-.tag-popover .tag-chip {
+.record-pane-header .tag-popover .tag-chip {
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -832,8 +832,8 @@
   border-radius: 3px;
   font-size: var(--font-size-12, 0.8rem);
 }
-.tag-popover .tag-chip a { cursor: pointer; }
-.tag-popover input[name="tag-add"] { flex: 1 1 100%; min-width: 120px; }
+.record-pane-header .tag-popover .tag-chip a { cursor: pointer; }
+.record-pane-header .tag-popover input[name="tag-add"] { flex: 1 1 100%; min-width: 120px; }
 
 /* Narrow left-index rows: icon + name only. */
 .campaign-hub .hub-index .record-row {

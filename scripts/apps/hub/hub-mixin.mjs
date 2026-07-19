@@ -268,10 +268,45 @@ export function HubMixin(Base) {
       // out-of-band sync when it's the viewed page itself that changed (e.g. via
       // the picker callback, or a tag edit arriving from another connected client).
       if (hook === "updateJournalEntryPage" && this.state.view?.uuid === doc.uuid) {
-        this.#syncHeaderImage(doc);
-        this.#syncTagPopover();
+        if (this.#headerActionsMatchDom(doc)) {
+          // Same buttons present: a pure content change (image src / tag list).
+          // Patch in place so the mounted always-open editor is never disturbed.
+          this.#syncHeaderImage(doc);
+          this.#syncTagPopover();
+        } else {
+          // A button must appear or disappear — e.g. an observer viewing a
+          // record sees the first image/tag a GM just set, or a cleared image
+          // leaves a dead placeholder. The sync methods only patch elements
+          // already in the DOM, so re-render the `record` part to add/remove
+          // them. This mismatch is essentially viewer-only (an editing owner's
+          // DOM already matches); the render() focus guard still defers it if
+          // an editor happens to hold focus, protecting the edit guard.
+          this.render({ parts: ["record"] });
+        }
       }
       this.#debouncedRender();
+    }
+
+    /**
+     * Do the image/tag buttons that *should* render for `page` match which are
+     * actually in the header DOM? Returns true when they match (or there is no
+     * header yet). A mismatch means a button must appear/disappear, which the
+     * in-place sync methods can't do — the caller re-renders the record part
+     * instead. Gating the re-render on this keeps it from firing on every update.
+     */
+    #headerActionsMatchDom(page) {
+      const header = this.element?.querySelector(".record-pane-header");
+      if (!header) return true;
+      const isRecord = typeof page.type === "string" && page.type.startsWith("campaign-record.");
+      const actions = buildHeaderActions({
+        isRecord,
+        canEdit: page.canUserModify(game.user, "update"),
+        hasImage: Boolean(page.system?.image),
+        tagCount: Array.from(page.system?.tags ?? []).length
+      });
+      const hasImageButton = !!header.querySelector(".record-image-button");
+      const hasTagButton = !!header.querySelector(".record-tags-button");
+      return actions.showImageButton === hasImageButton && actions.showTagButton === hasTagButton;
     }
 
     /** Patch the header thumbnail's content directly, without touching the mounted sheet. */
@@ -609,7 +644,8 @@ export function HubMixin(Base) {
     static async #onRemoveTag(event, target) {
       const page = this.#resolveViewedPage();
       if (!page?.canUserModify(game.user, "update")) return;
-      const tag = target.closest("[data-tag]").dataset.tag;
+      const tag = target.closest("[data-tag]")?.dataset.tag;
+      if (tag == null) return;
       await page.update({ "system.tags": removeTag(Array.from(page.system?.tags ?? []), tag) });
       this.#syncTagPopover();
     }
@@ -650,6 +686,18 @@ export function HubMixin(Base) {
         popover.className = "tag-popover";
         container.append(popover);
       }
+      // A remote system.* update of the viewed page (e.g. another GM's autosave)
+      // fires this via _onDocumentChanged. If this user is mid-typing in the
+      // tag-add input, a blind innerHTML rebuild would discard their text and
+      // focus. Snapshot the input's value/selection/focus first and restore it
+      // after — the local add path clears the field before calling us, so it
+      // still gets a fresh empty input.
+      const priorInput = popover.querySelector('input[name="tag-add"]');
+      const hadFocus = priorInput != null && priorInput === document.activeElement;
+      const priorValue = priorInput?.value ?? "";
+      const priorStart = priorInput?.selectionStart ?? null;
+      const priorEnd = priorInput?.selectionEnd ?? null;
+
       const chips = tags
         .map((tag) => {
           const removeLink = canEdit
@@ -662,6 +710,21 @@ export function HubMixin(Base) {
         ? `<input type="text" name="tag-add" placeholder="${esc(game.i18n.localize("CAMPAIGNRECORD.Hub.AddTag"))}" autocomplete="off">`
         : "";
       popover.innerHTML = chips + input;
+
+      if (hadFocus) {
+        const nextInput = popover.querySelector('input[name="tag-add"]');
+        if (nextInput) {
+          nextInput.value = priorValue;
+          nextInput.focus();
+          if (priorStart != null && priorEnd != null) {
+            try {
+              nextInput.setSelectionRange(priorStart, priorEnd);
+            } catch {
+              // setSelectionRange throws on some input types; the value/focus restore is enough.
+            }
+          }
+        }
+      }
     }
 
     static async #onOpenLink(event, target) {
@@ -1141,14 +1204,25 @@ export function HubMixin(Base) {
         // Close the popover on any click outside it (its own buttons sync directly).
         this.element.addEventListener("click", (event) => {
           if (this.state.tagMenuOpen && !event.target.closest(".record-tags")) {
+            // If focus is still inside the popover (outside-click on a
+            // non-focusable element), removing it would drop focus to <body>;
+            // restore it to the trigger. A click that landed on another
+            // focusable control already moved focus there, so leave it be.
+            const hadFocus = this.element.querySelector(".record-tags")?.contains(document.activeElement);
             this.state.tagMenuOpen = false;
             this.#syncTagPopover();
+            if (hadFocus) this.element.querySelector(".record-tags-button")?.focus();
           }
         });
         this.element.addEventListener("keydown", async (event) => {
           if (event.key === "Escape" && this.state.tagMenuOpen) {
             this.state.tagMenuOpen = false;
-            return this.#syncTagPopover();
+            this.#syncTagPopover();
+            // Closing the popover removed the focused input; restore focus to its
+            // trigger so keyboard focus doesn't drop to <body> (mirrors the
+            // doctype-check refocus pattern above).
+            this.element.querySelector(".record-tags-button")?.focus();
+            return;
           }
           if (event.key !== "Enter") return;
           const input = event.target.closest?.('input[name="tag-add"]');

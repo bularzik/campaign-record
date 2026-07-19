@@ -79,6 +79,11 @@ walk only the manual section below with two browsers.
 - [ ] The scene-controls journal group shows an "Open Campaign Hub" tool.
 - [ ] Add an image to a Media record through the real FilePicker dialog
       (dialog flow not automated).
+- [ ] The record-pane header thumbnail button opens the real FilePicker and
+      saves the picked image (dialog flow not automated).
+- [ ] With two clients viewing the same record, tag and image changes made on
+      one client appear on the other (tag-count badge, an open tag popover, and
+      the header thumbnail all update live).
 - [ ] Drop an Actor from the sidebar onto an Encounter sheet and an Item onto
       a Shop sheet (real pointer drag; only synthetic drops are automated).
 - [ ] Drop an Encounter record onto a Loot sheet to set its source (and a
