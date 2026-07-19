@@ -241,9 +241,7 @@ test.describe("hub record pane", () => {
       CampaignHub.open();
     });
     const hub = page.locator("#campaign-hub");
-    // The shared right-pane nav also renders in the (inactive) record
-    // header, so scope New Entry to the timeline tools shown by default.
-    await hub.locator('.hub-timeline [data-action="newRecord"]').click();
+    await hub.locator('.hub-index [data-action="newRecord"]').click();
     const nameInput = page.locator('dialog input[name="name"], .application.dialog input[name="name"]');
     await nameInput.waitFor({ timeout: 10_000 });
     await nameInput.fill("E2E Pane Fresh");

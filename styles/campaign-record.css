@@ -660,6 +660,19 @@
   min-height: 0;
   overflow-y: auto;
 }
+/* New Entry pinned to the bottom of the index; sticky so it stays visible
+   while the (scrolling) index is scrolled. Hidden with the rest of the rail
+   when collapsed via the existing .rail-collapsed rule. */
+.campaign-hub .hub-index .index-footer {
+  margin-top: auto;
+  position: sticky;
+  bottom: 0;
+  padding: 0.25rem 0;
+  background: var(--color-bg, var(--color-cool-5, #23221d));
+}
+.campaign-hub .hub-index .index-footer .new-record {
+  width: 100%;
+}
 /* Timeline and record occupy the same right cell; the record overlays. */
 .campaign-hub .hub-timeline,
 .campaign-hub .hub-record {

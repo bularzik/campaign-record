@@ -8,10 +8,6 @@
     {{else}}
     <h2 class="record-pane-title">{{view.name}}</h2>
     {{/if}}
-    <button type="button" class="new-record" data-action="newRecord"
-            data-tooltip="CAMPAIGNRECORD.Hub.NewRecord" aria-label="{{localize "CAMPAIGNRECORD.Hub.NewRecord"}}">
-      <i class="fa-solid fa-plus"></i>
-    </button>
     {{#if view.showEditToggle}}
     <button type="button" class="edit-toggle" data-action="toggleEditMode"
             data-tooltip="{{#if view.editing}}CAMPAIGNRECORD.Hub.DoneEditing{{else}}CAMPAIGNRECORD.Hub.EditRecord{{/if}}"

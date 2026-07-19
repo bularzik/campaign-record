@@ -1,10 +1,6 @@
 <section class="hub-timeline">
   <div class="timeline-tools">
     {{> campaign-record.hub-right-nav}}
-    <button type="button" class="new-record" data-action="newRecord"
-            data-tooltip="CAMPAIGNRECORD.Hub.NewRecord" aria-label="{{localize "CAMPAIGNRECORD.Hub.NewRecord"}}">
-      <i class="fa-solid fa-plus"></i>
-    </button>
   </div>
   {{#each timelineGroups}}
   <section class="timeline-group" data-group-id="{{this.id}}">

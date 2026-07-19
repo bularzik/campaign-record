@@ -49,7 +49,7 @@ test.describe("campaign hub shell", () => {
     await deleteGroupsByPrefix(page, "E2E Hub Shell");
   });
 
-  test("New Entry sits in the timeline tools and pane header; typed entries show no edit-toggle", async ({ page }) => {
+  test("New Entry sits at the bottom of the index; typed entries show no edit-toggle", async ({ page }) => {
     await login(page, "Gamemaster");
     await createGroupWithPage(page, "E2E Hub Nav Group", "E2E Hub Nav Npc", "campaign-record.npc");
     await page.evaluate(async () => {
@@ -59,12 +59,12 @@ test.describe("campaign hub shell", () => {
     const hub = page.locator("#campaign-hub");
     await hub.waitFor({ timeout: 15_000 });
 
-    await expect(hub.locator(".hub-index .index-controls [data-action=\"newRecord\"]")).toHaveCount(0);
-    await expect(hub.locator(".hub-timeline [data-action=\"newRecord\"]")).toBeVisible();
+    await expect(hub.locator('.hub-index .index-footer [data-action="newRecord"]')).toBeVisible();
+    await expect(hub.locator('.hub-timeline [data-action="newRecord"]')).toHaveCount(0);
 
     await hub.locator(".record-row", { hasText: "E2E Hub Nav Npc" }).click();
     const header = hub.locator(".hub-record.active .record-pane-header");
-    await expect(header.locator('[data-action="newRecord"]')).toBeVisible();
+    await expect(header.locator('[data-action="newRecord"]')).toHaveCount(0);
     // A typed entry is inline-editable (default), so no manual edit-toggle is shown.
     await expect(header.locator('[data-action="toggleEditMode"]')).toHaveCount(0);
 
