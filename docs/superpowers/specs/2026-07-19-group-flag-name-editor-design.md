@@ -65,9 +65,11 @@ the hub sheet (`GroupHubSheet`) instead of the system journal sheet.
   field — they have no pane title bar.
 - `TextPageSheet` extends `BaseRecordSheet`, so pane-mounted text pages get the same
   single-editor behavior.
-- **Accepted trade-off:** core's heading-level select (part of the same header part)
-  disappears from pane edit forms. It only affects TOC heading display; core's UI
-  still offers it for pages in ordinary journals.
+- **Accepted trade-off:** core's heading-level select, "Show Title" checkbox, and
+  journal-category select (all part of the same header part) disappear from pane
+  edit forms. They only affect core journal TOC/heading display and categories,
+  which the hub does not use; core's UI still offers them for pages in ordinary
+  journals.
 
 ## Not in scope
 

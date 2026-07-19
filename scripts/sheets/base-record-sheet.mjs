@@ -67,7 +67,8 @@ export class BaseRecordSheet extends JournalEntryPageHandlebarsSheet {
    * core's `header` edit part — its name input duplicates the pane title-bar
    * input, which is the single name editor in the pane. Framed sheets (a
    * record page in an ordinary journal) keep core's field: no title bar there.
-   * Core's heading-level select lives in the same part and goes with it.
+   * Core's heading-level select, "Show Title" checkbox, and category select
+   * live in the same part and go with it.
    */
   _configureRenderParts(options) {
     const parts = super._configureRenderParts(options);
