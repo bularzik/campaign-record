@@ -5,6 +5,7 @@ import {
   TIMELINE_ORDER_SETTING
 } from "../../constants.mjs";
 import { hasActiveEditorFocus, shouldShowEditToggle, isInlineEditableView, isNameEditable } from "../../logic/inline-edit.mjs";
+import { buildHeaderActions } from "../../logic/record-header.mjs";
 import { renderPartsForChange } from "../../logic/hub-render.mjs";
 import { buildDoctypeFilter } from "../../logic/doctype-filter.mjs";
 import { buildSortMenu } from "../../logic/sort-menu.mjs";
@@ -74,7 +75,8 @@ export function HubMixin(Base) {
         toggleRail: HubBase.#onToggleRail,
         toggleEditMode: HubBase.#onToggleEditMode,
         toggleSettingsMenu: HubBase.#onToggleSettingsMenu,
-        closeRecord: HubBase.#onCloseRecord
+        closeRecord: HubBase.#onCloseRecord,
+        pickRecordImage: HubBase.#onPickRecordImage
       }
     };
 
@@ -257,7 +259,25 @@ export function HubMixin(Base) {
         pruneUuid(this.#history, doc.uuid);
         this.state.view = null;
       }
+      // The "record" part is deliberately excluded from #debouncedRender's targets
+      // (see below) so an unrelated document change never re-mounts the open page
+      // sheet and tears down its editor. That means the header thumbnail — part
+      // of that same part's markup — needs its own out-of-band sync when it's the
+      // viewed page itself whose image changed (e.g. via the picker callback).
+      if (hook === "updateJournalEntryPage" && this.state.view?.uuid === doc.uuid) {
+        this.#syncHeaderImage(doc);
+      }
       this.#debouncedRender();
+    }
+
+    /** Patch the header thumbnail's content directly, without touching the mounted sheet. */
+    #syncHeaderImage(page) {
+      const button = this.element?.querySelector('.record-pane-header [data-action="pickRecordImage"]');
+      if (!button) return;
+      const src = page.system?.image || "";
+      button.innerHTML = src
+        ? `<img src="${foundry.utils.escapeHTML(src)}" alt="">`
+        : '<i class="fa-solid fa-image"></i>';
     }
 
     _onFirstRender(context, options) {
@@ -558,6 +578,23 @@ export function HubMixin(Base) {
         })}</p>`
       });
       if (confirmed) await Timepoints.deleteTimepoint(group, id);
+    }
+
+    /** Header thumbnail: editors pick a new image; viewers get a full-size popout. */
+    static async #onPickRecordImage() {
+      const page = this.#resolveViewedPage();
+      if (!page) return;
+      if (!page.canUserModify(game.user, "update")) {
+        const src = page.system?.image;
+        if (src) new foundry.applications.apps.ImagePopout({ src, window: { title: page.name } }).render(true);
+        return;
+      }
+      const FilePickerImpl = foundry.applications.apps.FilePicker.implementation;
+      new FilePickerImpl({
+        type: "image",
+        current: page.system?.image || "",
+        callback: (path) => page.update({ "system.image": path })
+      }).render(true);
     }
 
     static async #onOpenLink(event, target) {
@@ -867,10 +904,22 @@ export function HubMixin(Base) {
           inGroup: viewedPage.parent?.getFlag("core", "sheetClass") === GROUP_SHEET_CLASS,
           isMarkdown: viewedPage.text?.format === CONST.JOURNAL_ENTRY_PAGE_FORMATS.MARKDOWN
         });
+        const isRecord = typeof viewedPage.type === "string" && viewedPage.type.startsWith("campaign-record.");
+        const tags = Array.from(viewedPage.system?.tags ?? []);
         context.view = {
           name: viewedPage.name,
           editing,
           canEdit,
+          isRecord,
+          image: viewedPage.system?.image || "",
+          tags,
+          tagCount: tags.length,
+          headerActions: buildHeaderActions({
+            isRecord,
+            canEdit,
+            hasImage: Boolean(viewedPage.system?.image),
+            tagCount: tags.length
+          }),
           nameEditable: isNameEditable({
             canEdit,
             editing,

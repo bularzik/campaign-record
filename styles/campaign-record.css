@@ -778,6 +778,31 @@
   display: none;
 }
 
+/* Hero image in the record body: capped and contained (was unstyled). */
+.record-pane-mount .record-image {
+  display: block;
+  max-width: 100%;
+  max-height: 300px;
+  object-fit: contain;
+  margin: 0 auto 0.5rem;
+  border: none;
+}
+/* Header thumbnail button. */
+.record-pane-header .record-image-button {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  overflow: hidden;
+}
+.record-pane-header .record-image-button img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border: none;
+  border-radius: 3px;
+}
+
 /* Narrow left-index rows: icon + name only. */
 .campaign-hub .hub-index .record-row {
   grid-template-columns: 2rem minmax(0, 1fr);
