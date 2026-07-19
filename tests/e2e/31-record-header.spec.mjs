@@ -67,6 +67,8 @@ test.describe("record pane header: image & tags", () => {
     await popover.locator('input[name="tag-add"]').press("Enter");
     await expect(hub.locator('.tag-chip[data-tag="ally"]')).toBeVisible();
     await expect(tagButton.locator(".tag-count")).toHaveText("1");
+    // The input clears after a successful add (not repopulated by the sync hook).
+    await expect(hub.locator('.tag-popover input[name="tag-add"]')).toHaveValue("");
 
     // Duplicate (case-insensitive) is a no-op.
     await hub.locator('.tag-popover input[name="tag-add"]').fill("ALLY");

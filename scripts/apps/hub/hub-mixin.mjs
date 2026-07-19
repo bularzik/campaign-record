@@ -1232,6 +1232,11 @@ export function HubMixin(Base) {
           if (!page?.canUserModify(game.user, "update")) return;
           const next = normalizeTagAdd(Array.from(page.system?.tags ?? []), input.value);
           if (!next) { input.value = ""; return; }
+          // Clear before the update: the same-client updateJournalEntryPage hook
+          // runs #syncTagPopover, which snapshots/restores the input's value when
+          // it holds focus. Clearing first means it snapshots an empty field, so
+          // the committed tag doesn't linger in the input after the add.
+          input.value = "";
           await page.update({ "system.tags": next });
           // Patch the popover directly rather than render({parts:["record"]}), which
           // would reparent the mounted page sheet (see #syncTagPopover) — and restore
