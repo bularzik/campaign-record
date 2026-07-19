@@ -36,3 +36,16 @@ export function checklistAssigneeUpdates(pages, userCharacters) {
   }
   return updates;
 }
+
+/** Sheet class pinned to groups created before the v1.1.0 GroupHubSheet rename. */
+export const LEGACY_GROUP_SHEET_CLASS = "campaign-record.CampaignGroupSheet";
+
+/**
+ * Schema 6: should this group's core sheetClass flag be rewritten to the
+ * current GroupHubSheet class? Only the exact legacy value qualifies —
+ * missing flags (migration 2 fills those) and user-chosen foreign sheets
+ * pass through, so re-running is a no-op.
+ */
+export function needsSheetClassRewrite(flag) {
+  return flag === LEGACY_GROUP_SHEET_CLASS;
+}

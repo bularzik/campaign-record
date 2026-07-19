@@ -1,5 +1,5 @@
 import { MODULE_ID, GROUP_FLAG, SCHEMA_VERSION, SCHEMA_SETTING, GROUP_SHEET_CLASS, typeId } from "../constants.mjs";
-import { pendingMigrations, isDowngrade, checklistAssigneeUpdates } from "../logic/migrations.mjs";
+import { pendingMigrations, isDowngrade, checklistAssigneeUpdates, needsSheetClassRewrite } from "../logic/migrations.mjs";
 import { getGroups } from "./groups.mjs";
 import { addLink } from "./timepoints.mjs";
 import { recordLinkMigrationEntries } from "../logic/timeline-links.mjs";
@@ -93,6 +93,20 @@ export const MIGRATIONS = [
           .map((p) => ({ id: p.id, items: p.system.toObject().items }));
         const updates = checklistAssigneeUpdates(pages, userCharacters);
         if (updates.length) await group.updateEmbeddedDocuments("JournalEntryPage", updates);
+      }
+    }
+  }
+  ,{
+    version: 6,
+    // v1.1.0 renamed the pinned group sheet CampaignGroupSheet → GroupHubSheet,
+    // but migration 2 skips groups whose flag is already set, so pre-v1.1.0
+    // groups kept the stale class: they open in the system journal sheet and
+    // fail every inGroup check (no inline editing). Rewrite exactly the
+    // legacy value; current or user-chosen foreign sheets pass through.
+    async run() {
+      for (const group of getGroups()) {
+        if (!needsSheetClassRewrite(group.flags?.core?.sheetClass)) continue;
+        await group.update({ "flags.core.sheetClass": GROUP_SHEET_CLASS });
       }
     }
   }
