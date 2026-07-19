@@ -24,13 +24,26 @@ other's runs. The harness enforces exclusive access — follow this contract.
 4. **All test-created world data uses the `E2E ` name prefix** — groups,
    actors, everything. The hygiene sweep deletes only that prefix.
 
+## Test tiers (2026-07-18 policy)
+
+- **Feature development** (brainstorming → plan → implementation tasks →
+  final branch review): run `npm run e2e:smoke` (~2 min boot/core sanity)
+  plus the spec files that cover the changed code. Do NOT run the full
+  suite per task, per branch, or in the final review.
+- **Publish gate**: the full suite (`npx playwright test`) runs exactly
+  once per release — when the user asks to publish, before the version
+  bump/tag. A failure blocks the release until fixed or the user
+  explicitly waives it.
+- Run the full suite outside the publish gate only when the user
+  explicitly asks for one.
+
 ## Efficiency rules (from the 2026-07-09 retro)
 
 - Wait on test runs in the **foreground** — never park on a background
   monitor that needs an external nudge to resume.
 - While debugging, iterate on a **single spec**
-  (`npx playwright test tests/e2e/NN-name.spec.mjs`); run the full suite
-  once, at the end.
+  (`npx playwright test tests/e2e/NN-name.spec.mjs`); the full suite is
+  reserved for the publish gate (see Test tiers).
 - A test failure that makes no sense against the code you just wrote may
   mean the environment isn't serving your code — the deployment check in
   global setup should catch this; trust its error over your debugging
