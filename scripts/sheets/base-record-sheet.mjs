@@ -63,6 +63,19 @@ export class BaseRecordSheet extends JournalEntryPageHandlebarsSheet {
   }
 
   /**
+   * Pane-embedded sheets (RecordPane mounts with `window.frame: false`) drop
+   * core's `header` edit part — its name input duplicates the pane title-bar
+   * input, which is the single name editor in the pane. Framed sheets (a
+   * record page in an ordinary journal) keep core's field: no title bar there.
+   * Core's heading-level select lives in the same part and goes with it.
+   */
+  _configureRenderParts(options) {
+    const parts = super._configureRenderParts(options);
+    if (this.options.window.frame === false) delete parts.header;
+    return parts;
+  }
+
+  /**
    * While the user is focused in an inline-editable section, defer re-renders
    * (triggered by our own auto-saves or by remote updates) so the active
    * control isn't destroyed under the cursor. Flushed on focusout.

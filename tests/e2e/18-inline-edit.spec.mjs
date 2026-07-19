@@ -262,4 +262,38 @@ test.describe("inline-editable record views", () => {
       { groupId: ids.groupId, pageId: ids.pageId }
     );
   });
+
+  test("manual edit mode has exactly one name editor (the pane title input)", async () => {
+    await gmPage.evaluate(() => game.settings.set("campaign-record", "inlineEditing", false));
+    await gmPage.evaluate(
+      async ({ groupId, pageId }) => {
+        const sheet = game.journal.get(groupId).sheet;
+        await sheet.render({ force: true });
+        await sheet.goToPage(pageId);
+      },
+      { groupId: ids.groupId, pageId: ids.pageId }
+    );
+    const header = gmPage.locator(".group-hub .record-pane-header");
+    await header.locator('[data-action="toggleEditMode"]').click();
+    // The record's own edit form mounts…
+    await expect(gmPage.locator(".group-hub .record-pane-mount .record-edit")).toHaveCount(1);
+    // …with the pane title input as the single name editor: core's
+    // page-header name field must not render inside the mount.
+    await expect(header.locator("input.record-pane-title")).toHaveCount(1);
+    await expect(gmPage.locator('.group-hub .record-pane-mount input[name="name"]')).toHaveCount(0);
+    // Renaming through the title input still persists (saves on change).
+    const title = header.locator("input.record-pane-title");
+    await title.fill("E2E Inline Quest Renamed");
+    await title.dispatchEvent("change");
+    await expect
+      .poll(() =>
+        gmPage.evaluate(
+          ({ groupId, pageId }) => game.journal.get(groupId).pages.get(pageId).name,
+          { groupId: ids.groupId, pageId: ids.pageId }
+        )
+      )
+      .toBe("E2E Inline Quest Renamed");
+    // Restore the setting for any later specs sharing the storage state.
+    await gmPage.evaluate(() => game.settings.set("campaign-record", "inlineEditing", true));
+  });
 });
