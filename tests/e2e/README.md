@@ -26,8 +26,10 @@ npm run e2e:smoke         # ~2 min sanity subset (boot, env-lock, records)
 
 Choosing what to run: while iterating on a feature, run the spec files that
 cover it; use `npm run e2e:smoke` as a quick mid-task sanity check that the
-module still boots and core record flows work; run the full suite before
-merging a branch.
+module still boots and core record flows work. The full suite is the
+**publish gate**: it runs once per release, right before the version
+bump/tag — not per feature branch (see `.claude/skills/foundry-e2e/SKILL.md`,
+"Test tiers").
 
 Global setup automatically: starts the server (or restarts it into the test
 world if a different world is active), logs in as Gamemaster, enables the
