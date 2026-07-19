@@ -81,7 +81,7 @@ test.describe("record pane header: image & tags", () => {
     await hub.locator(".record-pane-title").click();
     await expect(hub.locator(".tag-popover")).toHaveCount(0);
 
-    await deleteGroupsByPrefix(page, "E2E Tag");
+    await deleteGroupsByPrefix(page, "E2E Tag Group");
   });
 
   test("a player sees tags read-only: no remove links, no add input", async ({ browser, page }) => {

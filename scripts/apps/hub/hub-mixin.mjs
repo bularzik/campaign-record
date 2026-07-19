@@ -263,11 +263,13 @@ export function HubMixin(Base) {
       }
       // The "record" part is deliberately excluded from #debouncedRender's targets
       // (see below) so an unrelated document change never re-mounts the open page
-      // sheet and tears down its editor. That means the header thumbnail — part
-      // of that same part's markup — needs its own out-of-band sync when it's the
-      // viewed page itself whose image changed (e.g. via the picker callback).
+      // sheet and tears down its editor. That means the header thumbnail and the
+      // tag button/popover — part of that same part's markup — need their own
+      // out-of-band sync when it's the viewed page itself that changed (e.g. via
+      // the picker callback, or a tag edit arriving from another connected client).
       if (hook === "updateJournalEntryPage" && this.state.view?.uuid === doc.uuid) {
         this.#syncHeaderImage(doc);
+        this.#syncTagPopover();
       }
       this.#debouncedRender();
     }
