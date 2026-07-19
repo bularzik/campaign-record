@@ -84,6 +84,7 @@ walk only the manual section below with two browsers.
 - [ ] With two clients viewing the same record, tag and image changes made on
       one client appear on the other (tag-count badge, an open tag popover, and
       the header thumbnail all update live).
+- [ ] A group created before v1.1.0 (legacy `CampaignGroupSheet` flag) opens as the hub after migration, and its records inline-edit with the setting on; in manual edit mode the pane shows exactly one name editor (the title-bar input).
 - [ ] Drop an Actor from the sidebar onto an Encounter sheet and an Item onto
       a Shop sheet (real pointer drag; only synthetic drops are automated).
 - [ ] Drop an Encounter record onto a Loot sheet to set its source (and a

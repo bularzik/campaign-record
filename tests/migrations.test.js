@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { pendingMigrations, isDowngrade, migratedAssignee, checklistAssigneeUpdates } from "../scripts/logic/migrations.mjs";
+import { pendingMigrations, isDowngrade, migratedAssignee, checklistAssigneeUpdates, needsSheetClassRewrite, LEGACY_GROUP_SHEET_CLASS } from "../scripts/logic/migrations.mjs";
 
 const reg = [
   { version: 2, run: () => {} },
@@ -75,5 +75,19 @@ describe("assignee migration mapping", () => {
     const first = checklistAssigneeUpdates(pages, users);
     const migrated = [{ id: "p1", items: first[0]["system.items"] }];
     expect(checklistAssigneeUpdates(migrated, users)).toEqual([]);
+  });
+});
+
+describe("group sheet-class rewrite (schema 6)", () => {
+  it("rewrites exactly the legacy pre-v1.1.0 class", () => {
+    expect(LEGACY_GROUP_SHEET_CLASS).toBe("campaign-record.CampaignGroupSheet");
+    expect(needsSheetClassRewrite(LEGACY_GROUP_SHEET_CLASS)).toBe(true);
+  });
+
+  it("leaves current, foreign, and missing values untouched", () => {
+    expect(needsSheetClassRewrite("campaign-record.GroupHubSheet")).toBe(false);
+    expect(needsSheetClassRewrite("monks-enhanced-journal.MEJSheet")).toBe(false);
+    expect(needsSheetClassRewrite(undefined)).toBe(false);
+    expect(needsSheetClassRewrite("")).toBe(false);
   });
 });

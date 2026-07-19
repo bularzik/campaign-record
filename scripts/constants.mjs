@@ -42,7 +42,7 @@ export function recordIcon(shortType) {
 }
 
 /** Structural schema version of world data written by this module. */
-export const SCHEMA_VERSION = 5;
+export const SCHEMA_VERSION = 6;
 export const SCHEMA_SETTING = "schemaVersion";
 
 /** Client setting: record views are editable in place with auto-save. */
