@@ -2,7 +2,7 @@ import { isGroup } from "../data/groups.mjs";
 import { setTargetGroup, getTargetGroup } from "../settings/auto-target.mjs";
 import { MODULE_ID, typeId, ENCOUNTER_FLAG, DEPARTED_FLAG, AUTO_MEDIA_FLAG, MEDIA_CAPTURE_SETTING, DROP_MEDIA_ACTION } from "../constants.mjs";
 import { addTimepoint, addLink, getTimepoints, timepointsForRecord } from "../data/timepoints.mjs";
-import { matchPlaceForScene, pickLatestTimepoint, pickNewestTimepoint, collapseParticipants, mergeParticipants, summarizeOutcome, appendGalleryImage, mergeGalleryImages } from "../logic/auto-capture.mjs";
+import { matchPlaceForScene, pickLatestTimepoint, pickNewestTimepoint, collapseParticipants, mergeParticipants, summarizeOutcome, appendGalleryImage, mergeGalleryImages, resolveSharedMediaShare, installShareImageWrap } from "../logic/auto-capture.mjs";
 import { SOCKET_NAME } from "../presenter/socket.mjs";
 
 const PLACE_TYPE = typeId("place");
@@ -315,16 +315,32 @@ export function registerAutoCapture() {
   // file it onto the newest timepoint. shareImage fires no hook and the
   // socket emit doesn't echo to the sender, so wrap the prototype method
   // (the button calls `this.shareImage()` with no args); the sharing GM
-  // captures on their own client (single-writer, no relay).
+  // captures on their own client (single-writer, no relay). Registered via
+  // libWrapper when available so wraps coexist with other modules' (e.g.
+  // Monk's Common Display); classic patch otherwise.
   const ImagePopout = foundry.applications.apps.ImagePopout;
-  const originalShareImage = ImagePopout.prototype.shareImage;
-  ImagePopout.prototype.shareImage = function (options = {}) {
-    const result = originalShareImage.call(this, options);
-    if (game.user.isGM) {
-      const src = options.image ?? this.options?.src;
-      const caption = options.caption || this.options?.caption || options.title || this.options?.window?.title || "";
-      captureSharedMedia(src, caption);
-    }
-    return result;
+  const captureShare = (app, options) => {
+    const share = resolveSharedMediaShare({ isGM: game.user.isGM, options, appOptions: app.options });
+    if (share) captureSharedMedia(share.src, share.caption);
   };
+  installShareImageWrap({
+    libWrapperModule: game.modules.get("lib-wrapper"),
+    libWrapper: globalThis.libWrapper,
+    moduleId: MODULE_ID,
+    target: "foundry.applications.apps.ImagePopout.prototype.shareImage",
+    wrapper: function (wrapped, options = {}) {
+      const result = wrapped(options);
+      captureShare(this, options);
+      return result;
+    },
+    registerManual: () => {
+      const originalShareImage = ImagePopout.prototype.shareImage;
+      ImagePopout.prototype.shareImage = function (options = {}) {
+        const result = originalShareImage.call(this, options);
+        captureShare(this, options);
+        return result;
+      };
+    },
+    warn: (error) => console.warn("campaign-record | libWrapper.register failed; falling back to manual shareImage patch", error)
+  });
 }

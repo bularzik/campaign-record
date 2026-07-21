@@ -19,6 +19,15 @@
     "styles/campaign-record.css"
   ],
   "socket": true,
+  "relationships": {
+    "recommends": [
+      {
+        "id": "lib-wrapper",
+        "type": "module",
+        "reason": "Coordinates Campaign Record's Show-Players media capture wrap with other modules that wrap the same method."
+      }
+    ]
+  },
   "languages": [
     {
       "lang": "en",
