@@ -39,7 +39,7 @@ site ever appears).
 ## Design
 
 All changes inside `registerAutoCapture()` in `scripts/hooks/auto-capture.mjs`, which
-runs on the `setup` hook — libWrapper initializes at `init`, so its API is available
+runs on the `ready` hook — libWrapper initializes at `init`, so its API is available
 by then.
 
 - Extract the capture body into one shared function used by both paths:
