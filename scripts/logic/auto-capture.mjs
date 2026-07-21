@@ -121,3 +121,36 @@ export function mergeGalleryImages(existing, entries) {
   }
   return { images, added };
 }
+
+/**
+ * Resolve what a GM's "Show Players" share should file as media, or null when
+ * the current user isn't the sharing GM. `options` is the shareImage() call's
+ * argument; `appOptions` is the ImagePopout application's options.
+ * @returns {{src:string|undefined, caption:string}|null}
+ */
+export function resolveSharedMediaShare({ isGM, options = {}, appOptions = {} }) {
+  if (!isGM) return null;
+  return {
+    src: options.image ?? appOptions?.src,
+    caption: options.caption || appOptions?.caption || options.title || appOptions?.window?.title || ""
+  };
+}
+
+/**
+ * Install the shareImage capture wrap, preferring libWrapper when the
+ * lib-wrapper module is active and falling back to `registerManual` (the
+ * classic prototype patch) when it's inactive, missing, or registration
+ * throws. Returns which path was taken ("libwrapper" | "manual").
+ */
+export function installShareImageWrap({ libWrapperModule, libWrapper, moduleId, target, wrapper, registerManual, warn }) {
+  if (libWrapperModule?.active) {
+    try {
+      libWrapper.register(moduleId, target, wrapper, "WRAPPER");
+      return "libwrapper";
+    } catch (error) {
+      warn(error);
+    }
+  }
+  registerManual();
+  return "manual";
+}

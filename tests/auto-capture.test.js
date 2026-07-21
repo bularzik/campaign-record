@@ -1,5 +1,5 @@
-import { describe, it, expect } from "vitest";
-import { resolveTargetGroup, collapseParticipants, mergeParticipants, matchPlaceForScene, pickLatestTimepoint, summarizeOutcome, pickNewestTimepoint, isVideoSrc, appendGalleryImage, mergeGalleryImages } from "../scripts/logic/auto-capture.mjs";
+import { describe, it, expect, vi } from "vitest";
+import { resolveTargetGroup, collapseParticipants, mergeParticipants, matchPlaceForScene, pickLatestTimepoint, summarizeOutcome, pickNewestTimepoint, isVideoSrc, appendGalleryImage, mergeGalleryImages, resolveSharedMediaShare, installShareImageWrap } from "../scripts/logic/auto-capture.mjs";
 
 describe("resolveTargetGroup", () => {
   const groups = [{ id: "a" }, { id: "b" }];
@@ -178,5 +178,84 @@ describe("mergeGalleryImages", () => {
     const r = mergeGalleryImages(existing, []);
     expect(r.images).toEqual(existing);
     expect(r.added).toBe(0);
+  });
+});
+
+describe("resolveSharedMediaShare", () => {
+  it("returns null for non-GM users", () => {
+    expect(resolveSharedMediaShare({ isGM: false, options: { image: "a.png" }, appOptions: {} })).toBe(null);
+  });
+  it("prefers options.image over appOptions.src", () => {
+    const r = resolveSharedMediaShare({ isGM: true, options: { image: "a.png" }, appOptions: { src: "b.png" } });
+    expect(r.src).toBe("a.png");
+  });
+  it("falls back to appOptions.src when options.image is absent", () => {
+    const r = resolveSharedMediaShare({ isGM: true, options: {}, appOptions: { src: "b.png" } });
+    expect(r.src).toBe("b.png");
+  });
+  it("resolves caption through the fallback chain", () => {
+    expect(resolveSharedMediaShare({ isGM: true, options: { caption: "c1" }, appOptions: { caption: "c2" } }).caption).toBe("c1");
+    expect(resolveSharedMediaShare({ isGM: true, options: {}, appOptions: { caption: "c2" } }).caption).toBe("c2");
+    expect(resolveSharedMediaShare({ isGM: true, options: { title: "t1" }, appOptions: {} }).caption).toBe("t1");
+    expect(resolveSharedMediaShare({ isGM: true, options: {}, appOptions: { window: { title: "wt" } } }).caption).toBe("wt");
+    expect(resolveSharedMediaShare({ isGM: true, options: {}, appOptions: {} }).caption).toBe("");
+  });
+  it("tolerates missing options and appOptions", () => {
+    const r = resolveSharedMediaShare({ isGM: true });
+    expect(r).toEqual({ src: undefined, caption: "" });
+  });
+});
+
+describe("installShareImageWrap", () => {
+  const base = () => ({
+    moduleId: "campaign-record",
+    target: "foundry.applications.apps.ImagePopout.prototype.shareImage",
+    wrapper: () => {},
+    registerManual: vi.fn(),
+    warn: vi.fn()
+  });
+
+  it("registers through libWrapper when the module is active", () => {
+    const deps = base();
+    const register = vi.fn();
+    const mode = installShareImageWrap({
+      ...deps,
+      libWrapperModule: { active: true },
+      libWrapper: { register }
+    });
+    expect(mode).toBe("libwrapper");
+    expect(register).toHaveBeenCalledWith(deps.moduleId, deps.target, deps.wrapper, "WRAPPER");
+    expect(deps.registerManual).not.toHaveBeenCalled();
+  });
+
+  it("uses the manual patch when the module is inactive", () => {
+    const deps = base();
+    const mode = installShareImageWrap({
+      ...deps,
+      libWrapperModule: { active: false },
+      libWrapper: { register: vi.fn() }
+    });
+    expect(mode).toBe("manual");
+    expect(deps.registerManual).toHaveBeenCalledOnce();
+  });
+
+  it("uses the manual patch when the module is missing", () => {
+    const deps = base();
+    const mode = installShareImageWrap({ ...deps, libWrapperModule: undefined, libWrapper: undefined });
+    expect(mode).toBe("manual");
+    expect(deps.registerManual).toHaveBeenCalledOnce();
+  });
+
+  it("falls back to the manual patch and warns when libWrapper.register throws", () => {
+    const deps = base();
+    const boom = new Error("boom");
+    const mode = installShareImageWrap({
+      ...deps,
+      libWrapperModule: { active: true },
+      libWrapper: { register: vi.fn(() => { throw boom; }) }
+    });
+    expect(mode).toBe("manual");
+    expect(deps.warn).toHaveBeenCalledWith(boom);
+    expect(deps.registerManual).toHaveBeenCalledOnce();
   });
 });
