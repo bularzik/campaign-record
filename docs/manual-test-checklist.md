@@ -101,6 +101,9 @@ walk only the manual section below with two browsers.
 - [ ] On a non-dnd5e world, confirm Shop/Item drops still link items with
       blank price/rarity and NPC/PC linked actors show name/portrait without
       AC/HP.
+- [ ] In a world with lib-wrapper and Monk's Common Display active, no
+      libWrapper conflict warning names campaign-record on world load, and
+      "Show Players" still files the image onto the newest timepoint.
 
 ## Import / Export
 
