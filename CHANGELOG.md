@@ -4,6 +4,12 @@ All notable changes to this project are documented in this file. The format
 is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.1] - 2026-07-21
+
+### Fixed
+
+- Register shareImage capture via libWrapper when active (#38)
+
 ## [1.8.0] - 2026-07-19
 
 ### Added
@@ -15,10 +21,6 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ### Fixed
 
 - Stale group sheet-class flag migration (schema v6) + single name editor in pane edit mode (#37)
-
-### Notes
-
-- **World schema upgraded to v6** (v5: checklist assignees become character actors; v6: pre-v1.1.0 group sheet-class repair). Once a world loads under 1.8.0 and migrates, older module versions treat it as read-only.
 
 ## [1.7.0] - 2026-07-17
 
